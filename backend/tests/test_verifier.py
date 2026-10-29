@@ -1,0 +1,80 @@
+import uuid
+
+import pytest
+
+from app.agent.verifier import EvidenceItem, check_quote, normalize, verify_answer
+from app.tools.contracts import DraftClaim, FinalAnswerInput, Notice
+
+DOC = uuid.uuid4()
+OTHER = uuid.uuid4()
+PAGES = {
+    (DOC, 1): "The guest network is limited to 10 Mbps download\nand 2 Mbps upload for unregistered devices.",
+    (OTHER, 2): "Passwords must be changed every 90 days.",
+}
+LEDGER = {"E1": EvidenceItem("E1", DOC, "Acceptable Use", 1), "E2": EvidenceItem("E2", OTHER, "Passwords", 2)}
+
+
+async def page_text(document_id: uuid.UUID, page: int) -> str | None:
+    return PAGES.get((document_id, page))
+
+
+def test_normalize_ignores_case_whitespace_and_punctuation() -> None:
+    assert normalize("  The Guest-Network,\n limit! ") == "the guest network limit"
+
+
+@pytest.mark.parametrize(
+    ("quote", "expected"),
+    [
+        ("limited to 10 Mbps download and 2 Mbps upload", "exact_quote"),
+        ("LIMITED TO 10 mbps download   and 2 Mbps upload", "exact_quote"),
+        ("the network is limited to 10 Mbps download and 2 Mbps upload for devices", "overlap"),
+        ("limited to 100 Mbps", "failed"),
+        ("", "failed"),
+    ],
+)
+def test_check_quote(quote: str, expected: str) -> None:
+    assert check_quote(quote, PAGES[(DOC, 1)]) == expected
+
+
+async def test_verified_claims_get_numbered_citations() -> None:
+    draft = FinalAnswerInput(
+        summary="Guests get 10 Mbps. Passwords rotate every 90 days.",
+        claims=[
+            DraftClaim(text="Guest download is 10 Mbps.", evidence_ids=["E1"], quote="10 Mbps download"),
+            DraftClaim(text="Passwords rotate every 90 days.", evidence_ids=["E2"], quote="every 90 days"),
+            DraftClaim(text="Uploads are 2 Mbps.", evidence_ids=["E1"], quote="2 Mbps upload"),
+        ],
+    )
+    result = await verify_answer(draft, LEDGER, page_text)
+    assert result.ok
+    answer = result.answer
+    assert [c["index"] for c in answer["citations"]] == [1, 2]
+    assert answer["claims"][0]["citation_indexes"] == [1]
+    assert answer["claims"][2]["citation_indexes"] == [1]  # same page reuses the same citation
+    assert answer["stop_reason"] == "answered" and answer["unverified_claims"] == []
+
+
+async def test_unsupported_and_unknown_evidence_are_rejected() -> None:
+    draft = FinalAnswerInput(
+        summary="x",
+        claims=[
+            DraftClaim(text="Wrong quote.", evidence_ids=["E1"], quote="limited to 500 Mbps"),
+            DraftClaim(text="Never seen.", evidence_ids=["E9"], quote="anything"),
+            DraftClaim(text="Good.", evidence_ids=["E2"], quote="every 90 days"),
+        ],
+    )
+    result = await verify_answer(draft, LEDGER, page_text)
+    assert not result.ok and len(result.failures) == 2
+    assert [c["text"] for c in result.answer["claims"]] == ["Good."]
+    assert result.answer["unverified_claims"] == ["Wrong quote.", "Never seen."]
+    assert result.answer["partial"] is True
+
+
+async def test_no_supported_claims_means_insufficient_evidence() -> None:
+    draft = FinalAnswerInput(
+        summary="The documents do not cover that.",
+        notices=[Notice(kind="missing_evidence", text="Nothing about home internet reimbursement.")],
+    )
+    result = await verify_answer(draft, LEDGER, page_text)
+    assert result.ok and result.answer["stop_reason"] == "insufficient_evidence"
+    assert result.answer["notices"][0]["kind"] == "missing_evidence"
