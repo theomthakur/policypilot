@@ -94,7 +94,7 @@ async def hybrid_search(
 ) -> SearchResult:
     settings = get_settings()
     top_k = top_k or settings.search_top_k_default
-    vector = (await asyncio.to_thread(get_embedder().embed, [query]))[0]
+    vector = await asyncio.to_thread(get_embedder().embed_query, query)
     params: dict[str, object] = {
         "session_id": session_id,
         "no_filter": not document_ids,

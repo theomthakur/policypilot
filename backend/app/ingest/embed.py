@@ -13,6 +13,12 @@ class Embedder(Protocol):
 
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
+    def embed_query(self, text: str) -> list[float]: ...
+
+
+# BGE models are trained to embed short search queries with this instruction; passages are embedded as is.
+BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+
 
 class LocalEmbedder:
     """fastembed on ONNX Runtime. The model is pre-downloaded in the Docker image."""
@@ -21,10 +27,15 @@ class LocalEmbedder:
         from fastembed import TextEmbedding
 
         self.dim = dim
+        self._name = model
         self._model = TextEmbedding(model)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [vector.tolist() for vector in self._model.embed(texts, batch_size=32)]
+
+    def embed_query(self, text: str) -> list[float]:
+        prefix = BGE_QUERY_INSTRUCTION if "bge" in self._name.lower() else ""
+        return self.embed([prefix + text])[0]
 
 
 class FakeEmbedder:
@@ -43,6 +54,9 @@ class FakeEmbedder:
             norm = math.sqrt(sum(v * v for v in vector)) or 1.0
             out.append([v / norm for v in vector])
         return out
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed([text])[0]
 
 
 @lru_cache

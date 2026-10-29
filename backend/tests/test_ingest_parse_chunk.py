@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
+import numpy as np
 import pytest
 
 from app.ingest.chunk import chunk_page, chunk_pages, count_tokens
@@ -77,3 +79,24 @@ def test_fake_embedder_is_deterministic_and_normalized() -> None:
     assert a == b
     assert abs(sum(v * v for v in a) - 1.0) < 1e-6
     assert sum(x * y for x, y in zip(a, c, strict=True)) < sum(x * y for x, y in zip(a, b, strict=True))
+
+
+def test_local_embedder_prefixes_queries_for_bge_but_not_passages() -> None:
+    from app.ingest.embed import BGE_QUERY_INSTRUCTION, LocalEmbedder
+
+    seen: list[str] = []
+
+    class Stub:
+        def embed(self, texts: list[str], batch_size: int = 32) -> list[Any]:
+            seen.extend(texts)
+            return [np.array([1.0, 0.0]) for _ in texts]
+
+    embedder = LocalEmbedder.__new__(LocalEmbedder)
+    embedder._model, embedder._name, embedder.dim = Stub(), "BAAI/bge-small-en-v1.5", 2
+    embedder.embed(["a passage"])
+    embedder.embed_query("a question")
+    assert seen == ["a passage", BGE_QUERY_INSTRUCTION + "a question"]
+    seen.clear()
+    embedder._name = "sentence-transformers/all-MiniLM-L6-v2"
+    embedder.embed_query("a question")
+    assert seen == ["a question"]

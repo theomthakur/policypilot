@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     embedding_dim: int = 384
 
     # Retrieval
-    chunk_tokens: int = 350
-    chunk_overlap_tokens: int = 50
+    chunk_tokens: int = 200
+    chunk_overlap_tokens: int = 30
     search_candidates: int = 20
     search_top_k_default: int = 6
     rrf_k: int = 60

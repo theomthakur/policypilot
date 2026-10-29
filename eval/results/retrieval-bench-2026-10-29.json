@@ -1,0 +1,1357 @@
+{
+ "results": [
+  {
+   "variant": "PRODUCTION (350/50, small, Postgres FTS+vector RRF)",
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.761
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=n | dense",
+   "index_s": 7.5,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.69
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=n | bm25",
+   "index_s": 7.5,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.7,
+   "mrr": 0.825
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=n | hybrid",
+   "index_s": 7.5,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.793
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 7.5,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.783
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.683
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.75
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=y | dense",
+   "index_s": 7.5,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.717
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=y | hybrid",
+   "index_s": 7.5,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.81
+  },
+  {
+   "variant": "350/50 ctx=n small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 7.5,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=n | dense",
+   "index_s": 26.9,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.783
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=n | hybrid",
+   "index_s": 26.9,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.86
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 26.9,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.85
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=y | dense",
+   "index_s": 26.9,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=y | hybrid",
+   "index_s": 26.9,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.911
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 26.9,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.9
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.683
+  },
+  {
+   "variant": "350/50 ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.75
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=n | dense",
+   "index_s": 7.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.683
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=n | bm25",
+   "index_s": 7.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.8,
+   "mrr": 0.875
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=n | hybrid",
+   "index_s": 7.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.85
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 7.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.85
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.75
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=y | dense",
+   "index_s": 7.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.683
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=y | hybrid",
+   "index_s": 7.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.85
+  },
+  {
+   "variant": "350/50 ctx=y small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 7.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.85
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=n | dense",
+   "index_s": 26.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=n | hybrid",
+   "index_s": 26.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.912
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 26.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.9
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=y | dense",
+   "index_s": 26.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.783
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=y | hybrid",
+   "index_s": 26.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.863
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 26.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.85
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.75
+  },
+  {
+   "variant": "350/50 ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=n | dense",
+   "index_s": 7.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.725
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=n | bm25",
+   "index_s": 7.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=n | hybrid",
+   "index_s": 7.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.875
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 7.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.87
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.775
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.773
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=y | dense",
+   "index_s": 7.7,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.739
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=y | hybrid",
+   "index_s": 7.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.8,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.9
+  },
+  {
+   "variant": "200/30 ctx=n small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 7.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.8,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.9
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=n | dense",
+   "index_s": 23.0,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.725
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=n | hybrid",
+   "index_s": 23.0,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.793
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 23.0,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.783
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=y | dense",
+   "index_s": 23.0,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=y | hybrid",
+   "index_s": 23.0,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.87
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 23.0,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.864
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.775
+  },
+  {
+   "variant": "200/30 ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.773
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=n | dense",
+   "index_s": 7.7,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.725
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=n | bm25",
+   "index_s": 7.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.8,
+   "mrr": 0.95
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=n | hybrid",
+   "index_s": 7.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.863
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 7.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.773
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.781
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=y | dense",
+   "index_s": 7.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.775
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=y | hybrid",
+   "index_s": 7.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.925
+  },
+  {
+   "variant": "200/30 ctx=y small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 7.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.933,
+   "all_found@5": 0.9,
+   "mrr": 0.87
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=n | dense",
+   "index_s": 23.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=n | hybrid",
+   "index_s": 23.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.863
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 23.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=y | dense",
+   "index_s": 23.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=y | hybrid",
+   "index_s": 23.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.863
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 23.3,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.85
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.773
+  },
+  {
+   "variant": "200/30 ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.781
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=n | dense",
+   "index_s": 8.6,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.69
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=n | bm25",
+   "index_s": 8.6,
+   "recall@3": 0.733,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.8,
+   "mrr": 0.767
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=n | hybrid",
+   "index_s": 8.6,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.81
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 8.6,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.783
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.833
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=y | dense",
+   "index_s": 8.6,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.7
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=y | hybrid",
+   "index_s": 8.6,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.81
+  },
+  {
+   "variant": "500/75 ctx=n small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 8.6,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.8
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=n | dense",
+   "index_s": 23.7,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.658
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=n | hybrid",
+   "index_s": 23.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.8
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 23.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.783
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=y | dense",
+   "index_s": 23.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.733
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=y | hybrid",
+   "index_s": 23.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.81
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 23.7,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.8
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.8
+  },
+  {
+   "variant": "500/75 ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.833
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=n | dense",
+   "index_s": 8.2,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.658
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=n | bm25",
+   "index_s": 8.2,
+   "recall@3": 0.733,
+   "all_found@3": 0.6,
+   "recall@5": 0.867,
+   "all_found@5": 0.8,
+   "mrr": 0.783
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=n | hybrid",
+   "index_s": 8.2,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.761
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 8.2,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.75
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.783
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.85
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=y | dense",
+   "index_s": 8.2,
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.667
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=y | hybrid",
+   "index_s": 8.2,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.76
+  },
+  {
+   "variant": "500/75 ctx=y small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 8.2,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.75
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=n | dense",
+   "index_s": 25.6,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.75
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=n | hybrid",
+   "index_s": 25.6,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.861
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 25.6,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.85
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=y | dense",
+   "index_s": 25.6,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.725
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=y | hybrid",
+   "index_s": 25.6,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.863
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 25.6,
+   "recall@3": 0.8,
+   "all_found@3": 0.8,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.85
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.783
+  },
+  {
+   "variant": "500/75 ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.867,
+   "all_found@3": 0.9,
+   "recall@5": 0.867,
+   "all_found@5": 0.9,
+   "mrr": 0.85
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=n | dense",
+   "index_s": 5.3,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.628
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=n | bm25",
+   "index_s": 5.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.6,
+   "recall@5": 0.8,
+   "all_found@5": 0.7,
+   "mrr": 0.817
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=n | hybrid",
+   "index_s": 5.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.8,
+   "mrr": 0.683
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 5.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.683
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.583
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.6,
+   "all_found@5": 0.5,
+   "mrr": 0.75
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=y | dense",
+   "index_s": 5.3,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.628
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=y | hybrid",
+   "index_s": 5.3,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.683
+  },
+  {
+   "variant": "whole-page ctx=n small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 5.3,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.675
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=n | dense",
+   "index_s": 19.7,
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.637
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=n | hybrid",
+   "index_s": 19.7,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.76
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 19.7,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.75
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=y | dense",
+   "index_s": 19.7,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.65
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=y | hybrid",
+   "index_s": 19.7,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.817
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 19.7,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.764
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.583
+  },
+  {
+   "variant": "whole-page ctx=n base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.6,
+   "all_found@5": 0.5,
+   "mrr": 0.75
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=n | dense",
+   "index_s": 6.1,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.693
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=n | bm25",
+   "index_s": 6.1,
+   "recall@3": 0.733,
+   "all_found@3": 0.6,
+   "recall@5": 0.8,
+   "all_found@5": 0.7,
+   "mrr": 0.867
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=n | hybrid",
+   "index_s": 6.1,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.793
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 6.1,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.725
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.533,
+   "all_found@5": 0.4,
+   "mrr": 0.683
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=n | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.533,
+   "all_found@5": 0.4,
+   "mrr": 0.75
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=y | dense",
+   "index_s": 6.1,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.683
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=y | hybrid",
+   "index_s": 6.1,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.708
+  },
+  {
+   "variant": "whole-page ctx=y small qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 6.1,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.67
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=n | dense",
+   "index_s": 16.9,
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.6,
+   "all_found@5": 0.5,
+   "mrr": 0.717
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=n | hybrid",
+   "index_s": 16.9,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.762
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=n | hybrid 0.6d/0.4b",
+   "index_s": 16.9,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.733,
+   "all_found@5": 0.7,
+   "mrr": 0.8
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=y | dense",
+   "index_s": 16.9,
+   "recall@3": 0.6,
+   "all_found@3": 0.5,
+   "recall@5": 0.667,
+   "all_found@5": 0.6,
+   "mrr": 0.698
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=y | hybrid",
+   "index_s": 16.9,
+   "recall@3": 0.667,
+   "all_found@3": 0.6,
+   "recall@5": 0.8,
+   "all_found@5": 0.7,
+   "mrr": 0.77
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=y | hybrid 0.6d/0.4b",
+   "index_s": 16.9,
+   "recall@3": 0.733,
+   "all_found@3": 0.7,
+   "recall@5": 0.8,
+   "all_found@5": 0.7,
+   "mrr": 0.82
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-6-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.533,
+   "all_found@5": 0.4,
+   "mrr": 0.683
+  },
+  {
+   "variant": "whole-page ctx=y base qprefix=y | hybrid+rerank ms-marco-MiniLM-L-12-v2",
+   "recall@3": 0.533,
+   "all_found@3": 0.4,
+   "recall@5": 0.533,
+   "all_found@5": 0.4,
+   "mrr": 0.75
+  }
+ ],
+ "calibration": {
+  "cosine small qprefix=n": {
+   "positive": [
+    0.765,
+    0.767,
+    0.8,
+    0.803,
+    0.86,
+    0.728,
+    0.856,
+    0.731,
+    0.867,
+    0.805
+   ],
+   "negative": [
+    0.717,
+    0.717,
+    0.702,
+    0.62,
+    0.636,
+    0.512,
+    0.588,
+    0.572,
+    0.509
+   ]
+  },
+  "cosine small qprefix=y": {
+   "positive": [
+    0.75,
+    0.755,
+    0.782,
+    0.799,
+    0.841,
+    0.735,
+    0.831,
+    0.708,
+    0.852,
+    0.78
+   ],
+   "negative": [
+    0.687,
+    0.687,
+    0.669,
+    0.599,
+    0.611,
+    0.501,
+    0.563,
+    0.54,
+    0.5
+   ]
+  },
+  "cosine base qprefix=n": {
+   "positive": [
+    0.697,
+    0.728,
+    0.742,
+    0.742,
+    0.799,
+    0.699,
+    0.837,
+    0.675,
+    0.793,
+    0.746
+   ],
+   "negative": [
+    0.654,
+    0.654,
+    0.752,
+    0.565,
+    0.654,
+    0.497,
+    0.554,
+    0.533,
+    0.482
+   ]
+  },
+  "cosine base qprefix=y": {
+   "positive": [
+    0.694,
+    0.714,
+    0.727,
+    0.699,
+    0.769,
+    0.674,
+    0.784,
+    0.634,
+    0.759,
+    0.717
+   ],
+   "negative": [
+    0.608,
+    0.608,
+    0.697,
+    0.507,
+    0.6,
+    0.434,
+    0.502,
+    0.471,
+    0.425
+   ]
+  },
+  "rerank ms-marco-MiniLM-L-6-v2": {
+   "positive": [
+    2.178,
+    2.791,
+    1.68,
+    5.557,
+    5.487,
+    1.726,
+    9.147,
+    -5.074,
+    4.057,
+    4.885
+   ],
+   "negative": [
+    -3.037,
+    -3.037,
+    2.562,
+    -10.528,
+    -3.399,
+    -11.265,
+    -8.09,
+    -10.046,
+    -10.422
+   ]
+  },
+  "rerank ms-marco-MiniLM-L-12-v2": {
+   "positive": [
+    3.519,
+    2.756,
+    1.789,
+    5.193,
+    6.672,
+    0.896,
+    9.251,
+    -3.106,
+    3.534,
+    4.478
+   ],
+   "negative": [
+    -6.845,
+    -6.845,
+    2.296,
+    -10.537,
+    -1.934,
+    -11.223,
+    -7.41,
+    -9.581,
+    -9.957
+   ]
+  }
+ },
+ "gold_cases": 10
+}
