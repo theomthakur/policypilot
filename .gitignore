@@ -1,0 +1,25 @@
+# Private planning material (kept local; not for the public repo)
+brief/
+plans/
+
+# Secrets and environments
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
