@@ -134,6 +134,10 @@ def get_model() -> ChatModel:
     if settings.llm_provider == "fake":
         # No scripted behavior in a running server: any turn will say the model is not configured.
         return ScriptedModel([])
+    if settings.llm_provider == "offline":
+        from app.llm.offline import OfflineModel
+
+        return OfflineModel()
     return OpenAICompatibleModel(settings)
 
 

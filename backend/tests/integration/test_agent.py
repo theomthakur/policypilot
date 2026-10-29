@@ -383,3 +383,26 @@ def test_baseline_retrieves_once_and_generates_once(make_pdf: Callable[..., Path
     clear_caches()
     assert outcome.stop_reason == "answered" and outcome.totals.steps == 1 and outcome.totals.tool_calls == 1
     assert model.forced == ["final_answer"] and "plan" not in emit.types()
+
+
+def test_offline_model_answers_from_real_retrieval_with_verified_citation(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.offline import OfflineModel
+
+    _load(make_pdf, tmp_path)
+    outcome, events = _run(OfflineModel(), "What is the guest network download limit in Mbps?")
+    assert outcome.stop_reason == "answered"
+    citation = outcome.answer["citations"][0]
+    assert citation["verified"] and citation["page"] == 1 and "Guest" in citation["title"]
+    assert "plan" in events.types() and "verify" in events.types()
+
+
+def test_offline_model_reports_missing_evidence_after_one_revision(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.offline import OfflineModel
+
+    _load(make_pdf, tmp_path)
+    outcome, _ = _run(OfflineModel(), "zebra quantum reimbursement")
+    assert outcome.stop_reason == "insufficient_evidence" and outcome.answer["citations"] == []

@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     ingest_status_ttl_seconds: int = 3_600
 
     # LLM
-    llm_provider: Literal["openai_compatible", "fake"] = "openai_compatible"
+    llm_provider: Literal["openai_compatible", "fake", "offline"] = "openai_compatible"
     llm_base_url: str = "https://openrouter.ai/api/v1"
     llm_api_key: str = ""
     llm_model: str = "openai/gpt-4o-mini"
@@ -86,7 +86,7 @@ class Settings(BaseSettings):
 
     @property
     def llm_configured(self) -> bool:
-        return self.llm_provider == "fake" or bool(self.llm_api_key)
+        return self.llm_provider in ("fake", "offline") or bool(self.llm_api_key)
 
 
 @lru_cache
