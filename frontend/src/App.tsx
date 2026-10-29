@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   api,
+  ApiError,
   clearDemoPasscode,
   errorMessage,
   setDemoPasscode,
@@ -115,6 +116,12 @@ export function App() {
     if (!sessionId && !authRequired) void createSession().catch(() => undefined)
   }, [authRequired, createSession, sessionId])
 
+  // A saved session id can outlive its cookie or database; start a fresh session instead of failing forever.
+  useEffect(() => {
+    if (session.error instanceof ApiError && session.error.status === 404)
+      void createSession().catch(() => undefined)
+  }, [createSession, session.error])
+
   useEffect(() => {
     if (!session.data || messages.length > 0) return
     setMessages(
@@ -166,7 +173,14 @@ export function App() {
       setActiveTurnId(response.turn_id)
       setMobilePanel('conversation')
     } catch (error) {
-      setSendError(errorMessage(error))
+      if (error instanceof ApiError && error.status === 404) {
+        void createSession().catch(() => undefined)
+        setSendError(
+          'Your session expired, so a new one was started. Please send your message again.',
+        )
+      } else {
+        setSendError(errorMessage(error))
+      }
       setMessages((current) => current.slice(0, -1))
     }
   }
