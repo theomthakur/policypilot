@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/theomthakur/policypilot/contracts/answer.schema.json",
+  "title": "Answer",
+  "description": "AnswerDraft is what the model submits through final_answer. Answer is what the API returns after verification.",
+  "$defs": {
+    "DraftClaim": {
+      "type": "object",
+      "required": ["text", "evidence_ids", "quote"],
+      "properties": {
+        "text": { "type": "string", "maxLength": 600 },
+        "evidence_ids": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 4 },
+        "quote": { "type": "string", "maxLength": 400, "description": "Short verbatim supporting text from the cited page." }
+      },
+      "additionalProperties": false
+    },
+    "AnswerDraft": {
+      "type": "object",
+      "required": ["summary", "claims"],
+      "properties": {
+        "summary": { "type": "string", "maxLength": 1500, "description": "Readable answer. Claims carry the citations." },
+        "claims": { "type": "array", "items": { "$ref": "#/$defs/DraftClaim" }, "maxItems": 12 },
+        "notices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "text"],
+            "properties": {
+              "kind": { "type": "string", "enum": ["conflict", "missing_evidence", "partial", "assumption"] },
+              "text": { "type": "string", "maxLength": 500 },
+              "evidence_ids": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Citation": {
+      "type": "object",
+      "required": ["index", "document_id", "title", "page", "quote", "verified"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 1, "description": "Number shown in the UI, e.g. [1]." },
+        "document_id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "page": { "type": "integer" },
+        "quote": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "check": { "type": "string", "enum": ["exact_quote", "overlap", "failed"] }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["summary", "claims", "citations", "notices", "unverified_claims", "stop_reason"],
+  "properties": {
+    "summary": { "type": "string" },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "citation_indexes"],
+        "properties": {
+          "text": { "type": "string" },
+          "citation_indexes": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+        }
+      }
+    },
+    "citations": { "type": "array", "items": { "$ref": "#/$defs/Citation" } },
+    "notices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "text"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["conflict", "missing_evidence", "partial", "assumption"] },
+          "text": { "type": "string" },
+          "citation_indexes": { "type": "array", "items": { "type": "integer" } }
+        }
+      }
+    },
+    "unverified_claims": { "type": "array", "items": { "type": "string" }, "description": "Claims removed because verification failed." },
+    "stop_reason": {
+      "type": "string",
+      "enum": ["answered", "insufficient_evidence", "limit_steps", "limit_tool_calls", "limit_time", "limit_tokens", "budget_exhausted", "tool_failure"]
+    },
+    "partial": { "type": "boolean", "default": false }
+  }
+}

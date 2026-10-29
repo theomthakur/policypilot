@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/theomthakur/policypilot/contracts/trace-event.schema.json",
+  "title": "TraceEvent",
+  "description": "One event in a turn's execution trace. Streamed over SSE and stored in trace_events. Contains actions and summaries only, never private chain-of-thought.",
+  "type": "object",
+  "required": ["turn_id", "seq", "type", "status", "ts"],
+  "properties": {
+    "turn_id": { "type": "string", "format": "uuid" },
+    "seq": { "type": "integer", "minimum": 0, "description": "Order within the turn, starting at 0." },
+    "ts": { "type": "string", "format": "date-time" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "turn_started",
+        "plan",
+        "tool_call",
+        "tool_result",
+        "evaluate",
+        "query_revised",
+        "clarification_requested",
+        "synthesize",
+        "verify",
+        "answer",
+        "limit_reached",
+        "injection_flagged",
+        "turn_completed"
+      ]
+    },
+    "status": { "type": "string", "enum": ["ok", "empty", "error", "retried", "blocked", "weak", "info"] },
+    "state": {
+      "type": "string",
+      "enum": ["PLAN", "ACT", "OBSERVE", "EVALUATE", "REVISE", "CLARIFY", "SYNTHESIZE", "VERIFY", "EMIT", "PARTIAL_ANSWER"],
+      "description": "Agent state machine state that produced the event."
+    },
+    "tool": {
+      "type": ["string", "null"],
+      "enum": ["list_documents", "search_documents", "read_document_pages", "get_document_outline", null]
+    },
+    "input": { "type": ["object", "null"], "description": "Validated tool arguments (tool_call events)." },
+    "summary": { "type": "string", "maxLength": 500, "description": "One readable line for the trace panel." },
+    "result": {
+      "type": ["object", "null"],
+      "description": "Bounded result summary (tool_result events): hit count, weak flag, top documents and pages. Never full page text.",
+      "properties": {
+        "hits": { "type": "integer" },
+        "weak": { "type": "boolean" },
+        "error_code": { "type": ["string", "null"] },
+        "pages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["document_id", "page"],
+            "properties": {
+              "document_id": { "type": "string", "format": "uuid" },
+              "title": { "type": "string" },
+              "page": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    "sub_questions": { "type": "array", "items": { "type": "string" }, "description": "plan events." },
+    "revision": {
+      "type": ["object", "null"],
+      "description": "query_revised events: what changed and why (the result-driven change of action).",
+      "properties": {
+        "previous_query": { "type": "string" },
+        "new_query": { "type": "string" },
+        "reason": { "type": "string", "enum": ["no_hits", "low_score", "uncovered_sub_question", "single_document", "conflict", "duplicate_blocked"] }
+      }
+    },
+    "citations": {
+      "type": "array",
+      "description": "verify and answer events.",
+      "items": {
+        "type": "object",
+        "required": ["document_id", "page", "verified"],
+        "properties": {
+          "document_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "page": { "type": "integer" },
+          "verified": { "type": "boolean" }
+        }
+      }
+    },
+    "limit": {
+      "type": ["object", "null"],
+      "properties": {
+        "name": { "type": "string", "enum": ["steps", "tool_calls", "query_revisions", "time", "tokens", "budget"] },
+        "value": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    },
+    "attempt": { "type": "integer", "minimum": 1, "description": "Retry attempt number for tool_call/tool_result." },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "tokens": {
+      "type": ["object", "null"],
+      "properties": {
+        "prompt": { "type": "integer" },
+        "completion": { "type": "integer" }
+      }
+    },
+    "stop_reason": {
+      "type": ["string", "null"],
+      "enum": ["answered", "clarification_needed", "insufficient_evidence", "limit_steps", "limit_tool_calls", "limit_time", "limit_tokens", "budget_exhausted", "tool_failure", "error", null]
+    }
+  },
+  "additionalProperties": false
+}

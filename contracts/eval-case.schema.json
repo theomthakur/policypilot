@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/theomthakur/policypilot/contracts/eval-case.schema.json",
+  "title": "Evaluation case",
+  "description": "One case in eval/cases.yaml. The runner sends each turn through the API in agent mode and baseline mode.",
+  "type": "object",
+  "required": ["id", "category", "turns", "expected_behavior", "checks", "applies_to_baseline"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^CASE-[0-9]+$" },
+    "category": {
+      "type": "string",
+      "enum": ["simple_lookup", "multi_document", "ambiguous", "insufficient_evidence", "conflict", "prompt_injection", "tool_failure", "adaptive_retrieval", "single_document_multi_part", "follow_up"]
+    },
+    "requirement_ids": { "type": "array", "items": { "type": "string" } },
+    "turns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": { "type": "string" },
+          "is_clarification_reply": { "type": "boolean", "default": false },
+          "fault_inject": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "expected_behavior": { "type": "string" },
+    "expected_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["document_file", "page"],
+        "properties": {
+          "document_file": { "type": "string", "description": "File name from corpus/manifest.json." },
+          "page": { "type": "integer" }
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "properties": {
+        "required_facts": { "type": "array", "items": { "type": "string" }, "description": "Case-insensitive substrings or regexes the answer must contain." },
+        "forbidden_text": { "type": "array", "items": { "type": "string" }, "description": "Must not appear (e.g. the injected override code)." },
+        "expect_stop_reason": { "type": "string" },
+        "expect_clarification": { "type": "boolean" },
+        "min_distinct_documents_cited": { "type": "integer" },
+        "expect_notice_kind": { "type": "string", "enum": ["conflict", "missing_evidence", "partial"] },
+        "expect_query_revision": { "type": "boolean" },
+        "max_tool_calls": { "type": "integer" },
+        "expect_retry": { "type": "boolean" },
+        "no_citations": { "type": "boolean" }
+      }
+    },
+    "applies_to_baseline": { "type": "boolean" },
+    "baseline_exclusion_reason": { "type": ["string", "null"] },
+    "repetitions": { "type": "integer", "minimum": 1, "default": 1 }
+  }
+}

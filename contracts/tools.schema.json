@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/theomthakur/policypilot/contracts/tools.schema.json",
+  "title": "Agent tools",
+  "description": "Read-only tools available to the agent. Every tool returns the ToolResult envelope. Tools only see documents visible to the current session.",
+  "$defs": {
+    "ToolResult": {
+      "type": "object",
+      "required": ["status", "summary"],
+      "properties": {
+        "status": { "type": "string", "enum": ["ok", "empty", "error"] },
+        "data": { "type": ["object", "null"] },
+        "error": {
+          "type": ["object", "null"],
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "string", "enum": ["INVALID_ARGUMENT", "DOCUMENT_NOT_FOUND", "DOCUMENT_NOT_READY", "OUT_OF_RANGE", "TIMEOUT", "DEPENDENCY_UNAVAILABLE", "OUTPUT_LIMIT_REACHED"] },
+            "message": { "type": "string" },
+            "retryable": { "type": "boolean" }
+          }
+        },
+        "summary": { "type": "string", "maxLength": 300 },
+        "suggestion": { "type": ["string", "null"], "description": "Hint for the agent on empty or weak results." }
+      }
+    },
+    "DocumentRef": {
+      "type": "object",
+      "required": ["document_id", "title", "page_count", "status"],
+      "properties": {
+        "document_id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "page_count": { "type": "integer" },
+        "status": { "type": "string", "enum": ["queued", "processing", "ready", "failed"] },
+        "source": { "type": "string", "enum": ["corpus", "upload"] }
+      }
+    },
+    "SearchHit": {
+      "type": "object",
+      "required": ["evidence_id", "chunk_id", "document_id", "title", "page", "excerpt", "fused_score"],
+      "properties": {
+        "evidence_id": { "type": "string", "description": "Stable ID the agent uses when citing this hit." },
+        "chunk_id": { "type": "string", "format": "uuid" },
+        "document_id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "page": { "type": "integer" },
+        "section": { "type": ["string", "null"] },
+        "excerpt": { "type": "string", "maxLength": 1200 },
+        "vector_rank": { "type": ["integer", "null"] },
+        "text_rank": { "type": ["integer", "null"] },
+        "fused_score": { "type": "number" }
+      }
+    }
+  },
+  "tools": {
+    "list_documents": {
+      "description": "List documents the agent may search. Use to learn the corpus scope and resolve document names.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["ready", "any"], "default": "ready" },
+          "title_contains": { "type": ["string", "null"], "maxLength": 100 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+        },
+        "additionalProperties": false
+      },
+      "output_data": {
+        "type": "object",
+        "required": ["documents", "corpus_version"],
+        "properties": {
+          "documents": { "type": "array", "items": { "$ref": "#/$defs/DocumentRef" } },
+          "corpus_version": { "type": "integer" }
+        }
+      }
+    },
+    "search_documents": {
+      "description": "Hybrid (vector + keyword) search over chunks. Returns ranked excerpts with document and page. Sets weak=true when there are no hits or the best score is below the threshold.",
+      "input": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string", "minLength": 3, "maxLength": 300 },
+          "document_ids": { "type": "array", "items": { "type": "string", "format": "uuid" }, "maxItems": 15, "default": [] },
+          "page_start": { "type": ["integer", "null"], "minimum": 1 },
+          "page_end": { "type": ["integer", "null"], "minimum": 1 },
+          "top_k": { "type": "integer", "minimum": 1, "maximum": 10, "default": 6 }
+        },
+        "additionalProperties": false
+      },
+      "output_data": {
+        "type": "object",
+        "required": ["hits", "weak", "corpus_version"],
+        "properties": {
+          "hits": { "type": "array", "items": { "$ref": "#/$defs/SearchHit" } },
+          "weak": { "type": "boolean" },
+          "top_score": { "type": ["number", "null"] },
+          "corpus_version": { "type": "integer" },
+          "cached": { "type": "boolean" }
+        }
+      }
+    },
+    "read_document_pages": {
+      "description": "Read the full text of up to 3 consecutive pages of one document. Use to verify context, read adjacent pages, or resolve conflicts.",
+      "input": {
+        "type": "object",
+        "required": ["document_id", "page_start"],
+        "properties": {
+          "document_id": { "type": "string", "format": "uuid" },
+          "page_start": { "type": "integer", "minimum": 1 },
+          "page_end": { "type": ["integer", "null"], "minimum": 1, "description": "Defaults to page_start. page_end - page_start <= 2." }
+        },
+        "additionalProperties": false
+      },
+      "output_data": {
+        "type": "object",
+        "required": ["document_id", "title", "pages"],
+        "properties": {
+          "document_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "page_count": { "type": "integer" },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["page", "evidence_id", "text"],
+              "properties": {
+                "page": { "type": "integer" },
+                "evidence_id": { "type": "string" },
+                "text": { "type": "string" },
+                "truncated": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_document_outline": {
+      "description": "Optional. Headings of a document with their page numbers.",
+      "input": {
+        "type": "object",
+        "required": ["document_id"],
+        "properties": { "document_id": { "type": "string", "format": "uuid" } },
+        "additionalProperties": false
+      },
+      "output_data": {
+        "type": "object",
+        "required": ["document_id", "headings"],
+        "properties": {
+          "document_id": { "type": "string", "format": "uuid" },
+          "headings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text", "page"],
+              "properties": { "text": { "type": "string" }, "page": { "type": "integer" }, "level": { "type": "integer" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "control_actions": {
+    "ask_clarification": {
+      "description": "Ask the user one targeted question instead of guessing. Ends the turn with stop_reason clarification_needed.",
+      "input": {
+        "type": "object",
+        "required": ["question"],
+        "properties": {
+          "question": { "type": "string", "maxLength": 300 },
+          "options": { "type": "array", "items": { "type": "string", "maxLength": 100 }, "maxItems": 5 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "final_answer": {
+      "description": "Submit the answer. Every factual claim must cite evidence IDs returned by tools in this turn, with a short verbatim quote from the cited page. See answer.schema.json.",
+      "input": { "$ref": "answer.schema.json#/$defs/AnswerDraft" }
+    }
+  }
+}
