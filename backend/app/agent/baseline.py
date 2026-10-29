@@ -80,11 +80,11 @@ async def run_baseline(
 
     call = next((c for c in response.tool_calls if c.name == "final_answer"), None)
     if call is None:
-        return Outcome("error", None, None, totals)
+        return Outcome("error", None, None, totals, state.ledger)
     try:
         draft = FinalAnswerInput.model_validate(call.arguments)
     except Exception:
-        return Outcome("error", None, None, totals)
+        return Outcome("error", None, None, totals, state.ledger)
     verified = await verify_answer(draft, state.ledger, page_text)
     answer = verified.answer
     await emit(
@@ -96,4 +96,4 @@ async def run_baseline(
     await emit(
         "answer", "ok", state="EMIT", summary=answer["summary"][:300], stop_reason=answer["stop_reason"]
     )
-    return Outcome(answer["stop_reason"], answer, None, totals)
+    return Outcome(answer["stop_reason"], answer, None, totals, state.ledger)

@@ -162,7 +162,7 @@ class AgentRun:
         answer: dict[str, Any] | None = None,
         clarification: dict[str, Any] | None = None,
     ) -> Outcome:
-        return Outcome(stop_reason, answer, clarification, self.totals)
+        return Outcome(stop_reason, answer, clarification, self.totals, self.state.ledger)
 
     async def _partial(self, reason: str) -> Outcome:
         """PARTIAL_ANSWER: a useful, honest answer from the evidence gathered so far."""

@@ -47,6 +47,7 @@ class Outcome:
     answer: dict[str, Any] | None = None
     clarification: dict[str, Any] | None = None
     totals: Totals = field(default_factory=Totals)
+    ledger: dict[str, EvidenceItem] = field(default_factory=dict)
 
 
 @dataclass
