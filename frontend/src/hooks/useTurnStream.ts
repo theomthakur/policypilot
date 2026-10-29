@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, turnEventsUrl } from '../api/client'
+import { adaptEvent } from '../api/adapt'
 import type { AnswerPayload, RunTotals, TraceEvent } from '../api/types'
 
 interface TurnStreamState {
@@ -75,24 +76,53 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
       }
     }
 
-    setState({ ...initialState, status: 'streaming' })
-    source = new EventSource(turnEventsUrl(turnId), { withCredentials: true })
-    source.onmessage = (message) => {
+    // The server names each SSE frame after the trace event type, so `onmessage` never fires;
+    // listen for every type and close once the turn is complete.
+    const eventNames = [
+      'turn_started',
+      'plan',
+      'tool_call',
+      'tool_result',
+      'evaluate',
+      'query_revised',
+      'clarification_requested',
+      'synthesize',
+      'verify',
+      'answer',
+      'limit_reached',
+      'injection_flagged',
+      'turn_completed',
+    ]
+    const finish = async () => {
+      source?.close()
       try {
-        const event = JSON.parse(message.data) as TraceEvent
+        const turn = await api.getTurn(turnId)
+        if (cancelled) return
+        setState((current) => ({
+          events: turn.trace.length > 0 ? turn.trace : current.events,
+          answer: turn.answer ?? current.answer,
+          totals: turn.totals ?? current.totals,
+          status: turn.status === 'failed' ? 'failed' : 'completed',
+          error:
+            turn.status === 'failed'
+              ? 'The turn could not be completed.'
+              : null,
+        }))
+      } catch {
+        void poll()
+      }
+    }
+    const onEvent = (message: MessageEvent<string>) => {
+      try {
+        const event = adaptEvent(JSON.parse(message.data))
         setState((current) => ({
           ...current,
           events: [
             ...current.events.filter((item) => item.id !== event.id),
             event,
           ].sort((a, b) => a.sequence - b.sequence),
-          answer: event.answer ?? current.answer,
-          totals: event.totals ?? current.totals,
-          status: event.type === 'answer' ? 'completed' : current.status,
         }))
-        if (event.type === 'answer' || event.type === 'turn_failed') {
-          source?.close()
-        }
+        if (message.type === 'turn_completed') void finish()
       } catch {
         setState((current) => ({
           ...current,
@@ -100,6 +130,12 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
         }))
       }
     }
+
+    setState({ ...initialState, status: 'streaming' })
+    source = new EventSource(turnEventsUrl(turnId), { withCredentials: true })
+    eventNames.forEach((name) =>
+      source?.addEventListener(name, onEvent as EventListener),
+    )
     source.onerror = () => {
       source?.close()
       void poll()

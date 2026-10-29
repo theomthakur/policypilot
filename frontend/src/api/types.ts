@@ -104,6 +104,9 @@ export type TraceEventType =
   | 'injection_flagged'
   | 'limit_reached'
   | 'clarification'
+  | 'synthesize'
+  | 'verify'
+  | 'turn_completed'
   | 'answer'
   | 'turn_failed'
 

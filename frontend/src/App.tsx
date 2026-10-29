@@ -44,6 +44,7 @@ export function App() {
   const [sendError, setSendError] = useState<string | null>(null)
   const creatingSession = useRef(false)
   const completedTurn = useRef<string | null>(null)
+  const clarificationTurn = useRef<string | null>(null)
 
   useEffect(() => {
     const reduceMotion = window.matchMedia(
@@ -135,6 +136,7 @@ export function App() {
     )
       return
     completedTurn.current = activeTurnId
+    clarificationTurn.current = turn.answer.clarification ? activeTurnId : null
     setMessages((current) => [
       ...current,
       {
@@ -145,7 +147,7 @@ export function App() {
     ])
   }, [activeTurnId, turn.answer, turn.status])
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, replyToClarification = false) => {
     if (!sessionId || busy) return
     setSendError(null)
     setMessages((current) => [
@@ -153,7 +155,13 @@ export function App() {
       { id: `user-${crypto.randomUUID()}`, role: 'user', text: content },
     ])
     try {
-      const response = await api.sendMessage(sessionId, content, mode)
+      const response = await api.sendMessage(
+        sessionId,
+        content,
+        mode,
+        replyToClarification ? clarificationTurn.current : null,
+      )
+      clarificationTurn.current = null
       completedTurn.current = null
       setActiveTurnId(response.turn_id)
       setMobilePanel('conversation')
@@ -310,7 +318,7 @@ export function App() {
                 sessionReady={Boolean(sessionId)}
                 mode={mode}
                 onModeChange={setMode}
-                onSend={(content) => void sendMessage(content)}
+                onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}
               />
             </div>

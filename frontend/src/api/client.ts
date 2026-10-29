@@ -1,9 +1,13 @@
+import {
+  adaptDocument,
+  adaptHealth,
+  adaptIngestion,
+  adaptPage,
+  adaptTurn,
+  adaptUpload,
+} from './adapt'
 import type {
   ApiErrorBody,
-  HealthResponse,
-  IngestionRun,
-  PageResponse,
-  PolicyDocument,
   SessionResponse,
   Turn,
   UploadResponse,
@@ -78,28 +82,88 @@ export function clearDemoPasscode(): void {
 }
 
 export const api = {
-  healthReady: () => request<HealthResponse>('/health/ready'),
+  healthReady: async () =>
+    adaptHealth(await request<Record<string, unknown>>('/health/ready')),
   listDocuments: async () => {
-    const response = await request<{ items: PolicyDocument[] }>('/documents')
-    return response.items
+    const response = await request<{ items: Record<string, unknown>[] }>(
+      '/documents',
+    )
+    return response.items.map(adaptDocument)
   },
-  getIngestion: (runId: string) => request<IngestionRun>(`/ingestion/${runId}`),
+  getIngestion: async (runId: string) =>
+    adaptIngestion(
+      await request<Record<string, unknown>>(`/ingestion/${runId}`),
+    ),
   createSession: () =>
     request<{ session_id: string }>('/sessions', { method: 'POST' }),
-  getSession: (sessionId: string) =>
-    request<SessionResponse>(`/sessions/${sessionId}`),
+  getSession: async (sessionId: string): Promise<SessionResponse> => {
+    const session = await request<{
+      id: string
+      turns: {
+        id: string
+        question: string
+        status: string
+        created_at: string
+      }[]
+    }>(`/sessions/${sessionId}`)
+    const turns = await Promise.all(
+      session.turns.map(async (item) => ({
+        item,
+        turn:
+          item.status === 'running'
+            ? null
+            : adaptTurn(
+                await request<Record<string, unknown>>(`/turns/${item.id}`),
+              ),
+      })),
+    )
+    return {
+      id: session.id,
+      turns: turns.flatMap(({ item, turn }) => [
+        {
+          id: `user-${item.id}`,
+          role: 'user' as const,
+          content: item.question,
+          created_at: item.created_at,
+        },
+        ...(turn?.answer
+          ? [
+              {
+                id: `assistant-${item.id}`,
+                role: 'assistant' as const,
+                content: '',
+                answer: turn.answer,
+                created_at: item.created_at,
+              },
+            ]
+          : []),
+      ]),
+    }
+  },
   sendMessage: (
     sessionId: string,
     content: string,
     mode: 'agent' | 'baseline',
+    replyToClarification?: string | null,
   ) =>
     request<{ turn_id: string }>(`/sessions/${sessionId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ content, mode }),
+      body: JSON.stringify({
+        content,
+        mode,
+        ...(replyToClarification
+          ? { reply_to_clarification: replyToClarification }
+          : {}),
+      }),
     }),
-  getTurn: (turnId: string) => request<Turn>(`/turns/${turnId}`),
-  getPage: (documentId: string, page: number) =>
-    request<PageResponse>(`/documents/${documentId}/pages/${page}`),
+  getTurn: async (turnId: string): Promise<Turn> =>
+    adaptTurn(await request<Record<string, unknown>>(`/turns/${turnId}`)),
+  getPage: async (documentId: string, page: number) =>
+    adaptPage(
+      await request<Record<string, unknown>>(
+        `/documents/${documentId}/pages/${page}`,
+      ),
+    ),
 }
 
 export function uploadDocument(
@@ -119,7 +183,9 @@ export function uploadDocument(
     })
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText) as UploadResponse)
+        resolve(
+          adaptUpload(JSON.parse(xhr.responseText) as Record<string, unknown>),
+        )
         return
       }
       if (xhr.status === 401)

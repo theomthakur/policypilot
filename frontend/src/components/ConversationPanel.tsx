@@ -17,7 +17,7 @@ interface ConversationPanelProps {
   sessionReady: boolean
   mode: 'agent' | 'baseline'
   onModeChange: (mode: 'agent' | 'baseline') => void
-  onSend: (content: string) => void
+  onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
 }
 
@@ -215,7 +215,7 @@ export function ConversationPanel({
         {lastClarification?.answer?.clarification && !busy && (
           <ClarificationCard
             clarification={lastClarification.answer.clarification}
-            onReply={onSend}
+            onReply={(reply) => onSend(reply, true)}
           />
         )}
         <div ref={endRef} />
