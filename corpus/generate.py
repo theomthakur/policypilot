@@ -19,7 +19,6 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     HRFlowable,
-    KeepTogether,
     ListFlowable,
     ListItem,
     PageBreak,
