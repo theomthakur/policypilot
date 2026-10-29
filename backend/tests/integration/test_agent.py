@@ -480,3 +480,48 @@ def test_wrap_up_answers_every_open_tool_call_before_the_final_request(
     ids = {c["id"] for m in last if m["role"] == "assistant" for c in m.get("tool_calls") or []}
     replied = {m["tool_call_id"] for m in last if m["role"] == "tool"}
     assert ids <= replied and outcome.stop_reason == "limit_tool_calls"
+
+
+def test_final_answer_before_any_search_is_rejected(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("final_answer", {"summary": "No policy exists.", "claims": []})),
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q")
+    rejection = next(m["content"] for m in model.calls[1] if m["role"] == "tool")
+    assert "Search the documents before answering" in rejection
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
+
+
+def test_a_follow_up_search_is_recorded_as_a_revision_without_using_the_weak_budget(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth limit mbps"})),
+            respond(
+                (
+                    "search_documents",
+                    {"query": "VPN exceptions approved by the Chief Information Security Officer"},
+                )
+            ),
+            respond(("search_documents", {"query": "guest sponsored accounts remote access credentials"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q")
+    revisions = events.of("query_revised")
+    assert [r["revision"]["reason"] for r in revisions] == [
+        "uncovered_sub_question",
+        "uncovered_sub_question",
+    ]
+    assert outcome.totals.query_revisions == 2 and outcome.stop_reason == "answered"

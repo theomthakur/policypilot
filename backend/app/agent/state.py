@@ -60,6 +60,7 @@ class RunState:
     last_search_weak: bool = False
     last_search_reason: str = "no_hits"
     tool_failures: int = 0
+    weak_revisions: int = 0
     planned: bool = False
     repair_used: bool = False
     nudges: int = 0

@@ -244,6 +244,13 @@ class AgentRun:
             elif call.name == "ask_clarification":
                 return await self._clarify(call)
             elif call.name == "final_answer":
+                if self.totals.tool_calls == 0:
+                    self._tool_message(
+                        messages,
+                        call,
+                        "Search the documents before answering, even to report missing evidence.",
+                    )
+                    continue
                 if has_data:
                     self._tool_message(messages, call, "Call final_answer alone, after reading the results.")
                     continue
@@ -307,9 +314,9 @@ class AgentRun:
             )
             self._tool_message(messages, call, "Duplicate call blocked. Rephrase or choose another tool.")
             return None
-        if call.name == "search_documents" and st.last_search_weak:
+        if call.name == "search_documents" and st.last_query is not None:
             query = str(call.arguments.get("query", ""))
-            if self.totals.query_revisions >= s.agent_max_query_revisions:
+            if st.last_search_weak and st.weak_revisions >= s.agent_max_query_revisions:
                 await self.emit(
                     "tool_call",
                     "blocked",
@@ -324,17 +331,20 @@ class AgentRun:
                     "Query revision limit reached. Answer from what you have or say evidence is missing.",
                 )
                 return None
+            if st.last_search_weak:
+                st.weak_revisions += 1
             self.totals.query_revisions += 1
+            reason = st.last_search_reason if st.last_search_weak else "uncovered_sub_question"
             await self.emit(
                 "query_revised",
                 "info",
                 state="REVISE",
-                revision={
-                    "previous_query": st.last_query or "",
-                    "new_query": query,
-                    "reason": st.last_search_reason,
-                },
-                summary=f"Revised query after a weak result: {query}"[:300],
+                revision={"previous_query": st.last_query, "new_query": query, "reason": reason},
+                summary=(
+                    f"Revised query after a weak result: {query}"
+                    if st.last_search_weak
+                    else f"Searching again for what the first results did not cover: {query}"
+                )[:300],
             )
         st.seen_calls.add(digest)
         self.totals.tool_calls += 1

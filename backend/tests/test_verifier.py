@@ -93,3 +93,20 @@ def test_locate_quote_returns_the_literal_page_span() -> None:
     assert " ".join(span.casefold().split()) in " ".join(page.casefold().split())
     assert locate_quote("limited to 500 Mbps", page) is None
     assert locate_quote("", page) is None
+
+
+def test_nearly_exact_quotes_snap_to_the_literal_page_sentence() -> None:
+    from app.agent.verifier import nearest_span
+
+    page = (
+        "Header line.\nRequests for VPN split-tunnel exceptions must be submitted through the IT Governance "
+        "portal and require written approval from the Chief Information Security Officer. Other sentence."
+    )
+    paraphrased = (
+        "Requests for VPN split-tunnel exceptions must be submitted through the IT Governance portal "
+        "and require approval from the Chief Information Security Officer"
+    )
+    span = nearest_span(paraphrased, page)
+    assert span is not None and span in page and "written approval" in span
+    assert nearest_span("Completely unrelated sentence about parking permits today", page) is None
+    assert nearest_span("too short", page) is None

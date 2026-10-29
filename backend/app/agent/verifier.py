@@ -63,6 +63,29 @@ def locate_quote(quote: str, page_text: str) -> str | None:
     return page_text[origin[position] : origin[position + len(wanted) - 1] + 1]
 
 
+def nearest_span(quote: str, page_text: str) -> str | None:
+    """The page's own text (1 to 3 consecutive sentences) that best covers an inexact quote.
+
+    Used when the model's quote is a few words off: the citation then shows what the page really says.
+    Returns None when nothing on the page covers at least OVERLAP_THRESHOLD of the quote's words.
+    """
+    wanted = normalize(quote).split()
+    if len(wanted) < MIN_OVERLAP_TOKENS:
+        return None
+    sentences = [m.span() for m in re.finditer(r"[^.!?\n]+[.!?]?", page_text) if m.group().strip()]
+    best: tuple[float, int, str] | None = None
+    for i in range(len(sentences)):
+        for j in range(i, min(i + 3, len(sentences))):
+            span = page_text[sentences[i][0] : sentences[j][1]].strip()
+            present = set(normalize(span).split())
+            coverage = sum(w in present for w in wanted) / len(wanted)
+            if coverage >= OVERLAP_THRESHOLD and (
+                best is None or (coverage, -len(span)) > (best[0], -best[1])
+            ):
+                best = (coverage, len(span), span)
+    return best[2] if best else None
+
+
 def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
     """Drop claims that cite nothing (models sometimes write "not found" as a claim).
 
@@ -126,6 +149,15 @@ async def verify_answer(
                 continue
             text = await page_text(item.document_id, item.page)
             check = check_quote(claim.quote, text or "")
+            literal = (
+                locate_quote(claim.quote, text or "")
+                if check == "exact_quote"
+                else nearest_span(claim.quote, text or "")
+                if check == "overlap"
+                else None
+            )
+            if literal is None:  # every verified citation quote is a literal substring of its page
+                check = "failed"
             if check == "failed":
                 failures.append(
                     f'"{claim.text[:60]}": the quote was not found on {item.title} p.{item.page}. '
@@ -141,8 +173,7 @@ async def verify_answer(
                         "document_id": str(item.document_id),
                         "title": item.title,
                         "page": item.page,
-                        "quote": (locate_quote(claim.quote, text or "") if check == "exact_quote" else None)
-                        or claim.quote,
+                        "quote": literal,
                         "verified": True,
                         "check": check,
                     }

@@ -25,6 +25,10 @@ def _boot(
     monkeypatch.setattr("app.turns.service.get_model", lambda: model)
     client = TestClient(create_app())
     client.__enter__()
+    passcode = env.get("DEMO_PASSCODE")
+    if passcode:
+        assert client.post("/api/v1/sessions", headers={"X-Demo-Passcode": passcode}).status_code == 201
+        return client
     return new_session(client)
 
 
@@ -146,6 +150,8 @@ def test_passcode_is_enforced_when_configured(
     monkeypatch: pytest.MonkeyPatch, make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     with _boot(monkeypatch, _lookup_model(), make_pdf, tmp_path, DEMO_PASSCODE="letmein") as client:
+        assert client.post("/api/v1/sessions").status_code == 401  # no session without the passcode
+        assert client.post("/api/v1/documents", files={"file": ("a.pdf", b"%PDF-")}).status_code == 401
         assert _send(client, "q").status_code == 401
         sid = _session_id(client)
         ok = client.post(

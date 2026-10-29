@@ -11,9 +11,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.deps import DbSession
+from app.api.deps import CurrentSession, DbSession, require_owner, require_passcode
 from app.api.errors import ApiError
-from app.config import get_settings
 from app.db.models import Session, TraceEvent, Turn
 from app.state import limits, session_state
 from app.turns import service
@@ -50,11 +49,11 @@ async def post_message(
     body: MessageRequest,
     request: Request,
     db: DbSession,
+    current: CurrentSession,
     x_demo_passcode: Annotated[str | None, Header()] = None,
 ) -> dict[str, str]:
-    settings = get_settings()
-    if settings.demo_passcode and x_demo_passcode != settings.demo_passcode:
-        raise ApiError(401, "PASSCODE_REQUIRED", "A valid demo passcode is required.")
+    require_passcode(x_demo_passcode)
+    require_owner(session_id, current)
     if await db.get(Session, session_id) is None:
         raise ApiError(404, "NOT_FOUND", "Session not found.")
     await limits.check_rate_limit(_client_key(request))
@@ -75,16 +74,16 @@ async def post_message(
     return {"turn_id": str(turn.id), "session_id": str(session_id)}
 
 
-async def _turn_or_404(db: DbSession, turn_id: uuid.UUID) -> Turn:
+async def _turn_or_404(db: DbSession, turn_id: uuid.UUID, current: uuid.UUID | None) -> Turn:
     turn = await db.get(Turn, turn_id)
-    if turn is None:
+    if turn is None or current is None or turn.session_id != current:
         raise ApiError(404, "NOT_FOUND", "Turn not found.")
     return turn
 
 
 @router.get("/turns/{turn_id}")
-async def get_turn(turn_id: uuid.UUID, db: DbSession) -> dict[str, Any]:
-    turn = await _turn_or_404(db, turn_id)
+async def get_turn(turn_id: uuid.UUID, db: DbSession, current: CurrentSession) -> dict[str, Any]:
+    turn = await _turn_or_404(db, turn_id, current)
     events = (
         await db.execute(select(TraceEvent).where(TraceEvent.turn_id == turn_id).order_by(TraceEvent.seq))
     ).scalars()
@@ -112,8 +111,10 @@ async def get_turn(turn_id: uuid.UUID, db: DbSession) -> dict[str, Any]:
 
 
 @router.get("/turns/{turn_id}/events")
-async def stream_events(turn_id: uuid.UUID, request: Request, db: DbSession) -> StreamingResponse:
-    await _turn_or_404(db, turn_id)
+async def stream_events(
+    turn_id: uuid.UUID, request: Request, db: DbSession, current: CurrentSession
+) -> StreamingResponse:
+    await _turn_or_404(db, turn_id, current)
 
     async def frames() -> AsyncIterator[str]:
         last, waited, idle = -1, 0.0, 0.0

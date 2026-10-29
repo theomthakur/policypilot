@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Response
 from sqlalchemy import select
 
-from app.api.deps import SESSION_COOKIE, DbSession
+from app.api.deps import SESSION_COOKIE, CurrentSession, DbSession, Passcode, require_owner
 from app.api.errors import ApiError
 from app.config import get_settings
 from app.db.models import Session, Turn
@@ -14,7 +14,7 @@ from app.db.models import Session, Turn
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Passcode])
 async def create_session(response: Response, db: DbSession) -> dict[str, str]:
     session = Session()
     db.add(session)
@@ -32,7 +32,8 @@ async def create_session(response: Response, db: DbSession) -> dict[str, str]:
 
 
 @router.get("/{session_id}")
-async def get_session(session_id: uuid.UUID, db: DbSession) -> dict[str, Any]:
+async def get_session(session_id: uuid.UUID, db: DbSession, current: CurrentSession) -> dict[str, Any]:
+    require_owner(session_id, current)
     session = await db.get(Session, session_id)
     if session is None:
         raise ApiError(404, "NOT_FOUND", "Session not found.")

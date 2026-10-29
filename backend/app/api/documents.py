@@ -10,7 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, Response, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 
-from app.api.deps import CurrentSession, DbSession
+from app.api.deps import CurrentSession, DbSession, Passcode
 from app.api.errors import ApiError
 from app.config import get_settings
 from app.db.models import Document, DocumentPage, IngestionRun
@@ -110,7 +110,7 @@ async def list_documents(db: DbSession, session_id: CurrentSession) -> dict[str,
     return {"items": [DocumentOut.of(d) for d in rows], "corpus_version": await get_corpus_version(db)}
 
 
-@router.post("/documents", status_code=201)
+@router.post("/documents", status_code=201, dependencies=[Passcode])
 async def upload_document(
     file: UploadFile,
     background: BackgroundTasks,
@@ -205,11 +205,10 @@ async def get_page(
 
 
 @router.get("/ingestion/{run_id}")
-async def get_ingestion_run(run_id: uuid.UUID, db: DbSession) -> dict[str, Any]:
-    cached = await ingest_progress.read(str(run_id))
-    if cached is not None:
-        return cached
+async def get_ingestion_run(run_id: uuid.UUID, db: DbSession, session_id: CurrentSession) -> dict[str, Any]:
     run = await db.get(IngestionRun, run_id)
     if run is None:
         raise ApiError(404, "NOT_FOUND", "Ingestion run not found.")
-    return IngestionRunOut.of(run).model_dump(mode="json")
+    await _visible_document(db, run.document_id, session_id)  # an upload's progress is private to its session
+    cached = await ingest_progress.read(str(run_id))
+    return cached if cached is not None else IngestionRunOut.of(run).model_dump(mode="json")
