@@ -76,6 +76,8 @@ Results are written to `eval/results/<UTC timestamp>/`. No headline score is pub
 
 ## Documentation
 
+- [System design: architecture, state, data, safety, failure modes, and scale](docs/system-design.md)
+- [Presentation plan and interview walkthrough](docs/presentation.md)
 - [Requirements and traceability](docs/requirements.md)
 - [Architecture decisions](docs/adr/)
 - [Reproducibility](docs/reproducibility.md)
