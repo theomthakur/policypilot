@@ -11,7 +11,7 @@ from typing import Any
 
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
-from app.agent.verifier import PageText, verify_answer
+from app.agent.verifier import PageText, sanitize_final_answer, verify_answer
 from app.config import Settings
 from app.llm.client import ChatModel
 from app.tools.contracts import FinalAnswerInput, openai_tool_specs
@@ -82,7 +82,7 @@ async def run_baseline(
     if call is None:
         return Outcome("error", None, None, totals, state.ledger)
     try:
-        draft = FinalAnswerInput.model_validate(call.arguments)
+        draft = FinalAnswerInput.model_validate(sanitize_final_answer(call.arguments))
     except Exception:
         return Outcome("error", None, None, totals, state.ledger)
     verified = await verify_answer(draft, state.ledger, page_text)

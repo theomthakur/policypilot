@@ -7,13 +7,14 @@ with PARTIAL_ANSWER when a limit is reached. Every transition is emitted as a tr
 import asyncio
 import hashlib
 import json
+import logging
 import time
 import uuid
 from typing import Any
 
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
-from app.agent.verifier import PageText, verify_answer
+from app.agent.verifier import PageText, sanitize_final_answer, verify_answer
 from app.config import Settings
 from app.llm.client import ChatModel, ModelResponse, ToolCall
 from app.tools.contracts import (
@@ -26,6 +27,8 @@ from app.tools.contracts import (
 )
 from app.tools.impl import ToolContext, run_tool
 from app.tools.injection import find_injection
+
+logger = logging.getLogger("policypilot.agent")
 
 WRAP_UP = (
     "You have reached a limit. Call final_answer now using only the evidence you already have. "
@@ -209,7 +212,7 @@ class AgentRun:
         while True:
             limit = self._limit_hit()
             if limit:
-                return await self._partial(limit)
+                return await self._wrap_up(messages, limit)
             try:
                 response = await self._model_call(messages)
             except TimeoutError:
@@ -438,8 +441,9 @@ class AgentRun:
         self, call: ToolCall, messages: list[dict[str, Any]], partial_reason: str | None = None
     ) -> Outcome | None:
         try:
-            draft = FinalAnswerInput.model_validate(call.arguments)
+            draft = FinalAnswerInput.model_validate(sanitize_final_answer(call.arguments))
         except Exception as exc:
+            logger.warning("invalid final_answer: %s | args=%s", str(exc)[:300], str(call.arguments)[:300])
             self._tool_message(messages, call, f"Invalid final_answer: {str(exc)[:300]}")
             return None
         await self.emit("synthesize", "info", state="SYNTHESIZE", summary="Drafting the answer.")
@@ -470,7 +474,7 @@ class AgentRun:
             )
             return None
         answer = verified.answer
-        if partial_reason:
+        if partial_reason and answer["claims"]:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(
             "answer",

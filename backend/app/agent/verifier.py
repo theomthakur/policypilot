@@ -39,6 +39,28 @@ def check_quote(quote: str, page_text: str) -> str:
     return "failed"
 
 
+def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Drop claims that cite nothing (models sometimes write "not found" as a claim).
+
+    Such a statement is an absence, not a supported claim; when nothing else is left the answer is
+    reported as missing evidence instead of failing validation.
+    """
+    args = dict(arguments)
+    claims = args.get("claims")
+    if not isinstance(claims, list):
+        return args
+    kept = [
+        c for c in claims if isinstance(c, dict) and c.get("evidence_ids") and str(c.get("quote", "")).strip()
+    ]
+    if len(kept) != len(claims):
+        args["claims"] = kept
+        if not kept and not args.get("notices"):
+            args["notices"] = [
+                {"kind": "missing_evidence", "text": "The documents do not contain this information."}
+            ]
+    return args
+
+
 @dataclass(frozen=True)
 class EvidenceItem:
     key: str

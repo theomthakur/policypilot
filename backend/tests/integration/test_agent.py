@@ -209,14 +209,30 @@ def test_ambiguous_question_asks_for_clarification(make_pdf: Callable[..., Path]
     assert events.of("clarification_requested")
 
 
-def test_step_limit_returns_a_partial_answer(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+def test_step_limit_wraps_up_with_one_final_call_from_gathered_evidence(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    steps = [respond(("search_documents", {"query": f"guest network topic {i}"})) for i in range(3)]
+    model = ScriptedModel([*steps, _answer_step("Guest", 1, QUOTE_MBPS)])
+    outcome, events = _run(model, "q", agent_max_steps=3)
+    assert outcome.stop_reason == "limit_steps" and outcome.answer["partial"] is True
+    assert model.forced[-1] == "final_answer" and outcome.totals.steps == 4
+    assert outcome.answer["citations"][0]["verified"] and events.of("limit_reached")
+
+
+def test_step_limit_without_a_usable_final_answer_returns_a_partial_summary(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
     from app.llm.client import ScriptedModel, respond
 
     _load(make_pdf, tmp_path)
     steps = [respond(("search_documents", {"query": f"guest network topic {i}"})) for i in range(10)]
-    outcome, events = _run(ScriptedModel(steps), "q", agent_max_steps=3)
+    outcome, _ = _run(ScriptedModel(steps), "q", agent_max_steps=3)
     assert outcome.stop_reason == "limit_steps" and outcome.answer["partial"] is True
-    assert outcome.totals.steps == 3 and events.of("limit_reached")
+    assert outcome.answer["citations"] == []
 
 
 def test_tool_call_limit_wraps_up_from_existing_evidence(
@@ -406,3 +422,38 @@ def test_offline_model_reports_missing_evidence_after_one_revision(
     _load(make_pdf, tmp_path)
     outcome, _ = _run(OfflineModel(), "zebra quantum reimbursement")
     assert outcome.stop_reason == "insufficient_evidence" and outcome.answer["citations"] == []
+
+
+def test_absence_written_as_an_uncited_claim_is_reported_as_missing_evidence(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    absence = {"text": "No such policy exists.", "evidence_ids": [], "quote": ""}
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "home internet reimbursement"})),
+            respond(("final_answer", {"summary": "The documents do not mention this.", "claims": [absence]})),
+        ]
+    )
+    outcome, _ = _run(model, "What is the home internet reimbursement?")
+    assert outcome.stop_reason == "insufficient_evidence" and outcome.answer["claims"] == []
+    assert outcome.answer["notices"][0]["kind"] == "missing_evidence"
+
+
+def test_wrap_up_with_no_supported_claim_keeps_insufficient_evidence(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            respond(("search_documents", {"query": "guest unregistered devices limit"})),
+            respond(("final_answer", {"summary": "Nothing relevant found.", "claims": []})),
+        ]
+    )
+    outcome, _ = _run(model, "q", agent_max_tool_calls=1)
+    assert outcome.stop_reason == "insufficient_evidence"
