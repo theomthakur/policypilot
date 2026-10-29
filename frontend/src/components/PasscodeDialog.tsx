@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PolicyPilotMark } from './PolicyPilotMark'
 
 interface PasscodeDialogProps {
   open: boolean
@@ -35,7 +36,7 @@ export function PasscodeDialog({ open, onSubmit }: PasscodeDialogProps) {
         }}
       >
         <div className="brand-mark large" aria-hidden="true">
-          P
+          <PolicyPilotMark />
         </div>
         <p className="eyebrow">Protected demonstration</p>
         <h1>Enter the access code</h1>

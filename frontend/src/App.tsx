@@ -14,6 +14,7 @@ import {
 } from './components/ConversationPanel'
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PasscodeDialog } from './components/PasscodeDialog'
+import { PolicyPilotMark } from './components/PolicyPilotMark'
 import { TracePanel } from './components/TracePanel'
 import { useTurnStream } from './hooks/useTurnStream'
 
@@ -22,6 +23,7 @@ type MobilePanel = 'documents' | 'conversation' | 'trace'
 
 export function App() {
   const queryClient = useQueryClient()
+  const [launching, setLaunching] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(() =>
     localStorage.getItem(SESSION_KEY),
   )
@@ -34,6 +36,17 @@ export function App() {
   const [sendError, setSendError] = useState<string | null>(null)
   const creatingSession = useRef(false)
   const completedTurn = useRef<string | null>(null)
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    const timer = window.setTimeout(
+      () => setLaunching(false),
+      reduceMotion ? 120 : 1150,
+    )
+    return () => window.clearTimeout(timer)
+  }, [])
 
   const health = useQuery({
     queryKey: ['health'],
@@ -155,14 +168,30 @@ export function App() {
 
   return (
     <div className="app-shell">
+      {launching && (
+        <div
+          className="launch-screen"
+          role="status"
+          aria-label="Loading PolicyPilot"
+        >
+          <div className="launch-brand">
+            <PolicyPilotMark className="launch-mark" />
+            <div className="launch-wordmark">PolicyPilot</div>
+            <p>Evidence-grounded policy intelligence</p>
+          </div>
+          <div className="launch-progress" aria-hidden="true">
+            <span />
+          </div>
+        </div>
+      )}
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark" aria-hidden="true">
-            P
+            <PolicyPilotMark />
           </div>
           <div>
             <strong>PolicyPilot</strong>
-            <span>Evidence-grounded policy assistant</span>
+            <span>Research, AI and learning policy assistant</span>
           </div>
         </div>
         <div className="topbar-actions">

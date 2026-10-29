@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AnswerPayload, Citation } from '../api/types'
 import { ClarificationCard } from './ClarificationCard'
+import { PolicyPilotMark } from './PolicyPilotMark'
 
 export interface DisplayMessage {
   id: string
@@ -136,8 +137,9 @@ export function ConversationPanel({
         {messages.length === 0 && (
           <div className="welcome-state">
             <div className="assistant-avatar large" aria-hidden="true">
-              P
+              <PolicyPilotMark />
             </div>
+            <p className="welcome-kicker">Policy intelligence, with evidence</p>
             <h3>Ask across your policy library</h3>
             <p>
               I will search the corpus, inspect evidence, and cite the pages
@@ -174,7 +176,7 @@ export function ConversationPanel({
               }
               aria-hidden="true"
             >
-              {message.role === 'assistant' ? 'P' : 'You'}
+              {message.role === 'assistant' ? <PolicyPilotMark /> : 'You'}
             </div>
             <div className="message-content">
               <span className="message-author">
@@ -194,7 +196,7 @@ export function ConversationPanel({
         {busy && (
           <article className="message message-assistant working-message">
             <div className="assistant-avatar" aria-hidden="true">
-              P
+              <PolicyPilotMark />
             </div>
             <div className="message-content">
               <span className="message-author">PolicyPilot</span>
