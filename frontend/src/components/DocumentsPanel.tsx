@@ -1,0 +1,197 @@
+import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, errorMessage, uploadDocument } from '../api/client'
+import type { IngestionRun, PolicyDocument } from '../api/types'
+
+function StatusDot({ status }: { status: PolicyDocument['status'] }) {
+  return <span className={`status-dot status-${status}`} aria-hidden="true" />
+}
+
+export function DocumentsPanel() {
+  const queryClient = useQueryClient()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [run, setRun] = useState<IngestionRun | null>(null)
+
+  const documents = useQuery({
+    queryKey: ['documents'],
+    queryFn: api.listDocuments,
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (document) =>
+          document.status !== 'ready' && document.status !== 'failed',
+      )
+        ? 1500
+        : false,
+  })
+
+  useEffect(() => {
+    if (!run || run.status === 'ready' || run.status === 'failed') return
+    const timer = window.setInterval(async () => {
+      try {
+        const next = await api.getIngestion(run.id)
+        setRun(next)
+        if (next.status === 'ready' || next.status === 'failed') {
+          window.clearInterval(timer)
+          void queryClient.invalidateQueries({ queryKey: ['documents'] })
+        }
+      } catch (error) {
+        setUploadError(errorMessage(error))
+        window.clearInterval(timer)
+      }
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [queryClient, run])
+
+  const handleFile = async (file?: File) => {
+    if (!file) return
+    setUploadError(null)
+    if (
+      file.type !== 'application/pdf' &&
+      !file.name.toLowerCase().endsWith('.pdf')
+    ) {
+      setUploadError('Choose a PDF file.')
+      return
+    }
+    setUploadProgress(0)
+    try {
+      const response = await uploadDocument(file, setUploadProgress)
+      setRun(response.ingestion_run)
+      await queryClient.invalidateQueries({ queryKey: ['documents'] })
+    } catch (error) {
+      setUploadError(errorMessage(error))
+    } finally {
+      setUploadProgress(null)
+    }
+  }
+
+  return (
+    <section
+      className="panel documents-panel"
+      aria-labelledby="documents-title"
+    >
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Knowledge base</p>
+          <h2 id="documents-title">Documents</h2>
+        </div>
+        <span className="count-badge">{documents.data?.length ?? 0}</span>
+      </div>
+
+      <button
+        className={`drop-zone ${dragging ? 'is-dragging' : ''}`}
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragEnter={(event) => {
+          event.preventDefault()
+          setDragging(true)
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(event) => {
+          event.preventDefault()
+          setDragging(false)
+          void handleFile(event.dataTransfer.files[0])
+        }}
+      >
+        <span className="upload-icon" aria-hidden="true">
+          ↑
+        </span>
+        <strong>Upload a policy PDF</strong>
+        <span>Drag and drop or choose a file</span>
+      </button>
+      <input
+        ref={inputRef}
+        className="visually-hidden"
+        type="file"
+        accept="application/pdf,.pdf"
+        onChange={(event) => void handleFile(event.target.files?.[0])}
+      />
+
+      {uploadProgress !== null && (
+        <div className="progress-block" aria-live="polite">
+          <div className="progress-label">
+            <span>Uploading</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <progress value={uploadProgress} max="100" />
+        </div>
+      )}
+      {run && run.status !== 'ready' && run.status !== 'failed' && (
+        <p className="inline-status" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />{' '}
+          {run.stage || 'Indexing document'}
+        </p>
+      )}
+      {(uploadError || run?.error) && (
+        <p className="inline-error" role="alert">
+          {uploadError ?? run?.error}
+        </p>
+      )}
+
+      <div className="document-list" aria-live="polite">
+        {documents.isLoading && <DocumentSkeleton />}
+        {documents.isError && (
+          <div className="empty-state error-state">
+            <strong>Documents unavailable</strong>
+            <span>{errorMessage(documents.error)}</span>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => void documents.refetch()}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+        {documents.data?.length === 0 && (
+          <div className="empty-state">
+            <strong>No documents yet</strong>
+            <span>Upload a PDF to start asking questions.</span>
+          </div>
+        )}
+        {documents.data?.map((document) => (
+          <article className="document-card" key={document.id}>
+            <div className="pdf-mark" aria-hidden="true">
+              PDF
+            </div>
+            <div className="document-details">
+              <strong title={document.title}>{document.title}</strong>
+              <span>
+                {document.page_count}{' '}
+                {document.page_count === 1 ? 'page' : 'pages'} ·{' '}
+                {document.source}
+              </span>
+              <span className="document-status">
+                <StatusDot status={document.status} />
+                {document.status}
+              </span>
+              {document.error && (
+                <span className="document-error">{document.error}</span>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <p className="synthetic-note">
+        <span aria-hidden="true">ⓘ</span> Bundled documents are synthetic
+        examples, not official NYU policy.
+      </p>
+    </section>
+  )
+}
+
+function DocumentSkeleton() {
+  return (
+    <div className="document-card skeleton-card" aria-label="Loading documents">
+      <div className="skeleton square" />
+      <div className="document-details">
+        <span className="skeleton line wide" />
+        <span className="skeleton line" />
+      </div>
+    </div>
+  )
+}
