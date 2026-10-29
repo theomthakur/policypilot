@@ -8,6 +8,7 @@ import {
 } from './adapt'
 import type {
   ApiErrorBody,
+  RunConfiguration,
   SessionResponse,
   Turn,
   UploadResponse,
@@ -158,6 +159,7 @@ export const api = {
     }),
   getTurn: async (turnId: string): Promise<Turn> =>
     adaptTurn(await request<Record<string, unknown>>(`/turns/${turnId}`)),
+  getConfig: () => request<RunConfiguration>('/config'),
   getPage: async (documentId: string, page: number) =>
     adaptPage(
       await request<Record<string, unknown>>(

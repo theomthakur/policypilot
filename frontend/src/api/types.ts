@@ -167,3 +167,39 @@ export interface ApiErrorBody {
     details?: Record<string, unknown>
   }
 }
+
+export interface RunConfiguration {
+  model: {
+    provider: string
+    name: string
+    temperature: number
+    seed: number | null
+    prompt_version: string
+  }
+  retrieval: {
+    embedding_model: string
+    embedding_dim: number
+    chunk_tokens: number
+    chunk_overlap_tokens: number
+    candidates_per_retriever: number
+    fusion: string
+    default_top_k: number
+  }
+  agent_limits: {
+    max_steps: number
+    max_tool_calls: number
+    max_query_revisions: number
+    max_tool_retries: number
+    tool_timeout_seconds: number
+    turn_timeout_seconds: number
+    max_tokens_per_turn: number
+    max_pages_per_read: number
+  }
+  protections: {
+    passcode_required: boolean
+    rate_limit_per_minute: number
+    daily_budget_usd: number
+    upload_max_mb: number
+    upload_max_pages: number
+  }
+}
