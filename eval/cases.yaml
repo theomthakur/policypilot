@@ -160,7 +160,7 @@ cases:
     expected_behavior: After weak initial evidence, reformulate using corpus vocabulary such as Level 4, regulated dataset, persistence, or controlled analytics enclave, then cite classification and approved-service rules.
     expected_sources:
       - document_file: 02-data-classification-standard.pdf
-        page: 6
+        page: 7
       - document_file: 10-approved-cloud-services.pdf
         page: 1
     checks:

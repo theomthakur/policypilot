@@ -47,7 +47,7 @@ class DocumentSpec:
 
 SPECS = (
     DocumentSpec("01-acceptable-use-and-guest-network.md", "Acceptable Use and Guest Network Policy", "NUIT-POL-2026-001", "3.2", "2026-09-01", ("CASE-1",), {"CASE-1": "10 Mbps download and 2 Mbps upload"}),
-    DocumentSpec("02-data-classification-standard.md", "Data Classification and Handling Standard", "NU-IT-POL-002", "2.1", "2026-01-15", ("CASE-2", "CASE-9"), {"CASE-2": "Level 3 (Confidential)", "CASE-9": "AES-256 required"}),
+    DocumentSpec("02-data-classification-standard.md", "Data Classification and Handling Standard", "NU-IT-POL-002", "2.1", "2026-01-15", ("CASE-2", "CASE-9"), {"CASE-2": "Level 3 (Confidential)", "CASE-9": "Cloud storage of Level 4 data requires"}),
     DocumentSpec("03-generative-ai-guidance.md", "Generative AI and Large Language Model Usage Guidance", "NUOIT-2026-AI-01", "1.0", "2026-03-01", ("CASE-2",), {"CASE-2": "Level 3 (Confidential) or Level 4 (Restricted) data"}),
     DocumentSpec("04-password-policy-2023.md", "Password and Credential Management Policy", "2023-IAM-01", "4.0", "2023-08-01", ("CASE-6",), {"CASE-6": "must change passwords every 90 days"}),
     DocumentSpec("05-identity-mfa-standard-2025.md", "Identity Security and Multi-Factor Authentication Standard", "2025-IAM-02", "1.0", "2025-01-15", ("CASE-6",), {"CASE-6": "Mandatory periodic password expiration"}),

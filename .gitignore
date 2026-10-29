@@ -23,3 +23,8 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Generated runtime and evaluation artifacts
+backups/
+eval/results/*
+!eval/results/.gitkeep
