@@ -15,11 +15,18 @@ import {
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PasscodeDialog } from './components/PasscodeDialog'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
+import { ProjectGuide } from './components/ProjectGuide'
 import { TracePanel } from './components/TracePanel'
 import { useTurnStream } from './hooks/useTurnStream'
 
 const SESSION_KEY = 'policypilot_session_id'
 type MobilePanel = 'documents' | 'conversation' | 'trace'
+type AppView = 'workspace' | 'architecture' | 'presentation'
+
+function viewFromHash(): AppView {
+  const hash = window.location.hash.slice(1)
+  return hash === 'architecture' || hash === 'presentation' ? hash : 'workspace'
+}
 
 export function App() {
   const queryClient = useQueryClient()
@@ -33,6 +40,7 @@ export function App() {
   const [citation, setCitation] = useState<Citation | null>(null)
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
+  const [appView, setAppView] = useState<AppView>(viewFromHash)
   const [sendError, setSendError] = useState<string | null>(null)
   const creatingSession = useRef(false)
   const completedTurn = useRef<string | null>(null)
@@ -47,6 +55,21 @@ export function App() {
     )
     return () => window.clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+    const syncView = () => setAppView(viewFromHash())
+    window.addEventListener('hashchange', syncView)
+    return () => window.removeEventListener('hashchange', syncView)
+  }, [])
+
+  const navigateTo = (view: AppView) => {
+    setAppView(view)
+    const nextUrl =
+      view === 'workspace'
+        ? `${window.location.pathname}${window.location.search}`
+        : `#${view}`
+    window.history.replaceState(null, '', nextUrl)
+  }
 
   const health = useQuery({
     queryKey: ['health'],
@@ -197,6 +220,25 @@ export function App() {
             <span>Research, AI and learning policy assistant</span>
           </div>
         </div>
+        <nav className="primary-nav" aria-label="Application sections">
+          {(
+            [
+              ['workspace', 'Workspace'],
+              ['architecture', 'System design'],
+              ['presentation', 'Presentation'],
+            ] as const
+          ).map(([view, label]) => (
+            <button
+              key={view}
+              type="button"
+              className={appView === view ? 'active' : ''}
+              aria-current={appView === view ? 'page' : undefined}
+              onClick={() => navigateTo(view)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
         <div className="topbar-actions">
           <span
             className={`health-pill health-${health.data?.status ?? (health.isError ? 'down' : 'checking')}`}
@@ -232,54 +274,60 @@ export function App() {
         </div>
       )}
 
-      <nav className="mobile-tabs" aria-label="Workspace panels">
-        {(['documents', 'conversation', 'trace'] as MobilePanel[]).map(
-          (panel) => (
-            <button
-              key={panel}
-              className={mobilePanel === panel ? 'active' : ''}
-              type="button"
-              onClick={() => setMobilePanel(panel)}
-            >
-              {panel}
-              {panel === 'trace' && turn.events.length > 0 && (
-                <span>{turn.events.length}</span>
-              )}
-            </button>
-          ),
-        )}
-      </nav>
+      {appView === 'workspace' ? (
+        <>
+          <nav className="mobile-tabs" aria-label="Workspace panels">
+            {(['documents', 'conversation', 'trace'] as MobilePanel[]).map(
+              (panel) => (
+                <button
+                  key={panel}
+                  className={mobilePanel === panel ? 'active' : ''}
+                  type="button"
+                  onClick={() => setMobilePanel(panel)}
+                >
+                  {panel}
+                  {panel === 'trace' && turn.events.length > 0 && (
+                    <span>{turn.events.length}</span>
+                  )}
+                </button>
+              ),
+            )}
+          </nav>
 
-      <main className="workspace">
-        <div
-          className={`workspace-pane pane-documents ${mobilePanel === 'documents' ? 'mobile-active' : ''}`}
-        >
-          <DocumentsPanel />
-        </div>
-        <div
-          className={`workspace-pane pane-conversation ${mobilePanel === 'conversation' ? 'mobile-active' : ''}`}
-        >
-          <ConversationPanel
-            messages={messages}
-            busy={busy}
-            streamLabel={streamLabel}
-            sessionReady={Boolean(sessionId)}
-            mode={mode}
-            onModeChange={setMode}
-            onSend={(content) => void sendMessage(content)}
-            onCitationOpen={setCitation}
-          />
-        </div>
-        <div
-          className={`workspace-pane pane-trace ${mobilePanel === 'trace' ? 'mobile-active' : ''}`}
-        >
-          <TracePanel
-            events={turn.events}
-            totals={turn.totals}
-            streamStatus={turn.status}
-          />
-        </div>
-      </main>
+          <main className="workspace">
+            <div
+              className={`workspace-pane pane-documents ${mobilePanel === 'documents' ? 'mobile-active' : ''}`}
+            >
+              <DocumentsPanel />
+            </div>
+            <div
+              className={`workspace-pane pane-conversation ${mobilePanel === 'conversation' ? 'mobile-active' : ''}`}
+            >
+              <ConversationPanel
+                messages={messages}
+                busy={busy}
+                streamLabel={streamLabel}
+                sessionReady={Boolean(sessionId)}
+                mode={mode}
+                onModeChange={setMode}
+                onSend={(content) => void sendMessage(content)}
+                onCitationOpen={setCitation}
+              />
+            </div>
+            <div
+              className={`workspace-pane pane-trace ${mobilePanel === 'trace' ? 'mobile-active' : ''}`}
+            >
+              <TracePanel
+                events={turn.events}
+                totals={turn.totals}
+                streamStatus={turn.status}
+              />
+            </div>
+          </main>
+        </>
+      ) : (
+        <ProjectGuide view={appView} onBack={() => navigateTo('workspace')} />
+      )}
 
       <CitationDrawer citation={citation} onClose={() => setCitation(null)} />
       <PasscodeDialog open={authRequired} onSubmit={submitPasscode} />
