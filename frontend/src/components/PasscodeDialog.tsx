@@ -35,9 +35,7 @@ export function PasscodeDialog({ open, onSubmit }: PasscodeDialogProps) {
           }
         }}
       >
-        <div className="brand-mark large" aria-hidden="true">
-          <PolicyPilotMark />
-        </div>
+        <PolicyPilotMark className="passcode-mark" />
         <p className="eyebrow">Protected demonstration</p>
         <h1>Enter the access code</h1>
         <p>This public demo is gated to control model usage and cost.</p>
