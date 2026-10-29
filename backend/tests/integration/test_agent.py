@@ -457,3 +457,26 @@ def test_wrap_up_with_no_supported_claim_keeps_insufficient_evidence(
     )
     outcome, _ = _run(model, "q", agent_max_tool_calls=1)
     assert outcome.stop_reason == "insufficient_evidence"
+
+
+def test_wrap_up_answers_every_open_tool_call_before_the_final_request(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            respond(
+                ("search_documents", {"query": "guest unregistered devices limit"}),
+                ("search_documents", {"query": "guest wireless speed"}),
+            ),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q", agent_max_tool_calls=1)
+    last = model.calls[-1]
+    ids = {c["id"] for m in last if m["role"] == "assistant" for c in m.get("tool_calls") or []}
+    replied = {m["tool_call_id"] for m in last if m["role"] == "tool"}
+    assert ids <= replied and outcome.stop_reason == "limit_tool_calls"

@@ -414,6 +414,22 @@ class AgentRun:
         ]
         return summary
 
+    @staticmethod
+    def _close_open_tool_calls(messages: list[dict[str, Any]]) -> None:
+        """Every assistant tool call needs a tool reply before the next request, or the API rejects it."""
+        answered = {m.get("tool_call_id") for m in messages if m["role"] == "tool"}
+        for message in list(messages):
+            for call in message.get("tool_calls") or []:
+                if call["id"] not in answered:
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": call["id"],
+                            "content": "Not executed: limit reached.",
+                        }
+                    )
+                    answered.add(call["id"])
+
     async def _wrap_up(self, messages: list[dict[str, Any]], reason: str) -> Outcome:
         """One last constrained call: answer from existing evidence, clearly marked partial."""
         if self._time_left() <= 0 or not self.state.ledger:
@@ -425,6 +441,7 @@ class AgentRun:
             limit={"name": reason.replace("limit_", "")},
             summary="Limit reached; wrapping up.",
         )
+        self._close_open_tool_calls(messages)
         messages.append({"role": "user", "content": WRAP_UP})
         try:
             response = await self._model_call(messages, force_tool="final_answer")
