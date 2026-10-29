@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.0
     llm_seed: int | None = 42
     llm_request_timeout_s: float = 30.0
+    llm_price_input_per_million: float = 0.15
+    llm_price_output_per_million: float = 0.60
 
     # Embeddings
     embedding_provider: Literal["local", "openai", "fake"] = "local"
@@ -51,6 +53,7 @@ class Settings(BaseSettings):
     search_top_k_default: int = 6
     rrf_k: int = 60
     weak_score_threshold: float = 0.02
+    weak_min_cosine: float = 0.5
 
     # Agent limits
     agent_max_steps: int = 8
