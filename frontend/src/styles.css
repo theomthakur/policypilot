@@ -99,11 +99,59 @@ summary:focus-visible {
   flex-direction: column;
   animation: launch-rise 520ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
-.policy-pilot-mark.launch-mark {
-  width: 92px;
-  height: 92px;
+.launch-orbit {
+  width: 126px;
+  height: 126px;
+  position: relative;
+  display: grid;
+  place-items: center;
   margin-bottom: 18px;
-  filter: drop-shadow(0 14px 24px rgba(87, 6, 140, 0.16));
+}
+.policy-pilot-mark.launch-mark {
+  width: 76px;
+  height: 76px;
+  z-index: 2;
+  filter: drop-shadow(0 12px 22px rgba(87, 6, 140, 0.16));
+  animation: mark-spin 3.8s linear infinite;
+}
+.orbit-track {
+  position: absolute;
+  border-radius: 50%;
+}
+.orbit-track-outer {
+  inset: 0;
+  border: 1px solid rgba(87, 6, 140, 0.16);
+  border-top-color: rgba(153, 0, 255, 0.72);
+  border-right-color: rgba(79, 129, 189, 0.5);
+  animation: orbit-clockwise 2.4s linear infinite;
+}
+.orbit-track-inner {
+  inset: 12px;
+  border: 1px solid rgba(153, 0, 255, 0.13);
+  border-bottom-color: rgba(87, 6, 140, 0.55);
+  animation: orbit-counter 3.2s linear infinite;
+}
+.orbit-dot {
+  width: 7px;
+  height: 7px;
+  position: absolute;
+  z-index: 3;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(153, 0, 255, 0.08);
+}
+.orbit-dot-one {
+  top: 8px;
+  left: 60px;
+  background: var(--violet-bright);
+  transform-origin: 3px 55px;
+  animation: dot-orbit 2.4s linear infinite;
+}
+.orbit-dot-two {
+  right: 17px;
+  bottom: 26px;
+  background: var(--blue-rule);
+  transform-origin: -43px -29px;
+  animation: dot-orbit 3.2s linear infinite reverse;
 }
 .launch-wordmark {
   color: var(--violet);
@@ -118,21 +166,6 @@ summary:focus-visible {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.launch-progress {
-  width: 128px;
-  height: 2px;
-  position: absolute;
-  bottom: 14vh;
-  overflow: hidden;
-  background: #eee8f2;
-}
-.launch-progress span {
-  width: 45%;
-  height: 100%;
-  display: block;
-  background: linear-gradient(90deg, var(--violet), var(--violet-bright));
-  animation: launch-progress 820ms ease-in-out both;
-}
 @keyframes launch-rise {
   from {
     transform: translateY(14px) scale(0.97);
@@ -144,12 +177,24 @@ summary:focus-visible {
     opacity: 0;
   }
 }
-@keyframes launch-progress {
-  from {
-    transform: translateX(-105%);
-  }
+@keyframes mark-spin {
   to {
-    transform: translateX(225%);
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-clockwise {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-counter {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes dot-orbit {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -1521,9 +1566,13 @@ progress {
   .brand span {
     display: none;
   }
+  .launch-orbit {
+    width: 108px;
+    height: 108px;
+  }
   .policy-pilot-mark.launch-mark {
-    width: 76px;
-    height: 76px;
+    width: 66px;
+    height: 66px;
   }
   .launch-brand p {
     font-size: 9px;

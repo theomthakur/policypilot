@@ -175,12 +175,15 @@ export function App() {
           aria-label="Loading PolicyPilot"
         >
           <div className="launch-brand">
-            <PolicyPilotMark className="launch-mark" />
+            <div className="launch-orbit" aria-hidden="true">
+              <span className="orbit-track orbit-track-outer" />
+              <span className="orbit-track orbit-track-inner" />
+              <span className="orbit-dot orbit-dot-one" />
+              <span className="orbit-dot orbit-dot-two" />
+              <PolicyPilotMark className="launch-mark" />
+            </div>
             <div className="launch-wordmark">PolicyPilot</div>
             <p>Evidence-grounded policy intelligence</p>
-          </div>
-          <div className="launch-progress" aria-hidden="true">
-            <span />
           </div>
         </div>
       )}
