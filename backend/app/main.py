@@ -1,13 +1,17 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
 import time
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 
-from app.api import health
+from app.api import documents, health, sessions
+from app.api.errors import install_error_handlers
 from app.config import get_settings
 from app.logging import configure_logging, request_id_var
 
@@ -16,12 +20,26 @@ API_PREFIX = "/api/v1"
 logger = logging.getLogger("policypilot")
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    background: asyncio.Task[int] | None = None
+    if settings.corpus_autoload:
+        from app.ingest.pipeline import ensure_corpus_loaded
+
+        background = asyncio.create_task(ensure_corpus_loaded(Path(settings.corpus_dir)))
+    yield
+    if background is not None and not background.done():
+        background.cancel()
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
     app = FastAPI(
         title="PolicyPilot API",
         version=settings.app_version,
+        lifespan=lifespan,
         openapi_url=f"{API_PREFIX}/openapi.json",
         docs_url=f"{API_PREFIX}/docs",
     )
@@ -52,7 +70,10 @@ def create_app() -> FastAPI:
         )
         return response
 
+    install_error_handlers(app)
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(sessions.router, prefix=API_PREFIX)
+    app.include_router(documents.router, prefix=API_PREFIX)
     return app
 
 

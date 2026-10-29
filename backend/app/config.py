@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     upload_max_pages: int = 100
     upload_dir: str = "/data/uploads"
     corpus_dir: str = "/app/corpus/pdfs"
+    corpus_autoload: bool = True
 
     # Public safety
     rate_limit_per_minute: int = 20
