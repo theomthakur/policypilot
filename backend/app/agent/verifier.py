@@ -15,6 +15,7 @@ from typing import Any
 from app.tools.contracts import DraftClaim, FinalAnswerInput
 
 _NON_WORD = re.compile(r"[^0-9a-z%$.]+")
+_WORD_CHAR = re.compile(r"[0-9a-z%$.]")
 OVERLAP_THRESHOLD = 0.9
 MIN_OVERLAP_TOKENS = 4
 
@@ -37,6 +38,29 @@ def check_quote(quote: str, page_text: str) -> str:
         if sum(t in present for t in tokens) / len(tokens) >= OVERLAP_THRESHOLD:
             return "overlap"
     return "failed"
+
+
+def locate_quote(quote: str, page_text: str) -> str | None:
+    """The exact span of the page that matches `quote` under the verifier's normalization.
+
+    Models wrap quotes in quotation marks, change dashes or whitespace, and drop trailing periods; storing
+    the page's own text keeps every citation a literal substring of its page.
+    """
+    out: list[str] = []
+    origin: list[int] = []
+    for i, ch in enumerate(page_text):
+        for c in unicodedata.normalize("NFKC", ch).casefold():
+            if _WORD_CHAR.match(c):
+                out.append(c)
+                origin.append(i)
+            elif out and out[-1] != " ":
+                out.append(" ")
+                origin.append(i)
+    wanted = normalize(quote)
+    position = "".join(out).find(wanted) if wanted else -1
+    if position < 0:
+        return None
+    return page_text[origin[position] : origin[position + len(wanted) - 1] + 1]
 
 
 def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -117,7 +141,8 @@ async def verify_answer(
                         "document_id": str(item.document_id),
                         "title": item.title,
                         "page": item.page,
-                        "quote": claim.quote,
+                        "quote": (locate_quote(claim.quote, text or "") if check == "exact_quote" else None)
+                        or claim.quote,
                         "verified": True,
                         "check": check,
                     }

@@ -78,3 +78,18 @@ async def test_no_supported_claims_means_insufficient_evidence() -> None:
     result = await verify_answer(draft, LEDGER, page_text)
     assert result.ok and result.answer["stop_reason"] == "insufficient_evidence"
     assert result.answer["notices"][0]["kind"] == "missing_evidence"
+
+
+def test_locate_quote_returns_the_literal_page_span() -> None:
+    from app.agent.verifier import locate_quote
+
+    page = (
+        "Section 3.\nUnregistered guest devices are limited to 10 Mbps\n"
+        "download and 2 Mbps upload. Other text."
+    )
+    wrapped = '"Unregistered guest devices are limited to 10 Mbps download and 2 Mbps upload"'
+    span = locate_quote(wrapped, page)
+    assert span == "Unregistered guest devices are limited to 10 Mbps\ndownload and 2 Mbps upload"
+    assert " ".join(span.casefold().split()) in " ".join(page.casefold().split())
+    assert locate_quote("limited to 500 Mbps", page) is None
+    assert locate_quote("", page) is None
