@@ -34,3 +34,5 @@ def configure_logging(level: str) -> None:
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level.upper())
+    for noisy in ("alembic", "httpx", "uvicorn.access"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)

@@ -33,13 +33,15 @@ class Readiness(BaseModel):
 
 
 async def _database_check() -> tuple[CheckStatus, MigrationStatus]:
-    # Replaced by a real SQLAlchemy check in WS1-10 (models and migrations).
-    return "down", "down"
+    from app.db.health import database_status
+
+    return await database_status()
 
 
 async def _redis_check() -> CheckStatus:
-    # Replaced by a real ping in WS1-22 (sessions and cache).
-    return "down"
+    from app.state.redis import redis_status
+
+    return await redis_status()
 
 
 # Indirection so tests and later tasks can swap the checks without touching the routes.
