@@ -1,0 +1,215 @@
+"""Runs one turn in the background: builds context, runs the agent or baseline, persists everything.
+
+The request that starts a turn returns immediately; the trace is written to trace_events as it happens,
+so the SSE endpoint and the polling endpoint both read the same rows.
+"""
+
+import asyncio
+import logging
+import time
+import uuid
+from typing import Any
+
+from sqlalchemy import select
+
+from app.agent import prompts
+from app.agent.baseline import run_baseline
+from app.agent.loop import AgentRun
+from app.agent.pages import PageCache
+from app.agent.state import Outcome, QuestionContext, Totals
+from app.config import Settings, get_settings
+from app.db.models import Citation, Evidence, TraceEvent, Turn, utcnow
+from app.db.session import get_sessionmaker
+from app.llm.client import estimate_cost, get_model
+from app.state import limits, session_state
+from app.tools.impl import FaultInjector, ToolContext
+
+logger = logging.getLogger("policypilot.turns")
+_running: set[asyncio.Task[None]] = set()  # strong references so tasks are not garbage collected
+
+
+class TracePersister:
+    """Emitter that stores each event with the next sequence number and a real timestamp."""
+
+    def __init__(self, turn_id: uuid.UUID) -> None:
+        self.turn_id = turn_id
+        self.seq = 0
+
+    async def __call__(self, type: str, status: str = "ok", **fields: Any) -> None:
+        payload = {"status": status, **{k: v for k, v in fields.items() if v is not None}}
+        async with get_sessionmaker()() as db:
+            db.add(TraceEvent(turn_id=self.turn_id, seq=self.seq, type=type, payload=payload))
+            await db.commit()
+        self.seq += 1
+
+
+def spawn(turn_id: uuid.UUID, session_id: uuid.UUID, fault: str | None, reply_to: uuid.UUID | None) -> None:
+    task = asyncio.create_task(run_turn(turn_id, session_id, fault, reply_to))
+    _running.add(task)
+    task.add_done_callback(_running.discard)
+
+
+async def _build_context(turn: Turn, reply_to: uuid.UUID | None) -> QuestionContext:
+    async with get_sessionmaker()() as db:
+        state = await session_state.load(db, turn.session_id) or session_state.empty()
+    history = [(q, a) for q, a in state["history"]]
+    ctx = QuestionContext(turn.question, history)
+    pending = state.get("pending_clarification")
+    if reply_to is not None and pending and pending.get("turn_id") == str(reply_to):
+        ctx.clarification = (pending["question"], turn.question)
+        ctx.original_question = pending["original_question"]
+    return ctx
+
+
+async def run_turn(
+    turn_id: uuid.UUID, session_id: uuid.UUID, fault: str | None, reply_to: uuid.UUID | None
+) -> None:
+    settings = get_settings()
+    emit = TracePersister(turn_id)
+    started = time.monotonic()
+    outcome: Outcome
+    async with get_sessionmaker()() as db:
+        turn = await db.get(Turn, turn_id)
+    assert turn is not None
+    try:
+        async with get_sessionmaker()() as db:
+            exhausted = await limits.budget_exhausted(db)
+        if exhausted:
+            await emit("turn_started", "info", state="PLAN", summary="Turn started.")
+            await emit(
+                "limit_reached",
+                "info",
+                state="PARTIAL_ANSWER",
+                limit={"name": "budget"},
+                summary="The daily demo budget is used up.",
+            )
+            outcome = Outcome("budget_exhausted", _budget_answer(), None, Totals())
+        elif not settings.llm_configured:
+            raise RuntimeError("LLM is not configured (set LLM_API_KEY).")
+        else:
+            outcome = await _execute(settings, turn, emit, fault, reply_to)
+    except Exception as exc:
+        logger.exception("turn failed", extra={"fields": {"turn_id": str(turn_id)}})
+        await emit(
+            "limit_reached", "error", state="PARTIAL_ANSWER", summary=f"Turn failed: {type(exc).__name__}"
+        )
+        outcome = Outcome("error", _error_answer(), None, Totals())
+    await _finish(settings, turn, emit, outcome, int((time.monotonic() - started) * 1000))
+
+
+async def _execute(
+    settings: Settings, turn: Turn, emit: TracePersister, fault: str | None, reply_to: uuid.UUID | None
+) -> Outcome:
+    ctx = await _build_context(turn, reply_to)
+    model = get_model()
+    tools = ToolContext(settings, turn.session_id, FaultInjector(fault, settings.fault_injection_enabled))
+    pages = PageCache()
+    if turn.mode == "baseline":
+        return await run_baseline(settings, model, tools, emit, pages, ctx)
+    return await AgentRun(settings, model, tools, emit, pages).run(ctx)
+
+
+def _budget_answer() -> dict[str, Any]:
+    return {
+        "summary": "The daily demo budget has been used up, so no new questions can be answered today.",
+        "claims": [],
+        "citations": [],
+        "notices": [{"kind": "partial", "text": "Try again tomorrow.", "citation_indexes": []}],
+        "unverified_claims": [],
+        "stop_reason": "budget_exhausted",
+        "partial": True,
+    }
+
+
+def _error_answer() -> dict[str, Any]:
+    return {
+        "summary": "Something went wrong while answering. No answer was produced.",
+        "claims": [],
+        "citations": [],
+        "notices": [{"kind": "partial", "text": "The turn failed.", "citation_indexes": []}],
+        "unverified_claims": [],
+        "stop_reason": "error",
+        "partial": True,
+    }
+
+
+async def _finish(
+    settings: Settings, turn: Turn, emit: TracePersister, outcome: Outcome, latency_ms: int
+) -> None:
+    totals = outcome.totals.as_dict()
+    cost = estimate_cost(settings, totals["prompt_tokens"], totals["completion_tokens"])
+    totals |= {
+        "latency_ms": latency_ms,
+        "estimated_cost_usd": round(cost, 6),
+        "prompt_version": prompts.PROMPT_VERSION,
+    }
+    await emit(
+        "turn_completed",
+        "info",
+        summary=f"Finished: {outcome.stop_reason}.",
+        stop_reason=outcome.stop_reason,
+        duration_ms=latency_ms,
+    )
+    answer = outcome.answer
+    async with get_sessionmaker()() as db:
+        row = await db.get(Turn, turn.id)
+        assert row is not None
+        row.status = "failed" if outcome.stop_reason == "error" else "completed"
+        row.stop_reason, row.answer, row.clarification = outcome.stop_reason, answer, outcome.clarification
+        row.totals, row.model, row.prompt_version = (
+            totals,
+            totals.get("model") or None,
+            prompts.PROMPT_VERSION,
+        )
+        row.finished_at = utcnow()
+        cited_slots = {(c["document_id"], c["page"]) for c in (answer or {}).get("citations", [])}
+        for key, item in outcome.ledger.items():
+            db.add(
+                Evidence(
+                    turn_id=turn.id,
+                    evidence_key=key,
+                    document_id=item.document_id,
+                    page_number=item.page,
+                    selected=(str(item.document_id), item.page) in cited_slots,
+                )
+            )
+        key_of = {(str(i.document_id), i.page): k for k, i in outcome.ledger.items()}
+        for citation in (answer or {}).get("citations", []):
+            slot = (citation["document_id"], citation["page"])
+            if slot in key_of:
+                db.add(
+                    Citation(
+                        turn_id=turn.id,
+                        claim_index=citation["index"],
+                        document_id=uuid.UUID(citation["document_id"]),
+                        page_number=citation["page"],
+                        evidence_key=key_of[slot],
+                        quote=citation["quote"],
+                        verified=citation["verified"],
+                        check=citation["check"],
+                    )
+                )
+        await db.commit()
+        state = await session_state.load(db, turn.session_id) or session_state.empty()
+        if outcome.stop_reason == "clarification_needed" and outcome.clarification:
+            state["pending_clarification"] = {
+                "turn_id": str(turn.id),
+                "question": outcome.clarification["question"],
+                "original_question": turn.question,
+            }
+        else:
+            state["pending_clarification"] = None
+            if answer:
+                state["history"].append([turn.question, str(answer["summary"])[:400]])
+        await session_state.save(db, turn.session_id, state)
+    await limits.add_spend(cost)
+
+
+async def load_events(turn_id: uuid.UUID, after: int) -> list[TraceEvent]:
+    async with get_sessionmaker()() as db:
+        rows = await db.execute(
+            select(TraceEvent)
+            .where(TraceEvent.turn_id == turn_id, TraceEvent.seq > after)
+            .order_by(TraceEvent.seq)
+        )
+        return list(rows.scalars())

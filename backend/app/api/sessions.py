@@ -1,10 +1,15 @@
 """Session creation. Full session state (Redis with Postgres fallback) arrives with WS1-22."""
 
+import uuid
+from typing import Any
+
 from fastapi import APIRouter, Response
+from sqlalchemy import select
 
 from app.api.deps import SESSION_COOKIE, DbSession
+from app.api.errors import ApiError
 from app.config import get_settings
-from app.db.models import Session
+from app.db.models import Session, Turn
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -24,3 +29,28 @@ async def create_session(response: Response, db: DbSession) -> dict[str, str]:
         max_age=settings.session_ttl_seconds,
     )
     return {"session_id": str(session.id)}
+
+
+@router.get("/{session_id}")
+async def get_session(session_id: uuid.UUID, db: DbSession) -> dict[str, Any]:
+    session = await db.get(Session, session_id)
+    if session is None:
+        raise ApiError(404, "NOT_FOUND", "Session not found.")
+    turns = (
+        await db.execute(select(Turn).where(Turn.session_id == session_id).order_by(Turn.created_at))
+    ).scalars()
+    return {
+        "id": str(session.id),
+        "created_at": session.created_at.isoformat(),
+        "turns": [
+            {
+                "id": str(t.id),
+                "question": t.question,
+                "mode": t.mode,
+                "status": t.status,
+                "stop_reason": t.stop_reason,
+                "created_at": t.created_at.isoformat(),
+            }
+            for t in turns
+        ],
+    }
