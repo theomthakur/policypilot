@@ -47,3 +47,13 @@ packages = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+# PyMuPDF ships partial type information; treat its objects as Any in the parser.
+module = ["app.ingest.parse"]
+disallow_untyped_calls = false
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = ["fastembed.*", "pymupdf.*", "pgvector.*"]
+ignore_missing_imports = true

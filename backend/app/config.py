@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     llm_request_timeout_s: float = 30.0
 
     # Embeddings
-    embedding_provider: Literal["local", "openai"] = "local"
+    embedding_provider: Literal["local", "openai", "fake"] = "local"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
 
