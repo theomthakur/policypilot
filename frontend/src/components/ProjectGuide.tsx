@@ -1,4 +1,5 @@
 import { PolicyPilotMark } from './PolicyPilotMark'
+import { SystemDiagram } from './SystemDiagram'
 
 interface ProjectGuideProps {
   view: 'architecture' | 'presentation'
@@ -128,6 +129,15 @@ function ArchitectureView() {
       </div>
 
       <SystemMap />
+
+      <section
+        className="guide-hld"
+        aria-label="Full system design with technology stack"
+      >
+        <p className="eyebrow">Full system design · technology stack</p>
+        <h2>The whole system, layer by layer.</h2>
+        <SystemDiagram />
+      </section>
 
       <section className="design-principles" aria-label="Design principles">
         <article><span>01</span><strong>Evidence before prose</strong><p>Claims are verified against retrieved page-level evidence.</p></article>

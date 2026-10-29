@@ -5,9 +5,12 @@ info:
   description: |
     REST API for PolicyPilot, an agentic RAG application over policy PDFs.
     All endpoints are under /api/v1. Errors use the Error schema.
-    Sessions are identified by the `pp_session` HttpOnly cookie set by POST /sessions;
-    the session ID is also accepted in the path where shown.
-    In the public deployment every request needs the header `X-Demo-Passcode`.
+    Sessions are identified by the `pp_session` HttpOnly cookie set by POST /sessions. A session, its turns,
+    its event streams and its uploads are reachable only with that cookie; any other request gets 404.
+    In the public deployment the header `X-Demo-Passcode` is required to create a session (POST /sessions),
+    upload a document (POST /documents) and send a message; everything else is gated by owning the
+    session cookie, because a browser event stream cannot send custom headers. The bundled corpus and
+    health endpoints are public.
 servers:
   - url: /api/v1
 tags:
@@ -164,6 +167,18 @@ paths:
                 properties:
                   session_id: { type: string, format: uuid }
 
+  /config:
+    get:
+      tags: [health]
+      summary: The rules this deployment runs under (model, prompt version, retrieval settings, agent limits, protections). Read-only, no secrets.
+      operationId: getRunConfiguration
+      responses:
+        "200":
+          description: Run configuration
+          content:
+            application/json:
+              schema: { type: object }
+
   /sessions/{session_id}:
     get:
       tags: [sessions]
@@ -289,7 +304,7 @@ components:
           properties:
             code:
               type: string
-              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, UNAUTHORIZED, DEPENDENCY_UNAVAILABLE, INTERNAL]
+              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, PASSCODE_REQUIRED, DEPENDENCY_UNAVAILABLE, INTERNAL]
             message: { type: string }
             details: { type: object, additionalProperties: true }
 

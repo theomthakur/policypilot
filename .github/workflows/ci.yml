@@ -61,14 +61,29 @@ jobs:
         working-directory: backend
       - run: uv run mypy app
         working-directory: backend
-      - run: uv run pytest
+      - name: Tests (integration included; a skipped test fails the build)
+        working-directory: backend
+        env:
+          INTEGRATION: "1"
+          APP_ENV: test
+          LLM_PROVIDER: fake
+          EMBEDDING_PROVIDER: fake
+          CORPUS_AUTOLOAD: "false"
+          POSTGRES_HOST: localhost
+          POSTGRES_PASSWORD: policypilot
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          set -o pipefail
+          uv run pytest -rs 2>&1 | tee pytest.log
+          if grep -q "SKIPPED" pytest.log; then echo "Tests were skipped; integration coverage is incomplete." >&2; exit 1; fi
+      - name: API contract drift
         working-directory: backend
         env:
           APP_ENV: test
           LLM_PROVIDER: fake
           POSTGRES_HOST: localhost
           POSTGRES_PASSWORD: policypilot
-          REDIS_URL: redis://localhost:6379/0
+        run: uv run python ../scripts/check_contract.py
 
   frontend:
     runs-on: ubuntu-24.04
@@ -117,7 +132,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
       - run: |
-          sed -i 's/^LLM_PROVIDER=.*/LLM_PROVIDER=fake/' .env
+          sed -i 's/^LLM_PROVIDER=.*/LLM_PROVIDER=offline/' .env
           sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=policypilot/' .env
       - run: docker compose up --build -d --wait
       - run: ./scripts/smoke_test.sh

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 
-from app.api import documents, health, sessions, turns
+from app.api import config, documents, health, sessions, turns
 from app.api.errors import install_error_handlers
 from app.config import get_settings
 from app.logging import configure_logging, request_id_var
@@ -75,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router, prefix=API_PREFIX)
     app.include_router(documents.router, prefix=API_PREFIX)
     app.include_router(turns.router, prefix=API_PREFIX)
+    app.include_router(config.router, prefix=API_PREFIX)
     return app
 
 
