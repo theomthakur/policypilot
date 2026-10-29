@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-33 -33 66 66" role="img" aria-label="PolicyPilot">
+  <g fill="#57068c">
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(45)"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(90)"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(135)"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(180)"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(225)"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(270)"/>
+    <ellipse cx="0" cy="-16" rx="8.8" ry="16.5" transform="rotate(315)"/>
+    <circle r="7.5"/>
+  </g>
+</svg>

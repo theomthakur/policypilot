@@ -206,11 +206,7 @@ export function App() {
           aria-label="Loading PolicyPilot"
         >
           <div className="launch-brand">
-            <div className="launch-orbit" aria-hidden="true">
-              <span className="orbit-track orbit-track-outer" />
-              <span className="orbit-track orbit-track-inner" />
-              <span className="orbit-dot orbit-dot-one" />
-              <span className="orbit-dot orbit-dot-two" />
+            <div className="launch-logo" aria-hidden="true">
               <PolicyPilotMark className="launch-mark" />
             </div>
             <div className="launch-wordmark">PolicyPilot</div>
@@ -220,9 +216,7 @@ export function App() {
       )}
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark" aria-hidden="true">
-            <PolicyPilotMark />
-          </div>
+          <PolicyPilotMark className="header-mark" />
           <div>
             <strong>PolicyPilot</strong>
             <span>Research, AI and learning policy assistant</span>
