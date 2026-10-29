@@ -27,9 +27,11 @@ ENV PATH="/app/.venv/bin:$PATH" \
 COPY --from=build /app/.venv /app/.venv
 COPY --from=models /models /models
 COPY app ./app
+COPY alembic.ini start.sh ./
+COPY migrations ./migrations
 RUN mkdir -p /data/uploads && chown -R app:app /data /models
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \
   CMD curl -fsS http://localhost:8000/api/v1/health/live || exit 1
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["./start.sh"]
