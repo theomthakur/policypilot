@@ -1,0 +1,42 @@
+services:
+  backend:
+    image: ghcr.io/theomthakur/policypilot-backend:${IMAGE_TAG:?Set IMAGE_TAG to an immutable release tag or commit SHA}
+    build: null
+    environment:
+      APP_ENV: production
+      PUBLIC_ORIGIN: https://${DOMAIN:?Set DOMAIN}
+      SESSION_COOKIE_SECURE: "true"
+      FAULT_INJECTION_ENABLED: "false"
+
+  frontend:
+    image: ghcr.io/theomthakur/policypilot-frontend:${IMAGE_TAG:?Set IMAGE_TAG to an immutable release tag or commit SHA}
+    build: null
+
+  caddy:
+    image: caddy:2.9-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
