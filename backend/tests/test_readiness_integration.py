@@ -1,4 +1,7 @@
-"""Readiness against real Postgres and Redis. Skipped unless INTEGRATION=1 (CI sets it with service containers)."""
+"""Readiness against real Postgres and Redis.
+
+Skipped unless INTEGRATION=1 (CI sets it, with service containers).
+"""
 
 import os
 
