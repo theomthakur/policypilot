@@ -1,0 +1,438 @@
+openapi: 3.1.0
+info:
+  title: PolicyPilot API
+  version: 0.1.0
+  description: |
+    REST API for PolicyPilot, an agentic RAG application over policy PDFs.
+    All endpoints are under /api/v1. Errors use the Error schema.
+    Sessions are identified by the `pp_session` HttpOnly cookie set by POST /sessions;
+    the session ID is also accepted in the path where shown.
+    In the public deployment every request needs the header `X-Demo-Passcode`.
+servers:
+  - url: /api/v1
+tags:
+  - name: health
+  - name: documents
+  - name: sessions
+  - name: turns
+
+paths:
+  /health/live:
+    get:
+      tags: [health]
+      summary: Process is alive
+      operationId: healthLive
+      responses:
+        "200":
+          description: Alive
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: ok }
+
+  /health/ready:
+    get:
+      tags: [health]
+      summary: Dependencies are ready. Redis may be degraded without failing readiness.
+      operationId: healthReady
+      responses:
+        "200":
+          description: Ready or degraded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Readiness" }
+        "503":
+          description: Not ready (database or migrations unavailable)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Readiness" }
+
+  /documents:
+    get:
+      tags: [documents]
+      summary: List documents visible to the session (shared corpus plus this session's uploads)
+      operationId: listDocuments
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, corpus_version]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Document" }
+                  corpus_version: { type: integer }
+    post:
+      tags: [documents]
+      summary: Upload a text-based PDF. Re-uploading the same file returns the existing document.
+      operationId: uploadDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: Accepted for ingestion
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResult" }
+        "200":
+          description: Duplicate of an existing document (same SHA-256)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /documents/{document_id}:
+    get:
+      tags: [documents]
+      summary: Document metadata
+      operationId: getDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /documents/{document_id}/pages/{page}:
+    get:
+      tags: [documents]
+      summary: Text of one page, for the citation viewer
+      operationId: getDocumentPage
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Page text
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PageText" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /ingestion/{run_id}:
+    get:
+      tags: [documents]
+      summary: Ingestion progress
+      operationId: getIngestionRun
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Progress
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngestionRun" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /sessions:
+    post:
+      tags: [sessions]
+      summary: Create an isolated session. Sets the pp_session cookie.
+      operationId: createSession
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session_id]
+                properties:
+                  session_id: { type: string, format: uuid }
+
+  /sessions/{session_id}:
+    get:
+      tags: [sessions]
+      summary: Session with its turns (no traces)
+      operationId: getSession
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /sessions/{session_id}/messages:
+    post:
+      tags: [turns]
+      summary: Start one turn. Returns immediately; follow progress with the events stream or poll the turn.
+      operationId: postMessage
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageRequest" }
+      responses:
+        "202":
+          description: Turn started
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [turn_id, session_id]
+                properties:
+                  turn_id: { type: string, format: uuid }
+                  session_id: { type: string, format: uuid }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /turns/{turn_id}:
+    get:
+      tags: [turns]
+      summary: A turn with its trace and answer (polling fallback for the event stream)
+      operationId: getTurn
+      parameters:
+        - $ref: "#/components/parameters/TurnId"
+      responses:
+        "200":
+          description: Turn
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Turn" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /turns/{turn_id}/events:
+    get:
+      tags: [turns]
+      summary: Server-Sent Events stream of trace events. Each SSE `data:` line is one TraceEvent JSON object; the stream ends after the `turn_completed` event.
+      operationId: streamTurnEvents
+      parameters:
+        - $ref: "#/components/parameters/TurnId"
+      responses:
+        "200":
+          description: Event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: "SSE frames. `event:` is the TraceEvent type; `data:` is a TraceEvent (see contracts/trace-event.schema.json)."
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  parameters:
+    DocumentId:
+      name: document_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SessionId:
+      name: session_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TurnId:
+      name: turn_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found or not visible to this session
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooLarge:
+      description: Upload exceeds size or page limits
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Rate limit or daily budget reached
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, UNAUTHORIZED, DEPENDENCY_UNAVAILABLE, INTERNAL]
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+
+    Readiness:
+      type: object
+      required: [status, checks, version]
+      properties:
+        status: { type: string, enum: [ok, degraded, down] }
+        version: { type: string }
+        checks:
+          type: object
+          required: [database, migrations, redis, llm_config]
+          properties:
+            database: { type: string, enum: [ok, down] }
+            migrations: { type: string, enum: [ok, pending, down] }
+            redis: { type: string, enum: [ok, down] }
+            llm_config: { type: string, enum: [ok, missing] }
+        corpus_documents: { type: integer }
+
+    Document:
+      type: object
+      required: [id, title, filename, page_count, status, source, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        filename: { type: string }
+        page_count: { type: integer }
+        status: { type: string, enum: [queued, processing, ready, failed] }
+        source: { type: string, enum: [corpus, upload] }
+        sha256: { type: string }
+        error: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+
+    UploadResult:
+      type: object
+      required: [document, ingestion_run, duplicate]
+      properties:
+        document: { $ref: "#/components/schemas/Document" }
+        ingestion_run: { $ref: "#/components/schemas/IngestionRun" }
+        duplicate: { type: boolean }
+
+    IngestionRun:
+      type: object
+      required: [id, document_id, status, stage]
+      properties:
+        id: { type: string, format: uuid }
+        document_id: { type: string, format: uuid }
+        status: { type: string, enum: [queued, running, succeeded, failed] }
+        stage: { type: string, enum: [queued, parsing, chunking, embedding, indexing, done, failed] }
+        pages_done: { type: integer }
+        page_count: { type: integer }
+        error: { type: [string, "null"] }
+
+    PageText:
+      type: object
+      required: [document_id, title, page, text]
+      properties:
+        document_id: { type: string, format: uuid }
+        title: { type: string }
+        page: { type: integer }
+        page_count: { type: integer }
+        text: { type: string }
+
+    MessageRequest:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 2000 }
+        mode:
+          type: string
+          enum: [agent, baseline]
+          default: agent
+          description: "baseline = retrieve once, generate once (used by the evaluation and the demo comparison)."
+        reply_to_clarification:
+          type: [string, "null"]
+          format: uuid
+          description: "turn_id of the clarification this message answers, if any."
+        fault_inject:
+          type: [string, "null"]
+          description: "Test-only, e.g. 'search_documents:timeout:1'. Ignored unless the server has FAULT_INJECTION_ENABLED=true."
+
+    Session:
+      type: object
+      required: [id, created_at, turns]
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        turns:
+          type: array
+          items: { $ref: "#/components/schemas/TurnSummary" }
+
+    TurnSummary:
+      type: object
+      required: [id, question, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        question: { type: string }
+        mode: { type: string, enum: [agent, baseline] }
+        status: { type: string, enum: [running, completed, failed] }
+        stop_reason: { $ref: "#/components/schemas/StopReason" }
+        created_at: { type: string, format: date-time }
+
+    StopReason:
+      type: [string, "null"]
+      enum: [answered, clarification_needed, insufficient_evidence, limit_steps, limit_tool_calls, limit_time, limit_tokens, budget_exhausted, tool_failure, error, null]
+
+    Turn:
+      type: object
+      required: [id, session_id, question, mode, status, created_at, events, totals]
+      properties:
+        id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        question: { type: string }
+        mode: { type: string, enum: [agent, baseline] }
+        status: { type: string, enum: [running, completed, failed] }
+        stop_reason: { $ref: "#/components/schemas/StopReason" }
+        answer:
+          description: "Present when status is completed. See contracts/answer.schema.json."
+          type: [object, "null"]
+        clarification:
+          description: "Present when stop_reason is clarification_needed."
+          type: [object, "null"]
+          properties:
+            question: { type: string }
+            options: { type: array, items: { type: string } }
+        events:
+          type: array
+          description: "Trace events in order. See contracts/trace-event.schema.json."
+          items: { type: object }
+        totals: { $ref: "#/components/schemas/TurnTotals" }
+        created_at: { type: string, format: date-time }
+
+    TurnTotals:
+      type: object
+      required: [steps, tool_calls, query_revisions, prompt_tokens, completion_tokens, latency_ms]
+      properties:
+        steps: { type: integer }
+        tool_calls: { type: integer }
+        query_revisions: { type: integer }
+        retries: { type: integer }
+        prompt_tokens: { type: integer }
+        completion_tokens: { type: integer }
+        estimated_cost_usd: { type: number }
+        latency_ms: { type: integer }
+        model: { type: string }
+        prompt_version: { type: string }
