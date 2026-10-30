@@ -169,3 +169,61 @@ def test_unknown_fields_do_not_fail_the_turn_and_a_stray_missing_evidence_become
         )
     )
     assert odd.notices[0].kind == "partial" and len(odd.claims) == 1
+
+
+@pytest.mark.parametrize(
+    ("figure", "text", "expected"),
+    [
+        ("10", "limited to 10 Mbps", True),
+        ("20", "10 Mbps in the 2024 standard", False),  # "20" is inside "2024"
+        ("30", "retained for 130 days", False),  # "30" is inside "130"
+        ("10", "a rate of 10.5 Mbps", False),  # "10" is not "10.5"
+        ("10.5", "a rate of 10.5 Mbps", True),
+        ("1,000", "up to 1000 files", True),  # separators are ignored
+        ("1000", "up to 1,000 files", True),
+        ("90", "valid for ninety (90) days", True),
+    ],
+)
+def test_figures_match_whole_numbers_only(figure: str, text: str, expected: bool) -> None:
+    from app.agent.verifier import figure_in_text
+
+    assert figure_in_text(figure, text) is expected
+
+
+async def test_a_claim_with_a_figure_that_is_only_part_of_another_number_is_rejected() -> None:
+    draft = FinalAnswerInput(
+        summary="Guests get 2 Mbps.",
+        claims=[DraftClaim(text="Guest upload is 20 Mbps.", evidence_ids=["E1"], quote="2 Mbps upload")],
+    )
+    result = await verify_answer(draft, LEDGER, page_text)
+    assert result.answer["claims"] == [] and result.answer["stop_reason"] == "insufficient_evidence"
+    assert not result.ok
+
+
+async def test_an_abstention_never_keeps_the_models_affirmative_summary() -> None:
+    from app.agent.loop import ABSTAIN_TEXT, AgentRun
+
+    draft = FinalAnswerInput(
+        summary="Guests get unlimited bandwidth and 90 days of access.",
+        claims=[DraftClaim(text="Guests get 999 Mbps.", evidence_ids=["E1"], quote="2 Mbps upload")],
+    )
+    verified = await verify_answer(draft, LEDGER, page_text)
+    run = AgentRun.__new__(AgentRun)
+    answer = await run._normalize(verified.answer)
+    assert answer["stop_reason"] == "insufficient_evidence"
+    assert answer["summary"] == ABSTAIN_TEXT and "unlimited" not in answer["summary"]
+    assert any(n["kind"] == "missing_evidence" for n in answer["notices"])
+
+
+async def test_a_summary_with_only_rejected_sentences_falls_back_to_the_verified_claims() -> None:
+    from app.agent.loop import AgentRun
+
+    draft = FinalAnswerInput(
+        summary="Guests get 999 Mbps.",
+        claims=[DraftClaim(text="Guest download is 10 Mbps.", evidence_ids=["E1"], quote="10 Mbps download")],
+    )
+    verified = await verify_answer(draft, LEDGER, page_text)
+    run = AgentRun.__new__(AgentRun)
+    run.page_text = page_text  # type: ignore[method-assign]
+    answer = await run._verify_summary(verified.answer)
+    assert "999" not in answer["summary"] and "10 Mbps" in answer["summary"]

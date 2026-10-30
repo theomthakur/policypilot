@@ -26,6 +26,7 @@ jobs:
       - run: git diff --exit-code -- corpus
       - run: python eval/run.py --validate-only
       - run: python eval/run.py --cases eval/heldout.yaml --validate-only
+      - run: python eval/run.py --cases eval/heldout2.yaml --validate-only
 
   backend:
     runs-on: ubuntu-24.04

@@ -22,6 +22,7 @@ from app.agent.verifier import (
     YEAR,
     PageText,
     check_quote,
+    figure_in_text,
     locate_quote,
     sanitize_final_answer,
     verify_answer,
@@ -122,6 +123,9 @@ def _tokens(text: str) -> set[str]:
     renew, renewed and renewal match."""
     words = re.findall(r"[a-z0-9]+", text.lower())
     return {w[:5] if len(w) >= 5 else w for w in words if w not in _STOPWORDS}
+
+
+ABSTAIN_TEXT = "I could not find this in the available documents."
 
 
 @dataclass
@@ -360,8 +364,13 @@ class AgentRun:
 
     # ---- main loop -----------------------------------------------------------------------------
     async def run(self, ctx: QuestionContext) -> Outcome:
-        self.question = ctx.question
-        self.question_words = len(ctx.question.split())
+        # A clarification reply ("faculty account") is only meaningful with the question it answers.
+        self.question = (
+            f"{ctx.original_question} {ctx.question}"
+            if ctx.clarification and ctx.original_question
+            else ctx.question
+        )
+        self.question_words = len(self.question.split())
         self.cited = ctx.cited
         self.ctx = ctx
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
@@ -1037,21 +1046,24 @@ class AgentRun:
         pages = [
             await self.page_text(uuid.UUID(c["document_id"]), c["page"]) or "" for c in answer["citations"]
         ]
-        haystack = re.sub(r"[\s,]+", "", " ".join(pages))
+        haystack = "\n".join(pages)
         kept_lines: list[str] = []
         dropped = 0
         for line in str(answer["summary"]).split("\n"):
             kept: list[str] = []
             for sentence in re.split(r"(?<=[.!?])\s+", line):
                 figures = [f for f in re.findall(r"\d[\d,.]*\d|\d", sentence) if not YEAR.match(f)]
-                if all(re.sub(r"[\s,]+", "", f).rstrip(".") in haystack for f in figures):
+                if all(figure_in_text(f, haystack) for f in figures):
                     kept.append(sentence)
                 else:
                     dropped += 1
             kept_lines.append(" ".join(kept))
         if dropped:
+            # Never put back text that was just rejected: fall back to the verified claims themselves.
             answer["summary"] = (
-                "\n".join(line for line in kept_lines if line.strip()).strip() or answer["summary"]
+                "\n".join(line for line in kept_lines if line.strip()).strip()
+                or " ".join(str(c["text"]) for c in answer["claims"])
+                or ABSTAIN_TEXT
             )
             answer["notices"].append(
                 {
@@ -1068,6 +1080,17 @@ class AgentRun:
         if answer["stop_reason"] == "insufficient_evidence":
             # An abstention carries an explicit missing-evidence notice and never a citation or claim.
             answer["claims"], answer["citations"], answer["partial"] = [], [], False
+            # No claim survived, so nothing the model wrote may stay as an assertion. If it asserted claims
+            # that failed, replace its summary; if it abstained itself, keep its explanation minus figures.
+            if answer.get("unverified_claims"):
+                answer["summary"] = ABSTAIN_TEXT
+            else:
+                kept = [
+                    x
+                    for x in re.split(r"(?<=[.!?])\s+", str(answer["summary"]))
+                    if x.strip() and not re.search(r"\d", x)
+                ]
+                answer["summary"] = " ".join(kept) or ABSTAIN_TEXT
             if not any(n["kind"] == "missing_evidence" for n in notices):
                 notices.append(
                     {

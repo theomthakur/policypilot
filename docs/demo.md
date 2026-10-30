@@ -49,7 +49,7 @@ The agent should ask which account type. Select or type:
 
 > I am a sponsored guest whose six-month account expires next month.
 
-Show that the next answer uses the original renewal question plus the clarification and cites Account Lifecycle page 3.
+Show that the next answer uses the original renewal question plus the clarification and cites Account Lifecycle page 4.
 
 ## 4. Controlled tool timeout
 

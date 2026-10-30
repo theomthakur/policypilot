@@ -21,6 +21,22 @@ from app.tools.impl import ToolContext, run_tool
 logger = logging.getLogger("policypilot.baseline")
 
 
+def _result_summary(result: Any) -> dict[str, Any]:
+    """The same shape the agent's trace uses, so the UI can say how many passages a search found."""
+    data = result.data or {}
+    hits = data.get("hits", [])
+    return {
+        "hits": len(hits),
+        "weak": data.get("weak"),
+        "error_code": result.error.code if result.error else None,
+        "pages": [
+            {"document_id": h["document_id"], "title": h.get("title", ""), "page": h["page"]}
+            for h in hits[:6]
+            if h.get("page") and h.get("document_id")
+        ],
+    }
+
+
 async def run_baseline(
     settings: Settings,
     model: ChatModel,
@@ -33,7 +49,10 @@ async def run_baseline(
     await emit("turn_started", "info", state="PLAN", summary="Baseline: retrieve once, generate once.")
 
     began = time.monotonic()
-    args = {"query": ctx.question[:300], "top_k": 5}
+    args = {
+        "query": ctx.question[:300],
+        "top_k": settings.search_top_k_default,
+    }  # same retrieval as the agent
     await emit(
         "tool_call",
         "ok",
@@ -53,6 +72,7 @@ async def run_baseline(
         attempt=1,
         duration_ms=round((time.monotonic() - began) * 1000),
         summary=result.summary,
+        result=_result_summary(result),
     )
 
     hits = (result.data or {}).get("hits", [])

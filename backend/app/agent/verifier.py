@@ -206,6 +206,16 @@ class VerifiedAnswer:
         return not self.failures
 
 
+def figure_in_text(figure: str, text: str) -> bool:
+    """Is this number on the page as a whole number? "20" is not on a page that says "2024" or "120", and "10"
+    is not on a page that says "10.5". Thousands separators are ignored on both sides."""
+    wanted = re.sub(r"\s+", "", figure).replace(",", "").rstrip(".")
+    if not wanted:
+        return True
+    plain = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", text)
+    return re.search(r"(?<![\d.])" + re.escape(wanted) + r"(?!\d)(?!\.\d)", plain) is not None
+
+
 async def verify_answer(
     draft: FinalAnswerInput, ledger: dict[str, EvidenceItem], page_text: PageText
 ) -> VerifiedAnswer:
@@ -243,11 +253,10 @@ async def verify_answer(
                     + (f' The closest text on that page is: "{nearby}"' if nearby else "")
                 )
                 continue
-            page_figures = re.sub(r"[\s,]+", "", text or "")
             absent = [
                 f
                 for f in re.findall(r"\d[\d,.]*\d|\d", claim.text)
-                if not YEAR.match(f) and re.sub(r"[\s,]+", "", f).rstrip(".") not in page_figures
+                if not YEAR.match(f) and not figure_in_text(f, text or "")
             ]
             if absent:  # a quote that is on the page does not make a figure the claim adds true
                 failures.append(
