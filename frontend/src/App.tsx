@@ -640,6 +640,7 @@ export function App() {
             onClick={() => {
               setSidebarTab(key)
               setShowSidebar(true)
+              navigateTo('workspace')
             }}
           >
             {icon}

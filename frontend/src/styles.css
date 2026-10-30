@@ -3661,3 +3661,16 @@ th {
   padding: 0;
   line-height: 1;
 }
+
+/* Greeting: the logo sits above the line, centred */
+.welcome-row {
+  flex-direction: column;
+  gap: 16px;
+}
+.welcome-mark {
+  width: 44px;
+  height: 44px;
+}
+.welcome-row h3 {
+  text-align: center;
+}
