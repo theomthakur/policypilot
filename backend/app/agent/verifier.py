@@ -93,25 +93,60 @@ def nearest_span(quote: str, page_text: str) -> str | None:
     return best[2] if best else None
 
 
-def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
-    """Drop claims that cite nothing (models sometimes write "not found" as a claim).
+def _clip(text: str, limit: int) -> str:
+    """Cut at a word boundary so a slightly long field is shortened, not rejected."""
+    text = str(text)
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:")
+    return cut or text[:limit]
 
-    Such a statement is an absence, not a supported claim; when nothing else is left the answer is
-    reported as missing evidence instead of failing validation.
+
+def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Make a model's final_answer fit the contract instead of failing the whole turn over a formatting slip.
+
+    - Fields over their length limits are shortened at a word boundary (a quote cut this way is still a
+      literal prefix of the page, so verification is unaffected).
+    - Claims that cite nothing (models sometimes write "not found" as a claim) are dropped; when nothing
+      else is left the answer is reported as missing evidence.
     """
     args = dict(arguments)
+    if isinstance(args.get("summary"), str):
+        args["summary"] = _clip(args["summary"], 1500)
+    notices = args.get("notices")
+    if isinstance(notices, list):
+        args["notices"] = [
+            {**n, "text": _clip(n.get("text", ""), 500)} for n in notices if isinstance(n, dict)
+        ]
     claims = args.get("claims")
     if not isinstance(claims, list):
         return args
-    kept = [
-        c for c in claims if isinstance(c, dict) and c.get("evidence_ids") and str(c.get("quote", "")).strip()
-    ]
-    if len(kept) != len(claims):
-        args["claims"] = kept
-        if not kept and not args.get("notices"):
+    cleaned = []
+    for claim in claims:
+        if (
+            not isinstance(claim, dict)
+            or not claim.get("evidence_ids")
+            or not str(claim.get("quote", "")).strip()
+        ):
+            continue
+        ids = claim["evidence_ids"]
+        cleaned.append(
+            {
+                **claim,
+                "text": _clip(claim.get("text", ""), 600),
+                "quote": _clip(str(claim["quote"]), 400),
+                "evidence_ids": list(ids)[:4] if isinstance(ids, list) else ids,
+            }
+        )
+    cleaned = cleaned[:12]
+    if len(cleaned) != len(claims):
+        args["claims"] = cleaned
+        if not cleaned and not args.get("notices"):
             args["notices"] = [
                 {"kind": "missing_evidence", "text": "The documents do not contain this information."}
             ]
+    else:
+        args["claims"] = cleaned
     return args
 
 

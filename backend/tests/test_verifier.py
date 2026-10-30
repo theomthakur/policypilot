@@ -120,3 +120,25 @@ def test_evidence_ids_are_removed_from_the_text_people_read() -> None:
     )
     assert strip_evidence_ids("Both apply [E1, E3] to VPN.") == "Both apply to VPN."
     assert strip_evidence_ids("Version E2E is unaffected") == "Version E2E is unaffected"
+
+
+def test_a_slightly_long_field_is_shortened_instead_of_failing_the_turn() -> None:
+    from app.agent.verifier import sanitize_final_answer
+    from app.tools.contracts import FinalAnswerInput
+
+    long_quote = "The most common security practices include " + "careful " * 80  # over 400 characters
+    args = sanitize_final_answer(
+        {
+            "summary": "x" * 2000,
+            "claims": [
+                {"text": "y" * 900, "evidence_ids": ["E1", "E2", "E3", "E4", "E5"], "quote": long_quote}
+                for _ in range(15)
+            ],
+            "notices": [{"kind": "partial", "text": "z" * 700}],
+        }
+    )
+    draft = FinalAnswerInput.model_validate(args)  # must validate: this used to be an "error" turn
+    assert len(draft.summary) <= 1500 and len(draft.claims) == 12
+    claim = draft.claims[0]
+    assert len(claim.quote) <= 400 and long_quote.startswith(claim.quote)  # still a literal prefix
+    assert len(claim.text) <= 600 and len(claim.evidence_ids) == 4 and len(draft.notices[0].text) <= 500

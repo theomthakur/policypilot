@@ -16,6 +16,7 @@ import {
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PdfViewer, type ViewerTarget } from './components/PdfViewer'
 import { PasscodeDialog } from './components/PasscodeDialog'
+import { failureAnswer } from './api/failure'
 import { newId } from './api/ids'
 import { systemTheme, usePreference } from './hooks/usePreference'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
@@ -168,14 +169,15 @@ export function App() {
   }, [messages.length, session.data])
 
   useEffect(() => {
+    // A failed turn still gets a reply in the chat; silence made people send the same question again.
+    const failed = turn.status === 'failed'
     if (
       !activeTurnId ||
-      !turn.answer ||
-      turn.status !== 'completed' ||
-      completedTurn.current === activeTurnId
+      completedTurn.current === activeTurnId ||
+      !(failed || (turn.status === 'completed' && turn.answer))
     )
       return
-    const answer = turn.answer
+    const answer = failed ? failureAnswer(turn.answer) : turn.answer!
     completedTurn.current = activeTurnId
     clarificationTurn.current = answer.clarification ? activeTurnId : null
     const meta = describeRun(
