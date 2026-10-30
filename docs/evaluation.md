@@ -39,6 +39,20 @@ After the outside review (judge also sees the exact-words search, grounded defau
 - Mean cost about $0.009 per agent question (judge included) against $0.0004 for the baseline, median 6.7 s against 2.3 s.
 - **Caveats.** The fresh set guided several fixes, so it is not clean. One tuned run is one sample; the earlier three-repeat table below was measured before these changes. Two earlier batches of runs were deleted because the application's daily spending cap stopped every turn (the cap reads the day's total from the database, so clearing Redis does not reset it).
 
+### After an independent trace review (not yet measured)
+
+A second model read the traces and code and found, among other things: the per-type renewal page never reached the judge because "Northfield" outranked it (the common-term filter measured the word's share over all chunks, not institutional ones); two code gates were skipped for short labels like "LMS account"; digits were ignored when checking whether the question names a kind; the offered question could list options the code had dropped; and after a clarification reply the agent re-read pages from scratch and hit its 6-call limit. Changes made in response (all covered by unit tests, **none re-run against the real model**):
+
+- every proposed kind is logged in the trace with its quote, page and the reason it was dropped, so verdicts can be replayed;
+- distinguishing tokens (digits and short acronyms included) decide whether the question already names a kind; a relevance gate requires at least two quoted rules to share a non-generic word with the question (a list of what exists does not); the offered question is built from, and only from, the verified options;
+- the chosen option's page is read first on the reply turn (it counts toward the 6 calls and shows in the trace);
+- the common-term filter measures over institutional chunks; the literal-question search is skipped when only stop words differ; a leaked near-copy of a test question was removed from the judge prompt;
+- the evaluation runner marks a turn that ended in a provider error or a budget stop as **invalid** (never a failure) and aborts after three in a row.
+
+Label corrections made after seeing results (so those two questions are no longer clean): HELD-2 (heldout.yaml) now expects the research-computing page 09 p3, the only inactivity rule in the corpus, instead of 08 p4, where "180 days" is the rehire rule; HELD-16's description now names the real contrast (Research Vault against the managed object stores' 90-day deleted-version rule), not the Transfer Zone. CASE-4's "six months" check is unchanged and is still failed in every run: the user's reply already says "six-month", so whether the answer must repeat it is an open decision.
+
+**Why this is unmeasured.** Two evaluation keys each had a $1.00 limit and both were used up. All real-model runs after that point were deleted as invalid.
+
 ### Tuned cases, three repeats (r15, r16, r17; `eval/results/run-2026-10-30-gpt-4o-mini-r1{5,6,7}/`)
 
 | Case | Category | Agent passed | Baseline passed | What fails |
