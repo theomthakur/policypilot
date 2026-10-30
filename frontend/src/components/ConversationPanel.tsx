@@ -45,6 +45,13 @@ function AnswerView({
 }) {
   return (
     <div className="answer-view">
+      {answer.paragraphs.length > 0 && (
+        <div className="answer-bubble">
+          {answer.paragraphs.map((paragraph, index) => (
+            <RichText key={index} text={paragraph} />
+          ))}
+        </div>
+      )}
       {answer.notices.map((notice, index) => (
         <div
           className={`answer-notice notice-${notice.type}`}
@@ -53,9 +60,6 @@ function AnswerView({
           <strong>{notice.type.replaceAll('_', ' ')}</strong>
           <span>{notice.message}</span>
         </div>
-      ))}
-      {answer.paragraphs.map((paragraph, index) => (
-        <RichText key={index} text={paragraph} />
       ))}
       {answer.citations.length > 0 && (
         <div className="citation-list" aria-label="Answer citations">
@@ -217,7 +221,7 @@ export function ConversationPanel({
             aria-pressed={showDocuments}
             onClick={onToggleDocuments}
           >
-            Documents
+            {showDocuments ? 'Hide documents' : 'Show documents'}
           </button>
           <button
             type="button"
@@ -225,7 +229,7 @@ export function ConversationPanel({
             aria-pressed={showTrace}
             onClick={onToggleTrace}
           >
-            Trace
+            {showTrace ? 'Hide trace' : 'Show trace'}
           </button>
         </div>
         <div
@@ -359,7 +363,7 @@ export function ConversationPanel({
             </div>
             <div className="message-content">
               <span className="message-author">PolicyPilot</span>
-              <p className="working-line">
+              <p className="working-line answer-bubble">
                 <span className="thinking-dots">
                   <i />
                   <i />

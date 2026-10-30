@@ -56,14 +56,9 @@ export function App() {
   const [chosenMode, setMode] = useState<'agent' | 'baseline'>('agent')
   const [citation, setCitation] = useState<Citation | null>(null)
   const [viewer, setViewer] = useState<ViewerTarget | null>(null)
-  const [showDocuments, setShowDocuments] = usePreference<boolean>(
-    'pp_show_documents',
-    true,
-  )
-  const [showTrace, setShowTrace] = usePreference<boolean>(
-    'pp_show_trace',
-    true,
-  )
+  // Panels always start visible: hiding one is a temporary choice and is never remembered.
+  const [showDocuments, setShowDocuments] = useState(true)
+  const [showTrace, setShowTrace] = useState(true)
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
   const [appView, setAppView] = useState<AppView>(viewFromHash)
