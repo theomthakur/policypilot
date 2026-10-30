@@ -48,8 +48,12 @@ def event_json(event: TraceEvent) -> dict[str, Any]:
 
 
 def _client_key(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    return forwarded.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    """The caller's address for rate limiting. Only the entry our own proxy appended is trusted: a client
+    can put anything at the front of X-Forwarded-For, so the first value would let it pick its bucket."""
+    entries = [e.strip() for e in request.headers.get("x-forwarded-for", "").split(",") if e.strip()]
+    if entries:
+        return entries[max(len(entries) - get_settings().trusted_proxy_hops, 0)]
+    return request.client.host if request.client else "unknown"
 
 
 @router.post("/sessions/{session_id}/messages", status_code=202)

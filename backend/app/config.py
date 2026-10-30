@@ -117,6 +117,9 @@ class Settings(BaseSettings):
 
     # Public safety
     rate_limit_per_minute: int = 20
+    # How many reverse proxies sit in front of the API (nginx, or Caddy in production). The client address
+    # is the entry this many places from the right of X-Forwarded-For; entries further left are client-set.
+    trusted_proxy_hops: int = 1
     daily_budget_usd: float = 1.0
     fault_injection_enabled: bool = False
 

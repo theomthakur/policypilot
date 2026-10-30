@@ -205,13 +205,14 @@ class ApiEvaluationClient:
         return isinstance(page_text, str) and normalized(quote) in normalized(page_text)
 
 
-def answer_text(turn: dict[str, Any]) -> str:
+def answer_text(turn: dict[str, Any], include_clarification: bool = True) -> str:
     answer = turn.get("answer") or {}
     parts = [answer.get("summary", "")]
     parts.extend(claim.get("text", "") for claim in answer.get("claims", []) if isinstance(claim, dict))
     parts.extend(notice.get("text", "") for notice in answer.get("notices", []) if isinstance(notice, dict))
     clarification = turn.get("clarification") or {}
-    parts.append(clarification.get("question", ""))
+    if include_clarification:
+        parts.append(clarification.get("question", ""))
     return "\n".join(part for part in parts if isinstance(part, str))
 
 
@@ -247,8 +248,10 @@ def evaluate_result(
     checks = case.get("checks", {})
     check_results: dict[str, bool] = {}
 
+    # A clarifying question is not an answer: a fact it happens to mention must not satisfy a required fact.
+    answer_only = answer_text(final_turn, include_clarification=False)
     for expression in checks.get("required_facts", []):
-        check_results[f"required_fact:{expression}"] = matches(text, expression)
+        check_results[f"required_fact:{expression}"] = matches(answer_only, expression)
     # Wording of an explicit abstention: broad on purpose (any clear statement that the documents lack it).
     if expression := checks.get("abstention_wording"):
         check_results["abstention_wording"] = matches(text, expression)
