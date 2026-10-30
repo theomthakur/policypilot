@@ -104,6 +104,122 @@ function IconSidebar() {
   )
 }
 
+function IconSun() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+  )
+}
+
+function IconMoon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+    </svg>
+  )
+}
+
+function IconPlus() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function IconDiagram() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      <path d="M10 6.5h4a3 3 0 0 1 3 3V14" />
+    </svg>
+  )
+}
+
+function IconSlides() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M12 16v4M8 20h8" />
+    </svg>
+  )
+}
+
+function IconCode() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" />
+    </svg>
+  )
+}
+
+function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
+  return theme === 'dark' ? <IconSun /> : <IconMoon />
+}
+
 export function App() {
   const queryClient = useQueryClient()
   const [launching, setLaunching] = useState(true)
@@ -441,7 +557,7 @@ export function App() {
             title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
-            {theme === 'dark' ? '☀' : '☾'}
+            <ThemeIcon theme={theme} />
           </button>
           {auth.data?.user && (
             <AccountMenu
@@ -533,6 +649,17 @@ export function App() {
                   <IconSidebar />
                 </button>
               </div>
+              <button
+                type="button"
+                className="sidebar-new"
+                title="New session"
+                aria-label="New session"
+                onClick={() => void resetSession()}
+                disabled={busy}
+              >
+                <IconPlus />
+                <span className="nav-label">New session</span>
+              </button>
               <div className="sidebar-nav" role="tablist">
                 {(
                   [
@@ -576,6 +703,60 @@ export function App() {
                     developer={developer}
                   />
                 )}
+              </div>
+              <div className="sidebar-footer">
+                <button
+                  type="button"
+                  className="sidebar-link"
+                  title="System design"
+                  onClick={() => navigateTo('architecture')}
+                >
+                  <IconDiagram />
+                  <span className="nav-label">System design</span>
+                </button>
+                <button
+                  type="button"
+                  className="sidebar-link"
+                  title="Presentation"
+                  onClick={() => navigateTo('presentation')}
+                >
+                  <IconSlides />
+                  <span className="nav-label">Presentation</span>
+                </button>
+                <div className="sidebar-tools">
+                  <button
+                    type="button"
+                    className={`tool-button${developer ? ' on' : ''}`}
+                    aria-pressed={developer}
+                    aria-label="Developer mode"
+                    title="Developer mode: metrics, technical details and the Agent / Quick switch"
+                    onClick={() => setDeveloper(!developer)}
+                  >
+                    <IconCode />
+                  </button>
+                  <button
+                    type="button"
+                    className="tool-button"
+                    aria-label={
+                      theme === 'dark'
+                        ? 'Switch to light mode'
+                        : 'Switch to dark mode'
+                    }
+                    title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                    onClick={() =>
+                      setTheme(theme === 'dark' ? 'light' : 'dark')
+                    }
+                  >
+                    <ThemeIcon theme={theme} />
+                  </button>
+                  {auth.data?.user && (
+                    <AccountMenu
+                      name={auth.data.user.name}
+                      email={auth.data.user.email}
+                      onSignOut={() => void signOut()}
+                    />
+                  )}
+                </div>
               </div>
             </aside>
             <div

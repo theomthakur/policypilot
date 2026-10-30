@@ -3236,3 +3236,261 @@ th {
 .sidebar-content .dropzone {
   padding: 12px;
 }
+
+/* ===== One sidebar for everything; ChatGPT-style empty state; nothing moves when Developer is switched ===== */
+@media (min-width: 701px) {
+  .app-shell.view-workspace .topbar {
+    display: none;
+  }
+}
+.workspace {
+  padding: 10px;
+}
+.sidebar-new {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+.sidebar-new:hover:not(:disabled) {
+  background: var(--violet-soft);
+  border-color: var(--violet-text);
+}
+.sidebar-new:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar-link:hover {
+  background: var(--violet-soft);
+  color: var(--ink);
+}
+.sidebar-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px 2px;
+}
+.tool-button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+.tool-button:hover {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.tool-button.on {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.sidebar-tools .account-menu {
+  margin-left: auto;
+}
+.pane-sidebar.is-collapsed .sidebar-new,
+.pane-sidebar.is-collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0;
+}
+.pane-sidebar.is-collapsed .sidebar-new {
+  border-color: transparent;
+  background: transparent;
+}
+.pane-sidebar.is-collapsed .sidebar-tools {
+  flex-direction: column;
+  padding: 6px 0 2px;
+}
+.pane-sidebar.is-collapsed .sidebar-tools .account-menu {
+  margin-left: 0;
+}
+.sidebar-content {
+  margin-bottom: 6px;
+}
+@media (max-width: 700px) {
+  .sidebar-footer,
+  .sidebar-new {
+    display: none;
+  }
+}
+
+/* The Agent / Quick switch floats, so switching Developer on never moves the page */
+.conversation-panel {
+  position: relative;
+}
+.conversation-heading {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.mode-hint {
+  position: absolute;
+  top: 48px;
+  right: 14px;
+  z-index: 3;
+  max-width: 300px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 11.5px;
+}
+.mode-hint.is-hidden {
+  display: none;
+}
+
+/* Empty state: greeting, composer and suggestion chips sit together in the middle, like a chat app */
+.welcome-state {
+  width: auto;
+  margin: 0 auto;
+}
+.welcome-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.welcome-mark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+.welcome-row h3 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: left;
+}
+.conversation-panel.is-empty {
+  justify-content: center;
+}
+.conversation-panel.is-empty .messages {
+  flex: 0 0 auto;
+  overflow: visible;
+  padding: 0 24px 22px;
+}
+.conversation-panel.is-empty .composer-wrap {
+  border-top: 0;
+  background: none;
+  padding-bottom: 0;
+}
+.conversation-panel.is-empty .composer {
+  max-width: 720px;
+}
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 720px;
+  margin: 16px auto 0;
+}
+.suggestions button {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.suggestions button:hover {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+  border-color: var(--violet-text);
+}
+.composer-wrap > p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  opacity: 0.8;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+.conversation-panel.is-empty .composer-wrap > p {
+  margin-top: 22px;
+}
+@media (max-width: 700px) {
+  .welcome-row h3 {
+    font-size: 21px;
+  }
+}
+
+/* Upload: one compact row in the sidebar */
+.sidebar-content .drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  margin: 4px 0 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+}
+.sidebar-content .drop-zone .upload-icon {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+.sidebar-content .drop-zone strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* The Agent / Quick switch sits top-left in empty space; its explanation is a tooltip */
+.conversation-heading {
+  right: auto;
+  left: 14px;
+}
+.mode-hint,
+.mode-hint.is-hidden {
+  display: none;
+}

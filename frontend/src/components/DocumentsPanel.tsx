@@ -103,8 +103,7 @@ export function DocumentsPanel({
         <span className="upload-icon" aria-hidden="true">
           ↑
         </span>
-        <strong>Upload a policy PDF</strong>
-        <span>Drag and drop or choose a file</span>
+        <strong>Upload PDF</strong>
       </button>
       <input
         aria-label="Upload a policy PDF"
@@ -205,11 +204,6 @@ export function DocumentsPanel({
           )
         })}
       </div>
-
-      <p className="synthetic-note">
-        <span aria-hidden="true">ⓘ</span> Bundled documents are synthetic
-        examples, not official NYU policy.
-      </p>
     </section>
   )
 }

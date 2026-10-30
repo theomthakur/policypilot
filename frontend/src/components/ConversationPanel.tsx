@@ -4,6 +4,7 @@ import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
+import { greeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
 
 export interface DisplayMessage {
@@ -28,8 +29,8 @@ interface ConversationPanelProps {
 
 const examples = [
   'What MFA rules apply to remote research access?',
-  'Compare the storage rules for restricted data and approved AI tools.',
-  'What changed in the latest access policy bulletin?',
+  'Compare storage rules for restricted data and AI tools',
+  'How do I renew a sponsored guest account?',
 ]
 
 function AnswerView({
@@ -197,11 +198,19 @@ export function ConversationPanel({
     )
 
   return (
-    <section className="panel conversation-panel" aria-label="Conversation">
+    <section
+      className={`panel conversation-panel${messages.length === 0 ? ' is-empty' : ''}`}
+      aria-label="Conversation"
+    >
       <div className="panel-heading conversation-heading">
         <div
           className={`mode-toggle${developer ? '' : ' is-hidden'}`}
           aria-label="Answer mode"
+          title={
+            mode === 'agent'
+              ? 'Agent: searches, searches again with different words when unsure, asks when your question is unclear, and checks every quote. Slower, more careful.'
+              : 'Quick: searches once and answers once, with the same quote check. Faster, and the simple version the agent is compared against.'
+          }
           aria-hidden={!developer}
         >
           <button
@@ -244,24 +253,9 @@ export function ConversationPanel({
       <div className="messages" aria-live="polite">
         {messages.length === 0 && (
           <div className="welcome-state">
-            <div className="assistant-avatar large" aria-hidden="true">
-              <PolicyPilotMark />
-            </div>
-            <h3>What would you like to know?</h3>
-            <div className="example-prompts">
-              {examples.map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  onClick={() => {
-                    setContent(example)
-                    inputRef.current?.focus()
-                  }}
-                >
-                  <span>{example}</span>
-                  <span aria-hidden="true">↗</span>
-                </button>
-              ))}
+            <div className="welcome-row">
+              <PolicyPilotMark className="welcome-mark" />
+              <h3>{greeting()}. What would you like to know?</h3>
             </div>
           </div>
         )}
@@ -387,9 +381,25 @@ export function ConversationPanel({
             ↑
           </button>
         </form>
+        {messages.length === 0 && (
+          <div className="suggestions" aria-label="Suggested questions">
+            {examples.map((example) => (
+              <button
+                key={example}
+                type="button"
+                onClick={() => {
+                  setContent(example)
+                  inputRef.current?.focus()
+                }}
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        )}
         <p>
-          Answers are limited to indexed evidence. Verify important decisions
-          against the cited source.
+          Sample policies, not official NYU policy. Check the cited page before
+          relying on an answer.
         </p>
       </div>
     </section>
