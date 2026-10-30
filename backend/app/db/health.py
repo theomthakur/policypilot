@@ -28,3 +28,15 @@ async def database_status() -> tuple[Literal["ok", "down"], Literal["ok", "pendi
     except SQLAlchemyError:
         return "down", "down"
     return "ok", ("ok" if current is not None and current == _head_revision() else "pending")
+
+
+async def corpus_documents() -> int | None:
+    """Ready documents in the shared corpus, or None when the database cannot be read."""
+    try:
+        async with get_engine().connect() as conn:
+            row = await conn.execute(
+                text("SELECT count(*) FROM documents WHERE session_id IS NULL AND status = 'ready'")
+            )
+            return int(row.scalar_one())
+    except SQLAlchemyError:
+        return None

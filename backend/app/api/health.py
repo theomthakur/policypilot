@@ -44,9 +44,16 @@ async def _redis_check() -> CheckStatus:
     return await redis_status()
 
 
+async def _corpus_count() -> int | None:
+    from app.db.health import corpus_documents
+
+    return await corpus_documents()
+
+
 # Indirection so tests and later tasks can swap the checks without touching the routes.
 database_check: Callable[[], Awaitable[tuple[CheckStatus, MigrationStatus]]] = _database_check
 redis_check: Callable[[], Awaitable[CheckStatus]] = _redis_check
+corpus_count: Callable[[], Awaitable[int | None]] = _corpus_count
 
 
 @router.get("/live")
@@ -72,4 +79,5 @@ async def ready(response: Response) -> Readiness:
         status = "degraded"
     else:
         status = "ok"
-    return Readiness(status=status, version=settings.app_version, checks=checks)
+    corpus = await corpus_count() if db == "ok" and migrations == "ok" else None
+    return Readiness(status=status, version=settings.app_version, checks=checks, corpus_documents=corpus)

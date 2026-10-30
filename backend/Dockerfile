@@ -33,5 +33,5 @@ RUN mkdir -p /data/uploads && chown -R app:app /data /models
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \
-  CMD curl -fsS http://localhost:8000/api/v1/health/live || exit 1
+  CMD curl -fsS http://localhost:8000/api/v1/health/ready || exit 1
 CMD ["./start.sh"]

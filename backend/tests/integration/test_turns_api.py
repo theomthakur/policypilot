@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from app.agent.prompts import PROMPT_VERSION
 from tests.integration.conftest import clear_caches, new_session
 from tests.integration.test_agent import QUOTE_MBPS, _answer_step, _load
 
@@ -76,7 +77,7 @@ def test_turn_runs_in_the_background_and_persists_everything(
         assert turn["events"][0]["type"] == "turn_started" and turn["events"][-1]["type"] == "turn_completed"
         totals = turn["totals"]
         assert totals["tool_calls"] == 1 and totals["latency_ms"] >= 0
-        assert totals["prompt_version"] == "v1" and totals["model"] == "scripted"
+        assert totals["prompt_version"] == PROMPT_VERSION and totals["model"] == "scripted"
         assert totals["estimated_cost_usd"] > 0
         listed = client.get(f"/api/v1/sessions/{_session_id(client)}").json()["turns"]
         assert [t["id"] for t in listed] == [turn["id"]]

@@ -24,8 +24,12 @@ def _set_checks(
     async def fake_redis() -> Literal["ok", "down"]:
         return redis
 
+    async def fake_corpus() -> int | None:
+        return 10
+
     monkeypatch.setattr(health, "database_check", fake_db)
     monkeypatch.setattr(health, "redis_check", fake_redis)
+    monkeypatch.setattr(health, "corpus_count", fake_corpus)
 
 
 def test_live_is_always_ok(client: TestClient) -> None:
@@ -40,7 +44,7 @@ def test_ready_ok_when_everything_is_up(client: TestClient, monkeypatch: pytest.
     health.get_settings.cache_clear()
     _set_checks(monkeypatch, "ok", "ok", "ok")
     body = client.get("/api/v1/health/ready").json()
-    assert body["status"] == "ok"
+    assert body["status"] == "ok" and body["corpus_documents"] == 10
     health.get_settings.cache_clear()
 
 
@@ -59,7 +63,7 @@ def test_database_down_is_not_ready(client: TestClient, monkeypatch: pytest.Monk
     _set_checks(monkeypatch, "down", "down", "ok")
     response = client.get("/api/v1/health/ready")
     assert response.status_code == 503
-    assert response.json()["status"] == "down"
+    assert response.json()["status"] == "down" and response.json()["corpus_documents"] is None
 
 
 def test_pending_migrations_are_not_ready(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

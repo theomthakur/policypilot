@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.agent.prompts import PROMPT_VERSION
 from app.config import get_settings
 from app.main import create_app
 
@@ -16,7 +17,7 @@ def test_run_configuration_is_public_and_contains_no_secrets(monkeypatch: pytest
         get_settings.cache_clear()
     assert body.status_code == 200
     data = body.json()
-    assert data["model"]["prompt_version"] == "v1"
+    assert data["model"]["prompt_version"] == PROMPT_VERSION
     assert data["retrieval"]["chunk_tokens"] == 200 and data["retrieval"]["chunk_overlap_tokens"] == 30
     assert data["agent_limits"]["max_tool_calls"] == 6
     assert data["protections"]["passcode_required"] is True
