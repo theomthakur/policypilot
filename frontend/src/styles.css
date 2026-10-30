@@ -3912,24 +3912,11 @@ th {
   --line: #d7cae8;
 }
 
-/* ===== Cash Check type and corners: Manrope for text, DM Mono for small labels, square boxes. Colours unchanged. ===== */
+/* ===== Cash Check type: Manrope for text, DM Mono for small labels. Corners and colours are unchanged. ===== */
 :root {
   --font-sans: Manrope, 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
   --font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-family: var(--font-sans);
-}
-/* Every box is square; only the tiny status marks stay round. */
-*,
-*::before,
-*::after {
-  border-radius: 0 !important;
-}
-.thinking-dots i,
-.status-dot,
-.spinner,
-.switch-track,
-.switch-track i {
-  border-radius: 999px !important;
 }
 /* Small uppercase labels, captions and counts use the mono face */
 .eyebrow,
