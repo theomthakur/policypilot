@@ -95,8 +95,10 @@ export function App() {
   const [citation, setCitation] = useState<Citation | null>(null)
   const [viewer, setViewer] = useState<ViewerTarget | null>(null)
   // Panels always start visible: hiding one is a temporary choice and is never remembered.
-  const [showDocuments, setShowDocuments] = useState(true)
-  const [showTrace, setShowTrace] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(true)
+  const [sidebarTab, setSidebarTab] = useState<'documents' | 'activity'>(
+    'documents',
+  )
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
   const [appView, setAppView] = useState<AppView>(viewFromHash)
@@ -296,6 +298,7 @@ export function App() {
       completedTurn.current = null
       setActiveTurnId(response.turn_id)
       setMobilePanel('conversation')
+      setSidebarTab('activity')
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         void createSession().catch(() => undefined)
@@ -356,11 +359,9 @@ export function App() {
         >
           <div className="launch-brand">
             <div className="launch-logo" aria-hidden="true">
-              <AnimatedMark className="launch-mark" speed={1.1} />
+              <AnimatedMark className="launch-mark" speed={1.6} shine />
             </div>
             <div className="launch-wordmark">PolicyPilot</div>
-            <p>Preparing your evidence workspace</p>
-            <span className="launch-progress" />
           </div>
         </div>
       )}
@@ -470,8 +471,9 @@ export function App() {
                   type="button"
                   onClick={() => {
                     setMobilePanel(panel)
-                    if (panel === 'documents') setShowDocuments(true)
-                    if (panel === 'trace') setShowTrace(true)
+                    if (panel === 'documents') setSidebarTab('documents')
+                    if (panel === 'trace') setSidebarTab('activity')
+                    if (panel !== 'conversation') setShowSidebar(true)
                   }}
                 >
                   {panel}
@@ -483,25 +485,57 @@ export function App() {
             )}
           </nav>
 
-          <main
-            className={`workspace${showDocuments ? '' : ' no-documents'}${showTrace ? '' : ' no-trace'}`}
-          >
+          <main className={`workspace${showSidebar ? '' : ' no-sidebar'}`}>
             <aside
-              className={`workspace-pane pane-documents ${mobilePanel === 'documents' ? 'mobile-active' : ''}`}
-              aria-label="Knowledge base"
+              className={`workspace-pane pane-sidebar ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
+              aria-label="Workspace sidebar"
             >
               <CollapseBar
                 side="left"
-                label="Knowledge base"
-                open={showDocuments}
-                onToggle={() => setShowDocuments(!showDocuments)}
+                label="Workspace"
+                open={showSidebar}
+                onToggle={() => setShowSidebar(!showSidebar)}
               />
-              <div className="pane-body" hidden={!showDocuments}>
-                <DocumentsPanel
-                  onView={(document) =>
-                    setViewer({ id: document.id, title: document.title })
-                  }
-                />
+              <div className="pane-body sidebar-body" hidden={!showSidebar}>
+                <div className="sidebar-tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sidebarTab === 'documents'}
+                    className={sidebarTab === 'documents' ? 'active' : ''}
+                    onClick={() => setSidebarTab('documents')}
+                  >
+                    Knowledge base
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sidebarTab === 'activity'}
+                    className={sidebarTab === 'activity' ? 'active' : ''}
+                    onClick={() => setSidebarTab('activity')}
+                  >
+                    Agent activity
+                    {turn.events.length > 0 && (
+                      <span className="tab-count">{turn.events.length}</span>
+                    )}
+                  </button>
+                </div>
+                <div className="sidebar-content">
+                  {sidebarTab === 'documents' ? (
+                    <DocumentsPanel
+                      onView={(document) =>
+                        setViewer({ id: document.id, title: document.title })
+                      }
+                    />
+                  ) : (
+                    <TracePanel
+                      events={turn.events}
+                      totals={turn.totals}
+                      streamStatus={turn.status}
+                      developer={developer}
+                    />
+                  )}
+                </div>
               </div>
             </aside>
             <div
@@ -519,26 +553,6 @@ export function App() {
                 onCitationOpen={setCitation}
               />
             </div>
-            <aside
-              className={`workspace-pane pane-trace ${mobilePanel === 'trace' ? 'mobile-active' : ''}`}
-              aria-label="Agent activity"
-            >
-              <CollapseBar
-                side="right"
-                label="Agent activity"
-                count={turn.events.length}
-                open={showTrace}
-                onToggle={() => setShowTrace(!showTrace)}
-              />
-              <div className="pane-body" hidden={!showTrace}>
-                <TracePanel
-                  events={turn.events}
-                  totals={turn.totals}
-                  streamStatus={turn.status}
-                  developer={developer}
-                />
-              </div>
-            </aside>
           </main>
         </>
       ) : appView === 'architecture' ? (

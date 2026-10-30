@@ -15,11 +15,14 @@ interface AnimatedMarkProps {
   className?: string
   /** Seconds for one full turn. */
   speed?: number
+  /** A band of light that sweeps across the petals (used on the launch screen). */
+  shine?: boolean
 }
 
 export function AnimatedMark({
   className = '',
   speed = 2.4,
+  shine = false,
 }: AnimatedMarkProps) {
   return (
     <svg
@@ -28,11 +31,42 @@ export function AnimatedMark({
       aria-hidden="true"
       style={{ ['--mark-speed' as string]: `${speed}s` }}
     >
+      {shine && (
+        <defs>
+          <linearGradient
+            id="pp-mark-shine"
+            gradientUnits="userSpaceOnUse"
+            x1="-72"
+            y1="-30"
+            x2="-12"
+            y2="30"
+          >
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#fff" stopOpacity="0.7" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+            <animateTransform
+              attributeName="gradientTransform"
+              type="translate"
+              from="-60 0"
+              to="130 0"
+              dur="1.6s"
+              repeatCount="indefinite"
+            />
+          </linearGradient>
+        </defs>
+      )}
       <g fill="currentColor">
         {PETALS.map((d, index) => (
           <path key={index} d={d} />
         ))}
       </g>
+      {shine && (
+        <g fill="url(#pp-mark-shine)">
+          {PETALS.map((d, index) => (
+            <path key={index} d={d} />
+          ))}
+        </g>
+      )}
     </svg>
   )
 }

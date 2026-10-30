@@ -2749,3 +2749,211 @@ time {
   font: inherit;
   cursor: pointer;
 }
+
+/* ===== Layout and type refresh: left sidebar, ChatGPT-style font, smaller text ===== */
+:root {
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    system-ui,
+    'Segoe UI',
+    Helvetica,
+    'Apple Color Emoji',
+    Arial,
+    sans-serif;
+  font-size: 14px;
+}
+.workspace,
+.workspace.no-documents,
+.workspace.no-trace {
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+}
+.workspace.no-sidebar {
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+.workspace.no-sidebar .pane-sidebar {
+  display: flex;
+}
+.pane-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pane-sidebar .collapse-bar:not(.is-collapsed) {
+  flex-direction: row;
+  justify-content: space-between;
+}
+.sidebar-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.sidebar-body[hidden] {
+  display: none;
+}
+.sidebar-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.sidebar-tabs button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sidebar-tabs button.active {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.tab-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--violet-text);
+  color: var(--surface);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.sidebar-content > .panel {
+  height: 100%;
+}
+/* The collapsed rail: arrow and label only, no badge to collide with the text. */
+.collapse-label em {
+  display: none;
+}
+.collapse-bar.is-collapsed .collapse-label {
+  white-space: nowrap;
+}
+/* Folders in the knowledge base */
+.doc-folder {
+  margin-bottom: 10px;
+}
+.doc-folder > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+.doc-folder > summary::-webkit-details-marker {
+  display: none;
+}
+.doc-folder > summary::before {
+  content: '▾';
+  margin-right: 6px;
+}
+.doc-folder:not([open]) > summary::before {
+  content: '▸';
+}
+.doc-folder .folder-name {
+  flex: 1;
+}
+.folder-count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--violet-soft);
+  color: var(--violet-text);
+  font-variant-numeric: tabular-nums;
+}
+/* Smaller, calmer text in the conversation */
+.message-content > p,
+.answer-view p,
+.answer-view li {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.message-user .message-content > p {
+  font-size: 14px;
+}
+.message-author {
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.message-meta {
+  font-size: 11.5px;
+}
+.citation-chip {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.answer-notice {
+  font-size: 13px;
+}
+.messages {
+  padding-top: 22px;
+}
+@media (max-width: 980px) {
+  .workspace,
+  .workspace.no-documents,
+  .workspace.no-trace {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .workspace.no-sidebar {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+}
+
+.composer textarea {
+  font-size: 14px;
+}
+
+/* Launch: the logo alone, no box and no loading bar, with a soft shadow and a sweeping shine */
+.launch-logo {
+  width: auto;
+  height: auto;
+  margin-bottom: 14px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 14px 22px rgba(87, 6, 140, 0.3));
+}
+.animated-mark.launch-mark {
+  width: 96px;
+  height: 96px;
+  filter: none;
+}
+.launch-progress,
+.launch-brand p {
+  display: none;
+}
+@media (max-width: 700px) {
+  .launch-logo {
+    width: auto;
+    height: auto;
+  }
+  .animated-mark.launch-mark {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* Space between "Agent · N searches" and the answer */
+.message-content > .message-meta {
+  display: block;
+  margin: 0 0 10px;
+}

@@ -157,42 +157,56 @@ export function DocumentsPanel({
             <span>Upload a PDF to start asking questions.</span>
           </div>
         )}
-        {documents.data?.map((document) => (
-          <article className="document-card" key={document.id}>
-            <div className="pdf-mark" aria-hidden="true">
-              PDF
-            </div>
-            <div className="document-details">
-              <strong title={document.title}>{document.title}</strong>
-              <span>
-                {document.page_count}{' '}
-                {document.page_count === 1 ? 'page' : 'pages'} ·{' '}
-                {document.source === 'reference'
-                  ? 'public reference'
-                  : document.source === 'bundled'
-                    ? 'sample policy'
-                    : 'your upload'}
-              </span>
-              <span className="document-status">
-                <StatusDot status={document.status} />
-                {document.status}
-              </span>
-              {document.error && (
-                <span className="document-error">{document.error}</span>
-              )}
-            </div>
-            {onView && document.status === 'ready' && (
-              <button
-                className="doc-view"
-                type="button"
-                onClick={() => onView(document)}
-                aria-label={`View the PDF: ${document.title}`}
-              >
-                View
-              </button>
-            )}
-          </article>
-        ))}
+        {FOLDERS.map((folder) => {
+          const items = (documents.data ?? []).filter(
+            (document) => folderOf(document.source) === folder.key,
+          )
+          if (items.length === 0) return null
+          return (
+            <details className="doc-folder" key={folder.key} open>
+              <summary>
+                <span className="folder-name">{folder.label}</span>
+                <span className="folder-count">{items.length}</span>
+              </summary>
+              {items.map((document) => (
+                <article className="document-card" key={document.id}>
+                  <div className="pdf-mark" aria-hidden="true">
+                    PDF
+                  </div>
+                  <div className="document-details">
+                    <strong title={document.title}>{document.title}</strong>
+                    <span>
+                      {document.page_count}{' '}
+                      {document.page_count === 1 ? 'page' : 'pages'} ·{' '}
+                      {document.source === 'reference'
+                        ? 'public reference'
+                        : document.source === 'bundled'
+                          ? 'sample policy'
+                          : 'your upload'}
+                    </span>
+                    <span className="document-status">
+                      <StatusDot status={document.status} />
+                      {document.status}
+                    </span>
+                    {document.error && (
+                      <span className="document-error">{document.error}</span>
+                    )}
+                  </div>
+                  {onView && document.status === 'ready' && (
+                    <button
+                      className="doc-view"
+                      type="button"
+                      onClick={() => onView(document)}
+                      aria-label={`View the PDF: ${document.title}`}
+                    >
+                      View
+                    </button>
+                  )}
+                </article>
+              ))}
+            </details>
+          )
+        })}
       </div>
 
       <p className="synthetic-note">
@@ -201,6 +215,18 @@ export function DocumentsPanel({
       </p>
     </section>
   )
+}
+
+const FOLDERS = [
+  { key: 'policies', label: 'University policies' },
+  { key: 'reference', label: 'Public references (NIST)' },
+  { key: 'uploads', label: 'Your uploads' },
+] as const
+
+function folderOf(source: string | undefined) {
+  if (source === 'reference') return 'reference'
+  if (source === 'bundled') return 'policies'
+  return 'uploads'
 }
 
 function DocumentSkeleton() {
