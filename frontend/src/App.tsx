@@ -884,7 +884,7 @@ export function App() {
           </main>
         </>
       ) : (
-        <div className="workspace">
+        <div className={`workspace${showSidebar ? '' : ' no-sidebar'}`}>
           {sidebar}
           <div className="workspace-pane pane-page mobile-active">
             {appView === 'architecture' ? (
