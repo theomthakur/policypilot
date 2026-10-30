@@ -79,13 +79,14 @@ def _client(settings: Settings, **kwargs: Any) -> AsyncOAuth2Client:
     )
 
 
-async def begin_login(settings: Settings) -> tuple[str, str]:
+async def begin_login(settings: Settings, force_prompt: bool = False) -> tuple[str, str]:
     """Returns (authorization URL, signed flow cookie value)."""
     doc = await discovery(settings)
     state, nonce, verifier = secrets.token_urlsafe(24), secrets.token_urlsafe(24), secrets.token_urlsafe(48)
     async with _client(settings) as client:
+        extra = {"prompt": "login"} if force_prompt else {}  # after a logout: ask for credentials again
         url, _ = client.create_authorization_url(
-            doc["authorization_endpoint"], state=state, nonce=nonce, code_verifier=verifier
+            doc["authorization_endpoint"], state=state, nonce=nonce, code_verifier=verifier, **extra
         )
     flow = jwt.encode(
         {"alg": "HS256"},
@@ -108,7 +109,7 @@ def _read_flow(settings: Settings, cookie: str | None) -> dict[str, Any]:
 
 async def finish_login(settings: Settings, flow_cookie: str | None, state: str, code: str) -> Identity:
     flow = _read_flow(settings, flow_cookie)
-    if not secrets.compare_digest(str(flow.get("state", "")), state):
+    if not secrets.compare_digest(str(flow.get("state", "")).encode(), state.encode()):
         raise OidcError("The sign-in response did not match this browser. Please try again.")
     doc = await discovery(settings)
     try:
@@ -136,8 +137,11 @@ async def finish_login(settings: Settings, flow_cookie: str | None, state: str, 
         raise
     except Exception as exc:
         raise OidcError("Sign-in could not be verified.") from exc
-    if not secrets.compare_digest(str(claims.get("nonce", "")), str(flow["nonce"])):
+    if not secrets.compare_digest(str(claims.get("nonce", "")).encode(), str(flow["nonce"]).encode()):
         raise OidcError("Sign-in could not be verified.")
+    audience = claims.get("aud")
+    if isinstance(audience, list) and len(audience) > 1 and claims.get("azp") != settings.oidc_client_id:
+        raise OidcError("Sign-in could not be verified.")  # OIDC Core: several audiences need a matching azp
     return Identity(
         issuer=settings.oidc_issuer,
         subject=str(claims["sub"]),

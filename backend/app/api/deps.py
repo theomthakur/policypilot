@@ -1,5 +1,6 @@
 """Shared request dependencies."""
 
+import secrets
 import uuid
 from typing import Annotated
 
@@ -66,7 +67,7 @@ def require_passcode(x_demo_passcode: Annotated[str | None, Header()] = None) ->
     browser's event stream cannot send custom headers, so the cookie is the only gate it can carry.
     """
     expected = get_settings().demo_passcode
-    if expected and x_demo_passcode != expected:
+    if expected and not secrets.compare_digest((x_demo_passcode or "").encode(), expected.encode()):
         raise ApiError(401, "PASSCODE_REQUIRED", "A valid demo passcode is required.")
 
 

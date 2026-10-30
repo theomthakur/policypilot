@@ -263,3 +263,69 @@ def test_only_one_instance_seeds_the_corpus_at_a_time(tmp_path: Path) -> None:
                 await holder.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": SEED_LOCK})
 
     assert run(go()) == 0
+
+
+def test_a_stale_worker_cannot_write_a_turns_answer_after_losing_its_lease(
+    monkeypatch: pytest.MonkeyPatch, make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    with _boot(monkeypatch, _lookup_model(), make_pdf, tmp_path, WORKER_EMBEDDED="false") as client:
+        turn_id = _send(client, "What is the guest bandwidth limit?").json()["turn_id"]
+        session_id = _session_id(client)
+
+    async def go() -> None:
+        from app.db.models import Turn
+        from app.db.session import get_sessionmaker
+        from app.jobs import queue
+        from app.turns.service import run_turn
+
+        stale = await queue.claim("worker-a", 60)
+        await _expire(stale.id if stale else uuid.UUID(int=0))
+        fresh = await queue.claim("worker-b", 60)
+        assert stale is not None and fresh is not None and fresh.fence == stale.fence + 1
+        monkeypatch.setattr("app.turns.service.get_model", lambda: _lookup_model())
+        await run_turn(uuid.UUID(turn_id), uuid.UUID(session_id), None, None, job=stale)  # finishes late
+        async with get_sessionmaker()() as db:
+            turn = await db.get(Turn, uuid.UUID(turn_id))
+            assert turn is not None and turn.status == "running"  # the stale worker wrote nothing final
+        monkeypatch.setattr("app.turns.service.get_model", lambda: _lookup_model())
+        await run_turn(uuid.UUID(turn_id), uuid.UUID(session_id), None, None, job=fresh)
+        async with get_sessionmaker()() as db:
+            done = await db.get(Turn, uuid.UUID(turn_id))
+            assert done is not None and done.status == "completed"
+
+    run(go())
+
+
+def test_a_failing_handler_is_retried_until_attempts_run_out() -> None:
+    from app.jobs import queue
+
+    async def go() -> None:
+        job_id = await _new_job(max_attempts=2)
+        first = await queue.claim("w", 60)
+        assert first is not None and await queue.retry_or_fail(first, "boom") is True  # back in the queue
+        assert (await _row(job_id)).status == "queued"
+        second = await queue.claim("w", 60)
+        assert second is not None and second.attempts == 2
+        assert await queue.retry_or_fail(second, "boom again") is False  # attempts used up: failed
+        job = await _row(job_id)
+        assert job.status == "failed" and job.last_error == "boom again"
+
+    run(go())
+
+
+def test_releases_stop_giving_the_attempt_back_after_a_few() -> None:
+    from app.jobs import queue
+
+    async def go() -> None:
+        job_id = await _new_job(max_attempts=3)
+        for _ in range(queue.MAX_FREE_RELEASES + 2):
+            claimed = await queue.claim("w", 60)
+            assert claimed is not None
+            await queue.release(claimed.id, claimed.fence)
+        job = await _row(job_id)
+        assert job.releases == queue.MAX_FREE_RELEASES + 2
+        assert (
+            job.attempts >= 2
+        )  # the last releases kept their attempt, so rolling restarts cannot loop forever
+
+    run(go())

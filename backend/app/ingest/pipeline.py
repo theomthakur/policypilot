@@ -21,6 +21,8 @@ from app.db.session import get_sessionmaker
 from app.ingest.chunk import chunk_pages
 from app.ingest.embed import get_embedder
 from app.ingest.parse import UnsupportedPdfError, parse_pdf
+from app.jobs import queue
+from app.jobs.queue import Claimed
 from app.state import ingest_progress
 from app.state.corpus import bump_corpus_version
 
@@ -55,7 +57,9 @@ async def _progress(db: AsyncSession, run: IngestionRun, stage: str, status: str
     )
 
 
-async def ingest_document(document_id: uuid.UUID, run_id: uuid.UUID, path: Path) -> None:
+async def ingest_document(
+    document_id: uuid.UUID, run_id: uuid.UUID, path: Path, job: "Claimed | None" = None
+) -> None:
     settings = get_settings()
     async with get_sessionmaker()() as db:
         document = await db.get(Document, document_id)
@@ -77,6 +81,9 @@ async def ingest_document(document_id: uuid.UUID, run_id: uuid.UUID, path: Path)
             vectors = await asyncio.to_thread(get_embedder().embed, [c.text for c in chunks])
 
             await _progress(db, run, "indexing")
+            if job is not None and not await queue.holds(db, job.id, job.fence):
+                await db.rollback()
+                return  # this worker lost its lease: the replacement owns the swap
             await db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
             await db.execute(delete(Chunk).where(Chunk.document_id == document.id))
             db.add_all(

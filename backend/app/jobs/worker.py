@@ -71,26 +71,49 @@ class Worker:
             await asyncio.wait({task})
 
     async def _run_one(self, job: queue.Claimed) -> None:
-        beat = asyncio.create_task(self._heartbeat(job))
+        handler = asyncio.create_task(handlers.handle(job))
+        lost = asyncio.Event()
+        beat = asyncio.create_task(self._heartbeat(job, handler, lost))
         try:
-            await handlers.handle(job)
+            await handler
             if not await queue.complete(job.id, job.fence):
                 logger.warning("lost the lease before finishing", extra={"fields": {"job_id": str(job.id)}})
         except asyncio.CancelledError:
+            if lost.is_set():  # another worker owns the job now: stop quietly, write nothing
+                logger.warning(
+                    "handler stopped after losing its lease", extra={"fields": {"job_id": str(job.id)}}
+                )
+                return
+            handler.cancel()
             await queue.release(job.id, job.fence)
             raise
         except Exception as exc:
             logger.exception("job failed", extra={"fields": {"job_id": str(job.id)}})
-            await queue.complete(job.id, job.fence, error=f"{type(exc).__name__}: {str(exc)[:300]}")
+            await self._after_failure(job, f"{type(exc).__name__}: {str(exc)[:300]}")
         finally:
             beat.cancel()
 
-    async def _heartbeat(self, job: queue.Claimed) -> None:
+    async def _after_failure(self, job: queue.Claimed, error: str) -> None:
+        """A handler raised (a database failover, a bad upload): retry after a short backoff while attempts
+        remain, otherwise finish the job's own records so nothing stays 'running' forever."""
+        await asyncio.sleep(min(2.0 * job.attempts, 10.0))
+        try:
+            if await queue.retry_or_fail(job, error):
+                return
+            await handlers.on_interrupted(job.kind, job.payload, job.session_id)
+        except Exception:
+            logger.exception("could not record the failure", extra={"fields": {"job_id": str(job.id)}})
+
+    async def _heartbeat(
+        self, job: queue.Claimed, handler: "asyncio.Task[None]", lost: asyncio.Event
+    ) -> None:
         while True:
             await asyncio.sleep(self.settings.job_heartbeat_seconds)
             try:
                 if not await queue.heartbeat(job.id, job.fence, self.settings.job_lease_seconds):
                     logger.warning("lease lost", extra={"fields": {"job_id": str(job.id)}})
+                    lost.set()
+                    handler.cancel()  # the work belongs to another worker now
                     return
             except Exception:
                 logger.exception("heartbeat failed")

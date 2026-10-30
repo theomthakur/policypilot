@@ -97,6 +97,8 @@ class Provider:
                 claims["iss"] = "http://evil.example"
             elif self.behaviour == "wrong_audience":
                 claims["aud"] = "another-client"
+            elif self.behaviour == "multi_audience":
+                claims["aud"] = [CLIENT_ID, "another-client"]  # no azp
             elif self.behaviour == "expired":
                 claims["exp"] = now - 60
             elif self.behaviour == "bad_signature":
@@ -359,6 +361,28 @@ def test_production_fails_closed_without_real_sign_in(monkeypatch: pytest.Monkey
     base = {"app_env": "production", "public_origin": "https://example.org"}
     with pytest.raises(RuntimeError, match="AUTH_MODE"):
         validate_settings(Settings(**base, auth_mode="off"))  # type: ignore[arg-type]
+    with pytest.raises(RuntimeError, match="AUTH_MODE"):  # the opt-out also needs a passcode
+        validate_settings(Settings(**base, auth_mode="off", allow_passcode_only_production=True))  # type: ignore[arg-type]
+    validate_settings(  # a passcode-only demo, asked for by name
+        Settings(  # type: ignore[arg-type]
+            **base,
+            auth_mode="off",
+            allow_passcode_only_production=True,
+            demo_passcode="x" * 12,
+            auth_cookie_secure=True,
+            session_cookie_secure=True,
+        )
+    )
+    with pytest.raises(RuntimeError, match="COOKIE_SECURE"):  # production over HTTPS needs both Secure flags
+        validate_settings(
+            Settings(  # type: ignore[arg-type]
+                **base,
+                auth_mode="oidc",
+                oidc_issuer="https://idp",
+                oidc_client_id="c",
+                auth_secret_key="x" * 40,
+            )
+        )
     with pytest.raises(RuntimeError, match="AUTH_MODE"):
         validate_settings(Settings(**base, auth_mode="test", auth_secret_key="x" * 40))  # type: ignore[arg-type]
     with pytest.raises(RuntimeError, match="AUTH_SECRET_KEY"):
@@ -367,7 +391,13 @@ def test_production_fails_closed_without_real_sign_in(monkeypatch: pytest.Monkey
         )
     validate_settings(
         Settings(  # type: ignore[arg-type]
-            **base, auth_mode="oidc", oidc_issuer="https://idp", oidc_client_id="c", auth_secret_key="x" * 40
+            **base,
+            auth_mode="oidc",
+            oidc_issuer="https://idp",
+            oidc_client_id="c",
+            auth_secret_key="x" * 40,
+            auth_cookie_secure=True,
+            session_cookie_secure=True,
         )
     )
 
@@ -375,3 +405,64 @@ def test_production_fails_closed_without_real_sign_in(monkeypatch: pytest.Monkey
 def test_the_test_provider_endpoint_is_absent_unless_test_mode(oidc_env: Provider) -> None:
     client = _app_client()
     assert client.post("/api/v1/auth/test-login", json={"subject": "x"}).status_code == 404
+
+
+def test_a_non_ascii_state_is_a_normal_failure_not_a_server_error(oidc_env: Provider) -> None:
+    client = _app_client()
+    login = client.get("/api/v1/auth/login", follow_redirects=False)
+    assert login.status_code == 302
+    response = client.get("/api/v1/auth/callback?code=x&state=%C3%A9", follow_redirects=False)
+    assert response.status_code == 303 and "auth_error" in response.headers["location"]
+
+
+def test_signing_in_again_revokes_the_previous_login(oidc_env: Provider) -> None:
+    client = _signed_in_client("user-a", oidc_env)
+    first = client.cookies["pp_auth"]
+    assert _sign_in(client).headers["location"] == "/"
+    assert client.cookies["pp_auth"] != first
+    stolen = _app_client()
+    stolen.cookies.set("pp_auth", first)
+    assert stolen.get("/api/v1/documents").status_code == 401  # the copied old token is dead
+
+
+def test_the_next_sign_in_after_a_logout_asks_the_provider_for_credentials_again(oidc_env: Provider) -> None:
+    client = _signed_in_client("user-a", oidc_env)
+    client.post("/api/v1/auth/logout", headers={"Origin": ORIGIN})
+    login = client.get("/api/v1/auth/login", follow_redirects=False)
+    assert "prompt=login" in login.headers["location"]
+    again = client.get("/api/v1/auth/login", follow_redirects=False)
+    assert "prompt=login" not in again.headers["location"]  # only once
+
+
+def test_two_first_sign_ins_for_one_person_make_one_user(oidc_env: Provider) -> None:
+    import asyncio as aio
+
+    from sqlalchemy import func, select
+
+    from app.auth.oidc import Identity
+    from app.auth.service import upsert_user
+    from app.db.models import User
+    from app.db.session import get_sessionmaker
+
+    async def go() -> int:
+        async def one() -> None:
+            async with get_sessionmaker()() as db:
+                await upsert_user(db, Identity("https://idp", "same-subject", "a@example.test", "A"))
+                await db.commit()
+
+        await aio.gather(one(), one(), one())
+        async with get_sessionmaker()() as db:
+            return int((await db.execute(select(func.count()).select_from(User))).scalar_one())
+
+    clear_caches()
+    try:
+        assert aio.run(go()) == 1
+    finally:
+        clear_caches()
+
+
+def test_a_token_for_several_audiences_needs_a_matching_azp(oidc_env: Provider) -> None:
+    oidc_env.behaviour = "multi_audience"
+    client = _app_client()
+    result = _sign_in(client)
+    assert "auth_error" in result.headers["location"] and "pp_auth" not in client.cookies

@@ -288,6 +288,7 @@ class Job(Base):
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     fence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    releases: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # times handed back at shutdown
     locked_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
     lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)

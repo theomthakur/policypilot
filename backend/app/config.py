@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # Authentication (docs/authentication.md). "off" keeps the shared-passcode demo gate only.
     # "oidc" requires an OpenID Connect sign-in; "test" is a fake provider, refused in production.
     auth_mode: Literal["off", "oidc", "test"] = "off"
+    # A production demo behind only the shared passcode (no accounts) must be asked for by name.
+    allow_passcode_only_production: bool = False
     oidc_issuer: str = ""  # e.g. http://localhost:8180/realms/policypilot
     oidc_client_id: str = "policypilot"
     oidc_client_secret: str = ""

@@ -122,15 +122,50 @@ async def complete(job_id: uuid.UUID, fence: int, error: str | None = None) -> b
     return bool(result.rowcount)  # type: ignore[attr-defined]
 
 
+MAX_FREE_RELEASES = 5
+
+
 async def release(job_id: uuid.UUID, fence: int) -> None:
-    """Hand a job back unfinished (shutdown). The attempt is not counted against it."""
+    """Hand a job back unfinished (shutdown). The attempt is given back for the first few releases only, so a
+    job that always outlives the drain window cannot be kept alive forever by rolling restarts."""
     async with get_sessionmaker()() as db:
         await db.execute(
             text(
                 "UPDATE jobs SET status = 'queued', locked_by = NULL, lease_until = NULL, "
-                "attempts = GREATEST(attempts - 1, 0) "
+                "releases = releases + 1, "
+                "attempts = CASE WHEN releases < :free THEN GREATEST(attempts - 1, 0) ELSE attempts END "
                 "WHERE id = :id AND fence = :fence AND status = 'running'"
             ),
-            {"id": job_id, "fence": fence},
+            {"id": job_id, "fence": fence, "free": MAX_FREE_RELEASES},
         )
         await db.commit()
+
+
+async def holds(db: AsyncSession, job_id: uuid.UUID, fence: int) -> bool:
+    """Inside the caller's transaction: does this worker still own the job? The row is locked until the
+    transaction ends, so a replacement worker cannot take over between the check and the write."""
+    row = (
+        await db.execute(
+            text("SELECT 1 FROM jobs WHERE id = :id AND fence = :fence AND status = 'running' FOR UPDATE"),
+            {"id": job_id, "fence": fence},
+        )
+    ).first()
+    return row is not None
+
+
+async def retry_or_fail(job: Claimed, error: str) -> bool:
+    """A handler raised. Put the job back for another attempt while attempts remain; returns False when they
+    are used up (the job is then failed, and the caller finishes its records)."""
+    async with get_sessionmaker()() as db:
+        result = await db.execute(
+            text(
+                "UPDATE jobs SET status = CASE WHEN attempts < max_attempts THEN 'queued' ELSE 'failed' END, "
+                "last_error = :error, locked_by = NULL, lease_until = NULL, "
+                "finished_at = CASE WHEN attempts < max_attempts THEN NULL ELSE now() END "
+                "WHERE id = :id AND fence = :fence AND status = 'running' RETURNING status"
+            ),
+            {"id": job.id, "fence": job.fence, "error": error},
+        )
+        row = result.first()
+        await db.commit()
+    return row is not None and row[0] == "queued"

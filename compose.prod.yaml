@@ -6,6 +6,9 @@ services:
       APP_ENV: production
       PUBLIC_ORIGIN: https://${DOMAIN:?Set DOMAIN}
       SESSION_COOKIE_SECURE: "true"
+      AUTH_COOKIE_SECURE: "true"
+      # A passcode-only demo has to be asked for; real sign-in needs AUTH_MODE=oidc and the OIDC_* settings.
+      ALLOW_PASSCODE_ONLY_PRODUCTION: ${ALLOW_PASSCODE_ONLY_PRODUCTION:-false}
       FAULT_INJECTION_ENABLED: "false"
 
   frontend:

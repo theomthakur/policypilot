@@ -46,16 +46,20 @@ async def me(db: DbSession, user: CurrentUser) -> dict[str, Any]:
     }
 
 
+RELOGIN_COOKIE = "pp_relogin"
+
+
 @router.get("/login")
-async def login() -> RedirectResponse:
+async def login(request: Request) -> RedirectResponse:
     settings = get_settings()
     if settings.auth_mode != "oidc":
         raise ApiError(404, "NOT_FOUND", "Sign-in with a provider is not enabled.")
     try:
-        url, flow = await oidc.begin_login(settings)
+        url, flow = await oidc.begin_login(settings, force_prompt=RELOGIN_COOKIE in request.cookies)
     except OidcError as exc:
         raise ApiError(503, "AUTH_UNAVAILABLE", str(exc)) from exc
     response = RedirectResponse(url, status_code=302)
+    response.delete_cookie(RELOGIN_COOKIE, path="/api/v1/auth")
     response.set_cookie(
         FLOW_COOKIE,
         flow,
@@ -70,6 +74,7 @@ async def login() -> RedirectResponse:
 
 @router.get("/callback")
 async def callback(
+    request: Request,
     db: DbSession,
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
@@ -89,6 +94,9 @@ async def callback(
         logger.warning("sign-in rejected: %s", exc)
         return failure
     user = await service.upsert_user(db, identity)
+    await service.revoke(
+        db, request.cookies.get(AUTH_COOKIE)
+    )  # a signed-in browser signing in again drops its old login
     token = await service.start_session(db, user, settings)
     response = RedirectResponse("/", status_code=303)
     _set_login_cookie(response, token, settings)
@@ -119,3 +127,5 @@ async def logout(request: Request, response: Response, db: DbSession) -> None:
     await service.revoke(db, request.cookies.get(AUTH_COOKIE))
     response.delete_cookie(AUTH_COOKIE, path="/")
     response.delete_cookie(SESSION_COOKIE, path="/")
+    # The provider's own session may still be open; make the next sign-in ask for credentials again.
+    response.set_cookie(RELOGIN_COOKIE, "1", httponly=True, samesite="lax", max_age=3600, path="/api/v1/auth")

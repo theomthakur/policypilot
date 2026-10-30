@@ -10,6 +10,7 @@ import uuid
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from app.agent import prompts
 from app.agent.baseline import run_baseline
@@ -19,6 +20,8 @@ from app.agent.state import Outcome, QuestionContext, Totals
 from app.config import Settings, get_settings
 from app.db.models import Citation, Evidence, TraceEvent, Turn, utcnow
 from app.db.session import get_sessionmaker
+from app.jobs import queue
+from app.jobs.queue import Claimed
 from app.llm.client import estimate_cost, get_assess_model, get_model
 from app.state import limits, session_state
 from app.tools.impl import FaultInjector, ToolContext
@@ -35,9 +38,23 @@ class TracePersister:
 
     async def __call__(self, type: str, status: str = "ok", **fields: Any) -> None:
         payload = {"status": status, **{k: v for k, v in fields.items() if v is not None}}
-        async with get_sessionmaker()() as db:
-            db.add(TraceEvent(turn_id=self.turn_id, seq=self.seq, type=type, payload=payload))
-            await db.commit()
+        for _ in range(5):
+            try:
+                async with get_sessionmaker()() as db:
+                    db.add(TraceEvent(turn_id=self.turn_id, seq=self.seq, type=type, payload=payload))
+                    await db.commit()
+                break
+            except IntegrityError:
+                # Another worker writes this turn's trace (a stalled one came back): take the next number.
+                async with get_sessionmaker()() as db:
+                    top = (
+                        await db.execute(
+                            select(func.coalesce(func.max(TraceEvent.seq), -1)).where(
+                                TraceEvent.turn_id == self.turn_id
+                            )
+                        )
+                    ).scalar_one()
+                self.seq = int(top) + 1
         self.seq += 1
 
 
@@ -55,7 +72,11 @@ async def _build_context(turn: Turn, reply_to: uuid.UUID | None) -> QuestionCont
 
 
 async def run_turn(
-    turn_id: uuid.UUID, session_id: uuid.UUID, fault: str | None, reply_to: uuid.UUID | None
+    turn_id: uuid.UUID,
+    session_id: uuid.UUID,
+    fault: str | None,
+    reply_to: uuid.UUID | None,
+    job: Claimed | None = None,
 ) -> None:
     settings = get_settings()
     started = time.monotonic()
@@ -101,7 +122,7 @@ async def run_turn(
             "limit_reached", "error", state="PARTIAL_ANSWER", summary=f"Turn failed: {type(exc).__name__}"
         )
         outcome = Outcome("error", _error_answer(), None, Totals())
-    await _finish(settings, turn, emit, outcome, int((time.monotonic() - started) * 1000))
+    await _finish(settings, turn, emit, outcome, int((time.monotonic() - started) * 1000), job)
 
 
 async def _execute(
@@ -141,7 +162,12 @@ def _error_answer() -> dict[str, Any]:
 
 
 async def _finish(
-    settings: Settings, turn: Turn, emit: TracePersister, outcome: Outcome, latency_ms: int
+    settings: Settings,
+    turn: Turn,
+    emit: TracePersister,
+    outcome: Outcome,
+    latency_ms: int,
+    job: Claimed | None = None,
 ) -> None:
     totals = outcome.totals.as_dict()
     cost = estimate_cost(settings, totals["prompt_tokens"], totals["completion_tokens"])
@@ -170,6 +196,8 @@ async def _finish(
     )
     answer = outcome.answer
     async with get_sessionmaker()() as db:
+        if job is not None and not await queue.holds(db, job.id, job.fence):
+            return  # this worker lost its lease: the replacement writes the answer, not us
         row = await db.get(Turn, turn.id, with_for_update=True)
         assert row is not None
         if row.status != "running":

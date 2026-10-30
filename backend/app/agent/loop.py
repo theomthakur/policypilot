@@ -828,14 +828,19 @@ class AgentRun:
         default = (verdict.default_reading or "").strip()
         if default and not self._default_is_grounded(verdict, hits):
             default = ""  # a default has to be backed by words from the results, not asserted
+        # The decision is made here from the structured fields, not from the model's own "answerable" flag
+        # (a judge that lists four quoted variants and then says "answerable" contradicts itself).
         ask = (
-            not verdict.answerable
-            and verdict.answers_differ
+            verdict.answers_differ
             and not (verdict.value_in_question or "").strip()
             and not default
             and len(options) >= 2
-            and bool(verdict.clarification_question.strip())
         )
+        if ask and not verdict.clarification_question.strip():
+            listed = f"{', '.join(options[:-1])} or {options[-1]}"
+            verdict = verdict.model_copy(
+                update={"clarification_question": f"Which one do you mean: {listed}?"}
+            )
         await self.emit(
             "assessment",
             "info",
