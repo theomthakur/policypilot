@@ -3902,3 +3902,12 @@ th {
 .suggestions button {
   background-color: var(--surface);
 }
+
+/* A lilac pearl instead of near-white, so the surfaces read as PolicyPilot's own */
+:root:not([data-theme='dark']) {
+  --bg: #e7ddf2;
+  --surface: #f6f0fc;
+  --surface-soft: #eee6f8;
+  --t-bg-fff: #f6f0fc;
+  --line: #d7cae8;
+}
