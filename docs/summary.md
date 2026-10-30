@@ -24,7 +24,7 @@ On three repeats of the 11 tuned cases the agent passed 24 of 33 case-runs and t
 - **The verifier checks each claim, not every sentence of the prose.** Extra sentences were true in the cases I checked by hand, but nothing enforces it.
 - **No public deployment, no recorded demo, and the work is still on `integration/full-stack`, not `main`.** Those are yours to do. CI has run on GitHub for this branch and passed all seven jobs ([run](https://github.com/theomthakur/policypilot/actions/runs/41068139547)).
 - **Kubernetes limits:** one kind node (the S3-backed two-replica overlay was never run across nodes), one PostgreSQL pod (no replication), no autoscaler or load test, and the OpenShift overlay was only rendered. NetworkPolicies were enforced and checked on Calico, not on kind's default CNI.
-- **The last agent fixes were not re-run with the real model** (the evaluation key's limit was used up), so their effect is untested beyond unit tests.
+- **Measured after the last fixes:** fresh question set 14 of 18 (7 of 18 before), CASE-6 3 of 3 over three repeats, one tuned run 9 of 11. CASE-4 (clarification) and CASE-9 still fail, and the fresh set is no longer clean because it guided the fixes.
 - **Sign-in** was tested against Keycloak only. There are no roles, no single logout, and rate limits are per client address.
 - Small evaluation, one model, no load testing.
 

@@ -17,11 +17,18 @@ Outside LLM suggestions led to three changes, made after a second held-out set o
 | Fresh set (9 questions) | Agent | Baseline |
 |---|---:|---:|
 | Before the changes (2 runs) | 7 of 18 | 10 of 14 |
-| After the first version of the changes (2 runs) | **11 of 18** | 10 of 14 |
+| After the first version (2 runs; a field bug disabled the clarification check) | 11 of 18 | 10 of 14 |
+| After the bug fix and the scope-aware repair (2 runs, `heldout2-after-c`, `-d`) | **14 of 18** | 10 of 14 |
 
-Per case, after: the historical question (HELD-12) 2 of 2 and all four specific lookups 2 of 2 (the old gate had asked needlessly on one); the current-rule question (HELD-11) 1 of 2 (the other hit the token budget); the service-account control (HELD-13) 0 of 2 because the older build's repair message wrongly pulled the 2025 standard in (since fixed: the repair respects scope and exceptions); both ambiguous questions (HELD-15, HELD-16) 0 of 2 because of the bug above. On the tuned set one run (r18) passed 8 of 11 for the agent against 5 of 9 for the baseline, with the conflict case (CASE-6) passing for the first time (the template) and CASE-4, CASE-9 and CASE-11 failing.
+After the fixes, per case (2 runs each): both ambiguous questions (HELD-15 backup policy, HELD-16 deleted files) **2 of 2**, and all four specific questions that must not trigger a question (HELD-14, 17, 18, 19) plus the service-account control (HELD-13, no supersession claimed) **2 of 2** with no needless clarification in 10 of 10 runs. The two conflict questions still failed: HELD-11 (current rule) 0 of 2, because the template picked a poor sentence from the 2025 standard; HELD-12 (historical) 0 of 2, because the answer was right but never wrote "2023".
 
-**What is not validated.** The fixes for the field bug and the scoped repair came after those runs. Every later real-model run (a second pair of fresh-set runs and a full tuned run) failed instantly with HTTP 403: the evaluation key's $1 limit was used up. Those runs were deleted rather than reported; the fixes are covered by unit tests only. The fresh set was also looked at while diagnosing, so its post-fix numbers are no longer a clean held-out measurement.
+I then made one more change, requiring the template's sentence to contain one of the documented scope terms, and re-ran only the conflict questions three times (`focus-heldout2-*`, `focus-case6-*`): **HELD-11 2 of 3** (baseline 0 of 3), HELD-12 still 0 of 3 (the literal "2023" is missing from the answer), and the tuned **CASE-6 3 of 3** (baseline 0 of 3), against 1 of 3 before. The fresh set was looked at while diagnosing, so these are no longer clean held-out numbers, and the HELD-11 fix was made after seeing its failure.
+
+One tuned run after the bug fix (`run-2026-10-30-gpt-4o-mini-r19`): agent **9 of 11**, baseline 5 of 9. CASE-4 (ask which account) failed again: the judge model answered "not ambiguous" for it, with no default and no value named but `answers_differ` false. CASE-9 (cloud-services page not cited) also still fails. That one run is not a repeat set.
+
+**Cost.** The ambiguity judge uses `gpt-4o`; the fresh-set agent runs averaged about $0.0072 per question against $0.0004 for the baseline (about eighteen times), median 6.7 s against 2.7 s.
+
+**A deployment trap found here.** The application's own daily budget cap (`DAILY_BUDGET_USD`, default 1.00) stops all answers once reached, with a "budget used up" message; heavy evaluation hits it. For evaluation days raise it (the local `.env` is set to 8.00) or clear the Redis key `budget:<date>`. Two earlier sets of runs failed instantly for this reason and were deleted.
 
 ### Tuned cases, three repeats (r15, r16, r17; `eval/results/run-2026-10-30-gpt-4o-mini-r1{5,6,7}/`)
 
