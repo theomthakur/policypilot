@@ -19,6 +19,7 @@ import { PasscodeDialog } from './components/PasscodeDialog'
 import { failureAnswer } from './api/failure'
 import { newId } from './api/ids'
 import { systemTheme, usePreference } from './hooks/usePreference'
+import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
 import { ArchitecturePage } from './components/ArchitecturePage'
 import { PresentationPage } from './components/PresentationPage'
@@ -294,7 +295,7 @@ export function App() {
         >
           <div className="launch-brand">
             <div className="launch-logo" aria-hidden="true">
-              <PolicyPilotMark className="launch-mark" />
+              <AnimatedMark className="launch-mark" speed={1.1} />
             </div>
             <div className="launch-wordmark">PolicyPilot</div>
             <p>Preparing your evidence workspace</p>
