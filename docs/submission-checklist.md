@@ -1,6 +1,6 @@
 # Submission checklist against the take-home brief
 
-Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`). Legend: **[x] done** (built and verified by a test, a run or saved output), **[~] partial** (works, something named is open), **[ ] pending** (not done). The wording of each requirement is paraphrased from the brief.
+Status as of 30 Oct 2026, from the integrated branch (`integration/full-stack`). Legend: **[x] done** (built and verified by a test, a run or saved output), **[~] partial** (works, something named is open), **[ ] pending** (not done). The wording of each requirement is paraphrased from the brief.
 
 ## 1. The problem statement
 
@@ -64,7 +64,7 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [~] Manual citation check: done for the last run by the assistant that built the system, not by a person (`docs/evaluation.md`: 21 of 21 claims have their numbers and terms on the cited page, and a read-through found them supported). Please spot-check about 20 cited pages yourself.
 
 **J. Engineering quality**
-- [x] Clear module layout, ADRs, 76 backend tests and 15 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
+- [x] Clear module layout, ADRs, 157 backend tests and 23 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [x] Tests pass locally and in GitHub Actions.
 
 ## 3. Required test cases (three repeats, r15 to r17, agent vs baseline)
@@ -83,7 +83,7 @@ Each case records expected behavior, actual result, citations, pass or fail, too
 - [x] 10 One document, many parts (extra): pass, pass
 - [~] 11 Follow-up question (extra): agent **2 of 3**, baseline 0 of 3 (the failed run searched the NIST incident document and ran out of searches).
 
-Result over the three repeats: agent 24 of 33 case-runs, baseline 15 of 27. Held-out set (10 new questions, two runs): agent 12 of 20, baseline 10 of 18. Details, the manual citation review and the limits are in `docs/evaluation.md`.
+Latest full run (30 Oct 2026, one run per set): tuned cases agent 9 of 11, baseline 4 of 9; 9 newer questions agent 9 of 9, baseline 5 of 7; 10 older held-out questions agent 6 of 10, baseline 5 of 9. No set is blind. The canonical result, the manual citation review and the limits are in `docs/evaluation.md`.
 
 ## 4. Technology
 
@@ -119,7 +119,7 @@ Result over the three repeats: agent 24 of 33 case-runs, baseline 15 of 27. Held
 
 1. **Clarification.** A judge-model check with code gates now asks on genuinely ambiguous questions and rarely needlessly (fresh set), but misses CASE-4 and has only been measured on a few questions. Needs a larger, blind set and probably a better judge prompt.
 2. **Vocabulary bridging for retrieval.** Query expansion from the documents' own terms. Targets CASE-9.
-3. **A larger held-out set.** Ten questions and two runs now exist (12 of 20 for the agent); more would tighten the estimate.
+3. **A larger held-out set.** Three sets exist and none is blind; a fresh set of at least 20 questions, with repeats, would give an estimate that can be trusted.
 4. **Cost of the agent.** It spends about eight times the tokens of the baseline; trimming tool results and reusing reads would cut that.
 5. **Answer style.** Answers are long; shorter, scannable answers would read better.
 6. **Production scale.** Object storage, university single sign-on, replicated database, tracing and cost dashboards. (Background jobs and sign-in now exist.)

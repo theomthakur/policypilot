@@ -153,7 +153,10 @@ Sessions are bound to an HttpOnly cookie. Another session's cookie gets a 404 on
 ## Development and testing
 
 ```sh
-make test            # lint, type checks and tests for backend and frontend, plus eval-case validation
+make setup           # once: checks Python 3.12+, Node 22.12+, uv and Docker, then installs backend, frontend and evaluation dependencies
+make test            # lint, type checks and tests for backend and frontend, plus eval-case validation (integration tests need PostgreSQL and Redis)
+make test-unit       # the same without the eval-case check
+make verify          # clone the commit and run everything CI runs, with real PostgreSQL and Redis
 make corpus          # regenerate the synthetic PDFs and manifest deterministically
 make smoke           # upload-to-cited-answer smoke test against the running stack
 make redis-outage    # stop Redis, show 'degraded', prove a turn still completes
@@ -176,11 +179,13 @@ API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 POLICYPILOT_BASE_URL=http://localhost:8080/api/v1 python eval/run.py --output-dir eval/results/my-run
 ```
 
-Reference runs (`openai/gpt-4o-mini`, prompt v9, 14-document library), three repeats of the 11 tuned cases (r15 to r17) and two runs of 10 held-out questions:
+Latest full run (30 Oct 2026, `openai/gpt-4o-mini`, prompt v10, 14-document library, one run per set; the canonical block is at the top of `docs/evaluation.md`):
 
-- Tuned cases: the agent passed **24 of 33** case-runs, the baseline **15 of 27**. Before the last changes six of the eight required scenarios passed every time, with the ambiguity case at 0 of 3 and the conflict case at 1 of 3; after them the conflict case passes 3 of 3 and the ambiguity case still misses the renewal question.
-- Held-out questions, never used for tuning: the agent **12 of 20**, the baseline **10 of 18**. This is the figure to trust for generalization.
-- The agent costs about ten times the tokens of the baseline and takes about three and a half times as long; it is better on cross-document, follow-up and vocabulary-mismatch questions and no better on direct lookups.
+- The 11 tuned cases: the agent passed **9 of 11**, the one-pass baseline **4 of 9**.
+- 9 newer questions: agent **9 of 9**, baseline **5 of 7**.
+- 10 older held-out questions: agent **6 of 10**, baseline **5 of 9**.
+- No set is blind any more (all were looked at while fixing behavior), and each is a single run on a noisy model, so treat differences of one or two cases as noise. Known failures: CASE-11 (correct answer that reaches the call limit) and HELD-2, 7, 8, 9.
+- The agent costs about ten times the tokens (about thirty times the price, because the judge is a larger model) and takes about four times as long; it is better on cross-document, follow-up and vocabulary-mismatch questions and no better on direct lookups.
 - A manual citation review of the last run found every number and term in every claim on its cited page; it was done by the assistant that built the system, so please spot-check, and the verifier does not check every sentence of an answer's prose.
 
 The method, every run (r1 to r17, including experiments that made things worse), the held-out results and the failure analysis are in [`docs/evaluation.md`](docs/evaluation.md).

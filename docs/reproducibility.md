@@ -42,7 +42,7 @@ Defaults from `.env.example`:
 - Weak-result threshold: 0.02.
 - Reference documents (NIST) are ranked at 0.9 of an institutional passage's fused score (`REFERENCE_SCORE_WEIGHT`); measured on 23 gold pages, recall@5 rose by one page (0.739 to 0.783), which is within noise, so treat the weight as a stated preference, not a proven gain.
 - Documents carry authority, version, effective date, family and documented supersession from `metadata.json` sidecars beside the PDFs; search adds the best passage of other versions in the same policy family.
-- Agent prompt: version v9 (`backend/app/agent/prompts/`). One extra model call after the first search of a new question assesses whether a missing detail changes the answer (`AGENT_ASSESS_AMBIGUITY`, on by default).
+- Agent prompt: version v10 (`backend/app/agent/prompts/`). One extra model call after the first search of a new question assesses whether a missing detail changes the answer (`AGENT_ASSESS_AMBIGUITY`, on by default).
 Every evaluation result must record effective configuration, corpus manifest hash, model, prompt version, and token counts.
 
 ## Environment

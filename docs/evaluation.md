@@ -1,5 +1,29 @@
 # Evaluation
 
+## Final evaluated release (read this first)
+
+Everything below this block is the history of how the numbers were reached. This block is the current, canonical result.
+
+- **Code:** branch `integration/full-stack`. The full runs (`r26-tuned`, `r26-heldout2`, `r26-heldout`) ran on commit `7c1e12f`. One later fix (the ambiguity judge's tokens no longer count against the agent's per-turn token limit, commit `18d47d0`) was checked with a re-run of CASE-4 and CASE-6 only (`r27-focus`, both passed). A full re-run on the final commit is pending model credit and will replace the numbers here.
+- **Prompt version:** v10. **Agent model:** `openai/gpt-4o-mini`; **ambiguity judge:** `openai/gpt-4o`; temperature 0, seed 42; 14-document library, corpus manifest SHA-256 `e80b6f47...2a69` (`corpus/manifest.json`).
+- **Date:** 30 Oct 2026, evening US Eastern (the run folders carry UTC dates, which is why some say 31 Oct).
+- **Results, one run per set:**
+
+| Set | Agent | One-pass baseline |
+|---|---:|---:|
+| 11 tuned cases (`eval/cases.yaml`) | 9 of 11 | 4 of 9 |
+| 9 newer questions (`eval/heldout2.yaml`) | 9 of 9 | 5 of 7 |
+| 10 older held-out questions (`eval/heldout.yaml`) | 6 of 10 | 5 of 9 |
+
+- **Cost and latency (tuned set):** the agent costs about $0.012 and takes a median 8.8 s per question; the baseline about $0.0004 and 2.3 s. The agent uses roughly ten times the tokens and thirty times the cost, because the ambiguity judge is a larger model.
+- **Known failures:** CASE-11 (correct, cited answer, but the run reaches the six-call limit); CASE-6 failed once on the token limit before the fix and passed after it; on the older set HELD-2, 7, 8 and 9 fail (wrong document or a missing fact).
+- **No set is blind.** The 11 tuned cases were used to tune the system. The 9 newer questions were written before the changes, but their failures were then used to diagnose and fix behavior. The 10 older held-out questions have been looked at several times, and two of their labels were corrected after seeing results. Every number is a single run on a noisy model, so differences of one or two cases are not evidence of change. A fresh blind set of at least 20 questions was not run.
+- **What the numbers do and do not show:** the citation check proves that each cited quote appears on the cited page. It does not prove that every sentence of an answer's prose is supported by that quote.
+
+### Earlier runs
+
+The sections that follow are historical experiments kept as a record. Where a number there differs from the table above, the table is current.
+
 ## Update, 30 October 2026 (runs r11 to r17 and the held-out set)
 
 This section supersedes the headline numbers further down. The older sections (run r10, its failure analysis and citation log) are kept as the record of that run.
