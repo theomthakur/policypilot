@@ -39,10 +39,13 @@ def _budget_key() -> str:
 
 
 async def spent_today(db: AsyncSession) -> float:
+    """Today's spend. Postgres holds every turn's cost and is the source of truth; the Redis counter is a fast
+    hint that can restart from zero if its key is evicted or lost, so the larger of the two is used."""
+    hinted = 0.0
     try:
         raw = await get_redis().get(_budget_key())
         if raw is not None:
-            return float(raw)
+            hinted = float(raw)
     except (RedisError, OSError):
         pass
     start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -53,7 +56,7 @@ async def spent_today(db: AsyncSession) -> float:
             )
         )
     ).scalar_one()
-    return float(total or 0.0)
+    return max(hinted, float(total or 0.0))
 
 
 async def budget_exhausted(db: AsyncSession) -> bool:
