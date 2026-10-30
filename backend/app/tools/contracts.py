@@ -96,6 +96,9 @@ class AssessQuestionInput(_Strict):
         default=None, max_length=80
     )  # a value the question states or implies
     default_reading: str | None = Field(default=None, max_length=80)  # an obvious default value, if any
+    default_quote: str | None = Field(
+        default=None, max_length=300
+    )  # words from a result that state that default
     answers_differ: bool = False  # the quoted rules give different steps, limits or numbers per value
     missing_slot: str = Field(default="", max_length=120)
     facet: str = Field(default="", max_length=120)  # the same thing under the name the prompt uses
@@ -146,6 +149,10 @@ ASSESS_TOOL_SPEC: dict[str, Any] = {
                 "default_reading": {
                     "type": ["string", "null"],
                     "description": "The value a reader would obviously assume when none is given, else null.",
+                },
+                "default_quote": {
+                    "type": ["string", "null"],
+                    "description": "Exact words from a result stating the rule for everyone, else null.",
                 },
                 "answers_differ": {
                     "type": "boolean",

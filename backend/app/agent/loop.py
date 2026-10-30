@@ -17,7 +17,14 @@ from sqlalchemy import select
 
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
-from app.agent.verifier import PageText, check_quote, locate_quote, sanitize_final_answer, verify_answer
+from app.agent.verifier import (
+    YEAR,
+    PageText,
+    check_quote,
+    locate_quote,
+    sanitize_final_answer,
+    verify_answer,
+)
 from app.config import Settings
 from app.db.models import Document
 from app.db.session import get_sessionmaker
@@ -119,6 +126,20 @@ def _is_historical(question: str, older_effective: str | None) -> bool:
 def _sentences(text: str) -> list[str]:
     parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9(])|\n\s*\n", text)
     return [" ".join(p.split()) for p in parts if len(p.split()) >= 5]
+
+
+def _merge_hits(
+    first: list[dict[str, Any]], second: list[dict[str, Any]], limit: int = 8
+) -> list[dict[str, Any]]:
+    """Alternate between two ranked lists, without repeating a chunk."""
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for pair in zip(*[iter(first[:6] + [None] * 8), iter(second[:6] + [None] * 8)], strict=False):
+        for hit in pair:
+            if hit and hit.get("chunk_id") not in seen:
+                seen.add(str(hit.get("chunk_id")))
+                merged.append(hit)
+    return merged[:limit]
 
 
 def _args_hash(name: str, args: dict[str, Any]) -> str:
@@ -663,6 +684,46 @@ class AgentRun:
             or not any(h.get("text_rank") for h in hits)  # no passage shares a word with the question
         )
 
+    async def _literal_hits(self) -> list[dict[str, Any]]:
+        """The model's first query often rewords the question and drops what makes it ambiguous. Search once
+        with the user's own words too, so the judge sees the passages the question itself points to. It counts
+        against the search budget and is visible in the trace."""
+        query = " ".join(self.question.split())[:300]
+        first = self.state.last_query or ""
+        if len(query) < 3 or not (_stems(query) - _stems(first)):
+            return []
+        digest = _args_hash("search_documents", {"query": query})
+        if digest in self.state.seen_calls or self.totals.tool_calls >= self.settings.agent_max_tool_calls:
+            return []
+        self.state.seen_calls.add(digest)
+        self.totals.tool_calls += 1
+        self.totals.tool_attempts += 1
+        await self.emit(
+            "tool_call",
+            "ok",
+            state="ACT",
+            tool="search_documents",
+            input={"query": query},
+            attempt=1,
+            scope="literal_question",
+            summary="Also searching with your exact words.",
+        )
+        began = time.monotonic()
+        result = await run_tool(
+            self.tools, "search_documents", {"query": query}, max_seconds=max(0.5, self._time_left())
+        )
+        await self.emit(
+            "tool_result",
+            result.status,
+            state="OBSERVE",
+            tool="search_documents",
+            attempt=1,
+            duration_ms=round((time.monotonic() - began) * 1000),
+            summary=result.summary,
+            result=self._result_summary("search_documents", result),
+        )
+        return list((result.data or {}).get("hits", [])) if result.status == "ok" else []
+
     # ---- ambiguity assessment (P1-A) ----------------------------------------------------------------
     def _should_assess(self, result: ToolResult) -> bool:
         ctx = self.ctx
@@ -676,6 +737,18 @@ class AgentRun:
         ):
             return False
         return bool((result.data or {}).get("hits"))
+
+    def _default_is_grounded(self, verdict: AssessQuestionInput, hits: list[dict[str, Any]]) -> bool:
+        """A default reading counts only if its quote is on a result, is not one of the per-value quotes, and
+        shares a distinctive word with the question (a scope sentence about everything does not qualify)."""
+        quote = (verdict.default_quote or "").strip()
+        if not quote or any(check_quote(quote, str(h["excerpt"])) == "failed" for h in hits[:0]):
+            return False
+        if not any(check_quote(quote, str(h["excerpt"])) != "failed" for h in hits):
+            return False
+        if any(_stems(quote) == _stems(i.quote) for i in verdict.interpretations):
+            return False
+        return bool(_content_words(quote) & _content_words(self.question))
 
     def _backed_variants(
         self, verdict: AssessQuestionInput, hits: list[dict[str, Any]]
@@ -711,11 +784,11 @@ class AgentRun:
         """One structured check after the first search: does the answer depend on a detail the user left out?
         The loop, not the model's free text, decides whether to ask."""
         self.assessed = True
-        hits = (result.data or {}).get("hits", [])[:6]
+        hits = _merge_hits((result.data or {}).get("hits", []), await self._literal_hits())
         evidence = "\n".join(
             f"- {h['title']} p.{h['page']}"
             + (f" ({h['section']})" if h.get("section") else "")
-            + f": {str(h['excerpt'])[:450]}"
+            + f": {str(h['excerpt'])[:700]}"
             for h in hits
         )
         messages = [
@@ -752,11 +825,14 @@ class AgentRun:
         options, named_by_user = self._backed_variants(verdict, hits)
         if named_by_user:
             options = []
+        default = (verdict.default_reading or "").strip()
+        if default and not self._default_is_grounded(verdict, hits):
+            default = ""  # a default has to be backed by words from the results, not asserted
         ask = (
             not verdict.answerable
             and verdict.answers_differ
             and not (verdict.value_in_question or "").strip()
-            and not (verdict.default_reading or "").strip()
+            and not default
             and len(options) >= 2
             and bool(verdict.clarification_question.strip())
         )
@@ -777,7 +853,10 @@ class AgentRun:
                 "supported": len(options),
                 "answers_differ": verdict.answers_differ,
                 "value_in_question": verdict.value_in_question,
-                "default_reading": verdict.default_reading,
+                "default_reading": default or None,
+                "default_asserted": verdict.default_reading
+                if verdict.default_reading and not default
+                else None,
             },
             tokens={"prompt": response.prompt_tokens, "completion": response.completion_tokens},
         )
@@ -865,7 +944,7 @@ class AgentRun:
         for line in str(answer["summary"]).split("\n"):
             kept: list[str] = []
             for sentence in re.split(r"(?<=[.!?])\s+", line):
-                figures = re.findall(r"\d[\d,.]*\d|\d", sentence)
+                figures = [f for f in re.findall(r"\d[\d,.]*\d|\d", sentence) if not YEAR.match(f)]
                 if all(re.sub(r"[\s,]+", "", f).rstrip(".") in haystack for f in figures):
                     kept.append(sentence)
                 else:
@@ -1109,6 +1188,7 @@ class AgentRun:
                 }
                 for c in verified.answer["citations"]
             ],
+            failed_checks=[f[:300] for f in verified.failures[:4]] or None,
             summary=(
                 "All citations verified."
                 if verified.ok

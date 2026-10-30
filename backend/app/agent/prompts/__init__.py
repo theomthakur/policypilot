@@ -1,6 +1,6 @@
 from pathlib import Path
 
-PROMPT_VERSION = "v9"
+PROMPT_VERSION = "v10"
 _DIR = Path(__file__).parent
 
 

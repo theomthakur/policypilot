@@ -59,9 +59,38 @@ def _statements(raw: object) -> tuple[str, ...]:
     return tuple(str(i.get("statement", "")) for i in items if isinstance(i, dict) and i.get("statement"))
 
 
-def _or_query(query: str) -> str:
-    terms = [w.lower() for w in _WORD.findall(query) if w.lower() not in _STOP]
-    return " | ".join(dict.fromkeys(terms))
+def _terms(query: str) -> list[str]:
+    return list(dict.fromkeys(w.lower() for w in _WORD.findall(query) if w.lower() not in _STOP))
+
+
+_COMMON_SHARE = 0.4  # a term in more than this share of chunks says nothing about which chunk is relevant
+_MIN_CHUNKS_FOR_COMMON = 100
+_share_cache: dict[tuple[str, int], float] = {}
+
+
+async def _without_common_terms(db: AsyncSession, terms: list[str]) -> list[str]:
+    """Drop query words found in most chunks (a page banner repeats the institution's name on every page, and
+    an OR query rewards it). Keeps every term if all are common; does nothing on a tiny corpus."""
+    total = int((await db.execute(text("SELECT count(*) FROM chunks"))).scalar_one())
+    if total < _MIN_CHUNKS_FOR_COMMON or not terms:
+        return terms
+    kept = []
+    for term in terms:
+        key = (term, total)
+        if key not in _share_cache:
+            found = (
+                await db.execute(
+                    text("SELECT count(*) FROM chunks WHERE tsv @@ to_tsquery('english', :t)"), {"t": term}
+                )
+            ).scalar_one()
+            _share_cache[key] = int(found) / total
+        if _share_cache[key] <= _COMMON_SHARE:
+            kept.append(term)
+    return kept or terms
+
+
+def _or_query(terms: list[str]) -> str:
+    return " | ".join(terms)
 
 
 _VISIBLE = """
@@ -165,7 +194,7 @@ async def hybrid_search(
         "n": settings.search_candidates,
     }
     vector_rows = (await db.execute(_VECTOR_SQL, {**params, "q": str(vector)})).all()
-    tsq = _or_query(query)
+    tsq = _or_query(await _without_common_terms(db, _terms(query)))
     text_rows = (await db.execute(_TEXT_SQL, {**params, "tsq": tsq})).all() if tsq else []
 
     k = settings.rrf_k

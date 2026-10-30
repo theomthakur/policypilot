@@ -18,6 +18,7 @@ _NON_WORD = re.compile(r"[^0-9a-z%$.]+")
 _WORD_CHAR = re.compile(r"[0-9a-z%$.]")
 OVERLAP_THRESHOLD = 0.9
 MIN_OVERLAP_TOKENS = 4
+YEAR = re.compile(r"^(19|20)\d\d$")  # a year often comes from a document's title or date, not its page text
 
 
 def normalize(text: str) -> str:
@@ -38,6 +39,23 @@ def check_quote(quote: str, page_text: str) -> str:
         if sum(t in present for t in tokens) / len(tokens) >= OVERLAP_THRESHOLD:
             return "overlap"
     return "failed"
+
+
+def closest_text(quote: str, page_text: str, limit: int = 2) -> str | None:
+    """The one or two sentences of the page that share the most words with `quote`, copied as written, so a
+    failed quote can be repaired from the page's own words."""
+    wanted = set(normalize(quote).split())
+    if not wanted:
+        return None
+    sentences = [" ".join(part.split()) for part in re.split(r"(?<=[.!?])\s+|\n\s*\n", page_text)]
+    scored = [
+        (len(wanted & set(normalize(sentence).split())) / len(wanted), sentence)
+        for sentence in sentences
+        if len(sentence.split()) >= 4
+    ]
+    scored = [item for item in scored if item[0] >= 0.5]
+    best = [text for _, text in sorted(scored, key=lambda item: item[0], reverse=True)[:limit]]
+    return " ".join(best)[:500] if best else None
 
 
 def strip_evidence_ids(text: str) -> str:
@@ -218,9 +236,23 @@ async def verify_answer(
             if literal is None:  # every verified citation quote is a literal substring of its page
                 check = "failed"
             if check == "failed":
+                nearby = closest_text(claim.quote, text or "")
                 failures.append(
                     f'"{claim.text[:60]}": the quote was not found on {item.title} p.{item.page}. '
                     "Quote text exactly as it appears on the page."
+                    + (f' The closest text on that page is: "{nearby}"' if nearby else "")
+                )
+                continue
+            page_figures = re.sub(r"[\s,]+", "", text or "")
+            absent = [
+                f
+                for f in re.findall(r"\d[\d,.]*\d|\d", claim.text)
+                if not YEAR.match(f) and re.sub(r"[\s,]+", "", f).rstrip(".") not in page_figures
+            ]
+            if absent:  # a quote that is on the page does not make a figure the claim adds true
+                failures.append(
+                    f'"{claim.text[:60]}": the figure {absent[0]} is not on {item.title} p.{item.page}. '
+                    "State only figures that the cited page contains."
                 )
                 continue
             slot = (item.document_id, item.page)

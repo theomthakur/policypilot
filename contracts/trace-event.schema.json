@@ -96,8 +96,13 @@
     "attempt": { "type": "integer", "minimum": 1, "description": "Retry attempt number for tool_call/tool_result." },
     "scope": {
       "type": ["string", "null"],
-      "enum": ["previous_sources", "all_documents", null],
+      "enum": ["previous_sources", "all_documents", "literal_question", null],
       "description": "tool_call events of a follow-up: searched the documents cited earlier, or fell back to all documents."
+    },
+    "failed_checks": {
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "verify events: why each failed citation check failed (the claim, the page, and the closest page text)."
     },
     "assessment": {
       "type": ["object", "null"],

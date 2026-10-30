@@ -163,7 +163,7 @@ cases:
       - document_file: 02-data-classification-standard.pdf
         page: 8
       - document_file: 10-approved-cloud-services.pdf
-        page: 1
+        page: 2
     checks:
       required_facts: ["Secure Enclave Object Repository", "CISO", "Level 4|Restricted"]
       expect_stop_reason: answered

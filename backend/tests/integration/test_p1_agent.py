@@ -172,11 +172,11 @@ def test_the_three_judgments_must_all_point_to_asking(make_pdf: Callable[..., Pa
     from app.llm.client import ScriptedModel, respond
 
     _load_renewal(make_pdf, tmp_path)
-    for overrides in (
-        {"answers_differ": False},
-        {"value_in_question": "students"},
-        {"default_reading": "all accounts"},
-    ):
+    grounded = {
+        "default_reading": "everyone",
+        "default_quote": "Student accounts renew automatically each term without any form",
+    }
+    for overrides in ({"answers_differ": False}, {"value_in_question": "students"}, grounded):
         model = ScriptedModel(
             [
                 respond(("search_documents", {"query": "renew account"})),
@@ -718,3 +718,132 @@ def test_the_conflict_repair_respects_documented_exceptions(
     outcome, _ = _run(model, "How often must service account passwords expire?")
     assert len(model.calls) == 2  # no repair round trip: the exception keeps the supersession out of it
     assert [n["kind"] for n in outcome.answer["notices"]] == []
+
+
+def test_a_failed_quote_is_repaired_from_the_pages_own_words(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _load(make_pdf, tmp_path)
+
+    def near_miss(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Guest", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Guests are limited.",
+                    "claims": [
+                        {
+                            "text": "Guests are limited.",
+                            "evidence_ids": [key],
+                            "quote": "the guest network is capped at 10 Mbps down",
+                        }
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            near_miss,
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q")
+    repair = [m for m in model.calls[-1] if m["role"] == "tool" and "closest text" in m["content"]]
+    assert repair and "10 Mbps download and 2 Mbps upload" in repair[0]["content"]
+    assert events.of("verify")[0]["failed_checks"] and outcome.stop_reason == "answered"
+
+
+def test_a_claim_with_a_figure_the_cited_page_lacks_is_rejected(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _load(make_pdf, tmp_path)
+
+    def invented(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Guest", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Guests get 99 Mbps.",
+                    "claims": [{"text": "Guests get 99 Mbps.", "evidence_ids": [key], "quote": QUOTE_MBPS}],
+                },
+            )
+        )
+
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            invented,
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q")
+    assert "figure 99" in events.of("verify")[0]["failed_checks"][0]
+    assert outcome.stop_reason == "answered" and "99" not in outcome.answer["summary"]
+
+
+def test_a_default_without_a_quote_does_not_stop_a_clarifying_question(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    for fields, expect_ask in (
+        ({"default_reading": "all accounts"}, True),  # asserted, no quote: ignored
+        (
+            {"default_reading": "all accounts", "default_quote": "Accounts renew each term for everybody"},
+            True,
+        ),  # quote not in results
+        (
+            {"default_reading": "student", "default_quote": "Student accounts renew automatically each term"},
+            True,
+        ),  # a variant's own quote
+        (
+            {
+                "default_reading": "everyone",
+                "default_quote": "Student accounts renew automatically each term without any form",
+            },
+            False,
+        ),  # a grounded default
+    ):
+        model = ScriptedModel(
+            [
+                respond(("search_documents", {"query": "renew account"})),
+                _renewal_assessment(**fields),
+                respond(("final_answer", {"summary": "The documents do not contain this."})),
+            ]
+        )
+        outcome, _ = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+        assert (outcome.stop_reason == "clarification_needed") is expect_ask, fields
+
+
+def test_the_judge_also_sees_passages_for_the_users_exact_words(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(
+                ("search_documents", {"query": "membership terms"})
+            ),  # the model's query drops the user's words
+            _assess(True),
+            respond(("final_answer", {"summary": "The documents do not contain this."})),
+        ]
+    )
+    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+    literal = [e for e in events.of("tool_call") if e.get("scope") == "literal_question"]
+    assert len(literal) == 1 and literal[0]["input"]["query"] == "How do I renew my account?"
+    assert outcome.totals.tool_calls == 2 and outcome.totals.tool_attempts == 2
+    judge_input = model.calls[1][-1]["content"]
+    assert "Student accounts renew automatically" in judge_input  # only the literal search finds this passage
