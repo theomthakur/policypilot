@@ -2096,3 +2096,7 @@ progress {
 :root[data-theme='dark'] .launch-wordmark {
   color: var(--violet-text);
 }
+
+.answer-view p {
+  white-space: pre-line;
+}

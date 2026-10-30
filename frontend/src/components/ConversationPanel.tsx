@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { AnswerPayload, Citation } from '../api/types'
 import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
+import { renderInline } from './formatText'
 import { PolicyPilotMark } from './PolicyPilotMark'
 
 export interface DisplayMessage {
@@ -49,7 +50,7 @@ function AnswerView({
         </div>
       ))}
       {answer.paragraphs.map((paragraph, index) => (
-        <p key={index}>{paragraph}</p>
+        <p key={index}>{renderInline(paragraph)}</p>
       ))}
       {answer.citations.length > 0 && (
         <div className="citation-list" aria-label="Answer citations">
