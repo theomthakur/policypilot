@@ -9,16 +9,16 @@ PolicyPilot is a full-stack agentic RAG application over ten synthetic universit
 - **Agent:** a hand-written bounded state machine with four read-only tools, step, tool, time and token limits, one retry, duplicate-call blocking, partial answers on limits, and untrusted treatment of retrieved text. Greetings and thanks get a direct reply without searching.
 - **Trust:** a claim is shown only if its quote is literal text on the cited page (provenance, location, then the exact span stored as the citation).
 - **Operations:** passcode, rate limit, daily budget cap, per-session isolation (a session can never read another's turns or uploads), Redis-down fallback to PostgreSQL, readiness reporting, structured logs.
-- **Evaluation:** an 11-case suite run against the live API for the agent and a retrieve-once baseline; raw results are committed (`eval/results/run-2026-10-29-gpt-4o-mini-r5/`).
+- **Evaluation:** an 11-case suite run against the live API for the agent and a retrieve-once baseline; raw results are committed (`eval/results/run-2026-10-29-gpt-4o-mini-r8/`).
 - **Interface:** workspace with documents, conversation and a readable execution trace; a developer mode with metrics; light and dark themes; an architecture page and a plain-language presentation.
 
 ## Results in one paragraph
 
-On the reference run the agent passed 7 of 11 cases and the single-pass baseline 6 of the 9 cases it applies to, on deterministic checks. Citation support is complete for both because unsupported citations are never shown. The agent costs about ten times as much and takes three times as long, and wins where iteration is the point (a follow-up that needs the previous turn, a timed-out tool). Details, the run history and the failure analysis are in `docs/evaluation.md`. The prompts were tuned against the same 11 cases, so this is a development measurement, not a held-out test.
+On the reference run the agent passed 7 of 11 cases and the single-pass baseline 5 of the 9 cases it applies to, on deterministic checks; on the 9 shared cases that is 6 to 5. Citation support is complete for both because unsupported citations are never shown. The agent uses about eight times the tokens and takes three times as long, and its whole advantage is where iteration is the point (a follow-up that needs the previous turn, a timed-out tool); on direct lookups the baseline is as good and far cheaper. Runs vary by about one case at this sample size. Details, the run history and the failure analysis are in `docs/evaluation.md`. The prompts were tuned against the same 11 cases, so this is a development measurement, not a held-out test.
 
 ## Unfinished
 
-- **Four agent behaviors still fail** in the reference run: recognising that a newer policy replaced an older one (CASE-6), asking a clarifying question before answering for every variant (CASE-4), bridging everyday wording to a policy's own terms (CASE-9), and stating one deadline in the required form (CASE-3).
+- **Four agent cases still fail** in the reference run: recognising that a newer policy replaced an older one (CASE-6), asking a clarifying question instead of answering for every variant (CASE-4), bridging everyday wording to a policy's own terms (CASE-9), and reporting missing evidence in plain words instead of asking a question (CASE-5).
 - **Manual citation review** (opening each cited page and judging whether it supports the claim) has not been done; the log in `docs/evaluation.md` is empty.
 - **No public deployment, recorded demo or update and rollback drill** yet. The local drills (smoke test, restart persistence, Redis outage) pass and their output is saved under `docs/deployment-evidence/`.
 - **CI has been configured but not yet run on GitHub**, and the work is still on the `integration/full-stack` branch, not `main`.
