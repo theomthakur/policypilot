@@ -30,6 +30,33 @@ The take-home topology uses one VM and Docker Compose because it is easy to repr
 - Roles, tenants, or document-level sharing between users (sign-in and per-user ownership exist; see [authentication](authentication.md)).
 - Database replication, multi-node scaling or multi-region high availability (a single-node Kubernetes deployment was drilled; see [kubernetes](kubernetes.md)).
 
+## Added 30 October 2026: sign-in, durable work and the Kubernetes path
+
+What is **implemented and tested** versus what is **only a design** is labeled explicitly.
+
+```mermaid
+flowchart LR
+    B[Browser] -->|cookie pp_auth| FE[nginx frontend]
+    FE -->|/api| API[FastAPI API]
+    B -. sign-in redirect, PKCE .-> IDP[(OpenID provider: Keycloak, tested)]
+    API -->|code exchange, ID-token check| IDP
+    API -->|users, auth_sessions, conversations, jobs| PG[(PostgreSQL + pgvector)]
+    API --> R[(Redis: cache, rate limit, hot state)]
+    W[Worker: claims jobs with a lease and a fence] -->|jobs, turns, traces, chunks| PG
+    W --> R
+    W -->|model calls| LLM[(OpenRouter model)]
+    API -. PDFs on a ReadWriteOnce volume shared with the worker .-> V[(uploads volume)]
+    W -.-> V
+```
+
+- **Implemented:** the sign-in and ownership boundary (every data route requires the login; a conversation belongs to one user; the conversation cookie only names it), the PostgreSQL job table with lease, heartbeat, fencing, bounded attempts and an interrupted state, an embedded or separate worker, idempotent turns, and the Kubernetes manifests (deployed on `kind` and drilled).
+- **Failure paths:** a worker crash lets the lease expire and the next worker re-runs the job, adding a `turn_resumed` event (at-least-once, so a model call may repeat); a job that keeps crashing ends as a failed, interrupted turn; Redis down is degraded, PostgreSQL down is not ready; the identity provider down returns 503 on sign-in and leaves signed-in users working until their login expires.
+- **Design only (not built):** an S3-compatible adapter so API and worker can run on different nodes, a database replica and failover, an autoscaler, enforced NetworkPolicies, a university identity provider, roles. See [Kubernetes](kubernetes.md) and [Authentication](authentication.md) for what was and was not shown.
+- **Institutional policy versus reference guidance:** documents carry `authority` (institutional, reference, upload). Retrieval ranks NIST reference material at 0.9 of institutional passages, the prompt tells the model that reference guidance never overrides the university's own procedures or contacts, and a conflict notice is generated only from a supersession a document states about itself.
+- **Cache keys and invalidation:** search results are cached under (corpus version, conversation, query, filters); any ingestion or metadata change bumps the corpus version, so stale results are never served, and one user's private upload never appears in another user's cached results.
+- **Retention:** semester or archive rules are a product decision, not implemented: nothing is deleted automatically except Redis expiry; uploads and conversations stay until removed by an operator.
+- **If the model provider fails:** a turn ends with a clear error answer and the failure is recorded; the job is not retried endlessly.
+
 ## High-level architecture
 
 ```mermaid

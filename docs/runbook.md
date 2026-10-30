@@ -274,3 +274,11 @@ The VM is one failure domain. For sustained use:
 4. Run multiple stateless backend/frontend replicas behind a load balancer.
 5. Add SSO, corpus-level authorization, centralized logs/metrics/traces, alerts, and managed secrets.
 6. Test backup restoration and dependency-failure modes on a schedule.
+
+## Sign-in, workers and Kubernetes (added 30 October 2026)
+
+- **Sign-in:** see [authentication.md](authentication.md). Production must set `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `AUTH_SECRET_KEY`, `AUTH_COOKIE_SECURE=true`; the API refuses to start otherwise. Logging out ends the PolicyPilot login, not the identity provider's own session.
+- **Workers:** by default the API runs jobs itself. To run them separately set `WORKER_EMBEDDED=false` on the API and start `python -m app.jobs.worker`. After a crash a job is picked up again once its 90 s lease runs out; `select kind, status, attempts, last_error from jobs order by created_at desc limit 20;` shows what happened. A job marked `failed` with `interrupted` used up its attempts.
+- **Migrations and seeding as separate steps:** `RUN_MIGRATIONS_ON_START=false`, then `alembic upgrade head` and `python -m app.cli seed`.
+- **Kubernetes:** `scripts/k8s_up.sh`, `scripts/k8s_smoke.sh`, `scripts/k8s_recovery.sh`; see [kubernetes.md](kubernetes.md) for what was drilled and what the deployment does not do. Rollback there is `kubectl rollout undo deploy/api`; the database is not rolled back.
+- **Release check:** `scripts/verify_clean_checkout.sh <ref>` clones a commit and re-runs lint, types, every test, the frontend and the manifest renders.

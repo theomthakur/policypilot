@@ -124,7 +124,10 @@ const patterns = [
   ['Audit log', 'Every action is a stored, replayable trace event.'],
   ['Versioned', 'corpus_version keys the cache; prompt_version is recorded.'],
   ['Bounded loop', 'Explicit limits; duplicate calls blocked; retries once.'],
-  ['Durable jobs', 'Questions and uploads are stored jobs a new worker can resume.'],
+  [
+    'Durable jobs',
+    'Questions and uploads are stored jobs a new worker can resume.',
+  ],
 ]
 
 const productionLane = [
@@ -132,7 +135,10 @@ const productionLane = [
   ['Managed database', 'Replication and point-in-time backups'],
   ['Dedicated vector tier', 'Past a few hundred thousand chunks'],
   ['Reranker', 'Only if it wins on evaluation data'],
-  ['University SSO and roles', 'Sign-in works with any OpenID provider; roles are not built'],
+  [
+    'University SSO and roles',
+    'Sign-in works with any OpenID provider; roles are not built',
+  ],
   ['Tracing and alerts', 'OpenTelemetry, cost and error dashboards'],
 ]
 
