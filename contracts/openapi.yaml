@@ -457,7 +457,10 @@ components:
       required: [steps, tool_calls, query_revisions, prompt_tokens, completion_tokens, latency_ms]
       properties:
         steps: { type: integer }
-        tool_calls: { type: integer }
+        tool_calls: { type: integer, description: "Logical tool calls that count against the budget." }
+        tool_attempts: { type: integer, description: "Actual executions: logical calls plus retries and scope fallbacks." }
+        blocked_calls: { type: integer, description: "Calls refused before running (duplicates, limits)." }
+        model_requests: { type: integer, description: "Every model call, including the ambiguity assessment and repairs." }
         query_revisions: { type: integer }
         retries: { type: integer }
         prompt_tokens: { type: integer }

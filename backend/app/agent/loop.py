@@ -13,14 +13,20 @@ import time
 import uuid
 from typing import Any
 
+from sqlalchemy import select
+
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
 from app.agent.verifier import PageText, sanitize_final_answer, verify_answer
 from app.config import Settings
+from app.db.models import Document
+from app.db.session import get_sessionmaker
 from app.llm.client import ChatModel, ModelResponse, ToolCall
 from app.tools.contracts import (
+    ASSESS_TOOL_SPEC,
     DATA_TOOLS,
     AskClarificationInput,
+    AssessQuestionInput,
     FinalAnswerInput,
     PlanInput,
     ToolResult,
@@ -141,6 +147,8 @@ class AgentRun:
         self.question = ""
         self.question_words = 0
         self.cited: frozenset[tuple[str, int]] = frozenset()
+        self.ctx: QuestionContext | None = None
+        self.assessed = False
         self.started = time.monotonic()
 
     # ---- helpers -------------------------------------------------------------------------------
@@ -158,6 +166,7 @@ class AgentRun:
             self.model.complete(messages, self.specs, force_tool), timeout=max(1.0, self._time_left())
         )
         self.totals.steps += 1
+        self.totals.model_requests += 1
         self.totals.prompt_tokens += response.prompt_tokens
         self.totals.completion_tokens += response.completion_tokens
         await self.emit(
@@ -251,6 +260,7 @@ class AgentRun:
         self.question = ctx.question
         self.question_words = len(ctx.question.split())
         self.cited = ctx.cited
+        self.ctx = ctx
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": prompts.load("system")},
@@ -410,10 +420,14 @@ class AgentRun:
     async def _data_tool(self, call: ToolCall, messages: list[dict[str, Any]]) -> Outcome | None:
         s, st = self.settings, self.state
         if self.totals.tool_calls >= s.agent_max_tool_calls:
+            self.totals.blocked_calls += 1
             self._tool_message(messages, call, "Tool call limit reached. Call final_answer now.")
             return await self._wrap_up(messages, "limit_tool_calls")
+        if self._time_left() <= 0:
+            return await self._wrap_up(messages, "limit_time")
         digest = _args_hash(call.name, call.arguments)
         if digest in st.seen_calls:
+            self.totals.blocked_calls += 1
             await self.emit(
                 "tool_call",
                 "blocked",
@@ -427,6 +441,7 @@ class AgentRun:
         if call.name == "search_documents" and st.last_query is not None:
             query = str(call.arguments.get("query", ""))
             if st.last_search_weak and st.weak_revisions >= s.agent_max_query_revisions:
+                self.totals.blocked_calls += 1
                 await self.emit(
                     "tool_call",
                     "blocked",
@@ -460,8 +475,11 @@ class AgentRun:
         self.totals.tool_calls += 1
 
         result: ToolResult | None = None
+        scope_ids = self._follow_up_scope(call)
+        run_args = {**call.arguments, "document_ids": scope_ids} if scope_ids else call.arguments
         for attempt in range(1, s.agent_max_tool_retries + 2):
             began = time.monotonic()
+            self.totals.tool_attempts += 1
             await self.emit(
                 "tool_call",
                 "ok",
@@ -469,11 +487,21 @@ class AgentRun:
                 tool=call.name,
                 input=call.arguments,
                 attempt=attempt,
-                summary=f"Calling {call.name}.",
+                scope="previous_sources" if scope_ids else None,
+                summary=(
+                    "Searching the documents already used in this conversation."
+                    if scope_ids
+                    else f"Calling {call.name}."
+                ),
             )
-            result = await run_tool(self.tools, call.name, call.arguments)
+            result = await run_tool(self.tools, call.name, run_args, max_seconds=max(0.5, self._time_left()))
             retryable = result.error.retryable if result.error else False
-            will_retry = result.status == "error" and retryable and attempt <= s.agent_max_tool_retries
+            will_retry = (
+                result.status == "error"
+                and retryable
+                and attempt <= s.agent_max_tool_retries
+                and self._time_left() > 0
+            )
             await self.emit(
                 "tool_result",
                 "retried" if will_retry else result.status,
@@ -487,7 +515,35 @@ class AgentRun:
             if not will_retry:
                 break
             self.totals.retries += 1
-            await asyncio.sleep(0.2 * attempt)
+            await asyncio.sleep(min(0.2 * attempt, max(0.0, self._time_left())))
+        assert result is not None
+        if scope_ids and self._scoped_result_unhelpful(result):
+            # The earlier sources did not help with this follow-up: search the whole library instead.
+            began = time.monotonic()
+            self.totals.tool_attempts += 1
+            await self.emit(
+                "tool_call",
+                "ok",
+                state="ACT",
+                tool=call.name,
+                input=call.arguments,
+                attempt=1,
+                scope="all_documents",
+                summary="The earlier sources did not cover this, so searching all documents.",
+            )
+            result = await run_tool(
+                self.tools, call.name, call.arguments, max_seconds=max(0.5, self._time_left())
+            )
+            await self.emit(
+                "tool_result",
+                result.status,
+                state="OBSERVE",
+                tool=call.name,
+                attempt=1,
+                duration_ms=round((time.monotonic() - began) * 1000),
+                summary=result.summary,
+                result=self._result_summary(call.name, result),
+            )
         assert result is not None
 
         bad_arguments = result.error is not None and result.error.code == "INVALID_ARGUMENT"
@@ -525,7 +581,105 @@ class AgentRun:
         data = result.data or {}
         if call.name == "search_documents" and data.get("off_topic") and not st.ledger_has_good:
             return await self._off_topic()
+        if call.name == "search_documents" and self._should_assess(result):
+            return await self._assess(result)
         return None
+
+    # ---- follow-up scoping (P1-E) -----------------------------------------------------------------
+    def _follow_up_scope(self, call: ToolCall) -> list[str]:
+        """Documents cited earlier in the conversation, used to scope the first search of a follow-up."""
+        if (
+            call.name != "search_documents"
+            or self.state.last_query is not None
+            or call.arguments.get("document_ids")
+            or not self.cited
+        ):
+            return []
+        return sorted({doc for doc, _ in self.cited})[:15]
+
+    @staticmethod
+    def _scoped_result_unhelpful(result: ToolResult) -> bool:
+        data = result.data or {}
+        hits = data.get("hits") or []
+        return (
+            result.status != "ok"
+            or not hits
+            or bool(data.get("weak"))
+            or bool(data.get("off_topic"))
+            or not any(h.get("text_rank") for h in hits)  # no passage shares a word with the question
+        )
+
+    # ---- ambiguity assessment (P1-A) ----------------------------------------------------------------
+    def _should_assess(self, result: ToolResult) -> bool:
+        ctx = self.ctx
+        if (
+            self.assessed
+            or ctx is None
+            or not self.settings.agent_assess_ambiguity
+            or ctx.clarification
+            or ctx.history
+            or result.status != "ok"
+        ):
+            return False
+        return bool((result.data or {}).get("hits"))
+
+    async def _assess(self, result: ToolResult) -> Outcome | None:
+        """One structured check after the first search: does the answer depend on a detail the user left out?
+        The loop, not the model's free text, decides whether to ask."""
+        self.assessed = True
+        hits = (result.data or {}).get("hits", [])[:6]
+        evidence = "\n".join(
+            f"- {h['title']} p.{h['page']}"
+            + (f" ({h['section']})" if h.get("section") else "")
+            + f": {str(h['excerpt'])[:350]}"
+            for h in hits
+        )
+        messages = [
+            {"role": "system", "content": prompts.load("assess")},
+            {"role": "user", "content": f"Question: {self.question}\n\nSearch results:\n{evidence}"},
+        ]
+        try:
+            response = await asyncio.wait_for(
+                self.model.complete(messages, [ASSESS_TOOL_SPEC], "assess_question"),
+                timeout=max(1.0, self._time_left()),
+            )
+            self.totals.model_requests += 1
+            self.totals.prompt_tokens += response.prompt_tokens
+            self.totals.completion_tokens += response.completion_tokens
+            call = next((c for c in response.tool_calls if c.name == "assess_question"), None)
+            verdict = AssessQuestionInput.model_validate(call.arguments) if call else None
+        except Exception as exc:  # an unavailable check must never block an answer
+            logger.warning("ambiguity assessment skipped: %s", str(exc)[:200])
+            return None
+        if verdict is None:
+            return None
+        options = [o.strip() for o in verdict.candidate_interpretations if o.strip()][:5]
+        ask = not verdict.answerable and len(options) >= 2 and bool(verdict.clarification_question.strip())
+        await self.emit(
+            "assessment",
+            "info",
+            state="EVALUATE",
+            summary=(
+                f"The answer depends on {verdict.missing_slot or 'a detail you have not given'}; asking."
+                if ask
+                else "Checked whether more detail is needed: the question can be answered as asked."
+            )[:300],
+            assessment={
+                "answerable": not ask,
+                "missing_slot": verdict.missing_slot,
+                "candidates": options,
+            },
+            tokens={"prompt": response.prompt_tokens, "completion": response.completion_tokens},
+        )
+        if not ask:
+            return None
+        return await self._clarify(
+            ToolCall(
+                call.id if call else "assess",
+                "ask_clarification",
+                {"question": verdict.clarification_question.strip()[:300], "options": options},
+            )
+        )
 
     @staticmethod
     def _result_summary(name: str, result: ToolResult) -> dict[str, Any]:
@@ -587,6 +741,53 @@ class AgentRun:
         outcome = await self._final_answer(call, messages, partial_reason=reason)
         return outcome or await self._partial(reason)
 
+    async def _normalize(self, answer: dict[str, Any]) -> dict[str, Any]:
+        """Code-level guarantees on the final answer, whatever the model wrote."""
+        notices: list[dict[str, Any]] = answer["notices"]
+        if answer["stop_reason"] == "insufficient_evidence":
+            # An abstention carries an explicit missing-evidence notice and never a citation or claim.
+            answer["claims"], answer["citations"], answer["partial"] = [], [], False
+            if not any(n["kind"] == "missing_evidence" for n in notices):
+                notices.append(
+                    {
+                        "kind": "missing_evidence",
+                        "text": "The available documents do not contain this information.",
+                        "citation_indexes": [],
+                    }
+                )
+            return answer
+        if not any(n["kind"] == "conflict" for n in notices):
+            extra = await self._supersession_notice(answer)
+            if extra:
+                notices.append(extra)
+        return answer
+
+    async def _supersession_notice(self, answer: dict[str, Any]) -> dict[str, Any] | None:
+        """A conflict notice when the answer cites a document and one it documents itself as superseding.
+        Only relations stated in verified document metadata are used, never guessed ones."""
+        index_of = {uuid.UUID(c["document_id"]): c["index"] for c in answer["citations"]}
+        if len(index_of) < 2:
+            return None
+        async with get_sessionmaker()() as db:
+            docs = (await db.execute(select(Document).where(Document.id.in_(list(index_of))))).scalars().all()
+            by_name = {d.filename: d for d in docs}
+            for newer in docs:
+                for relation in newer.supersedes or []:
+                    older = by_name.get(relation.get("filename", ""))
+                    if older is None:
+                        continue
+                    return {
+                        "kind": "conflict",
+                        "text": (
+                            f"{newer.title} (effective {newer.effective_date}) "
+                            f"{relation.get('statement', 'states that it supersedes the earlier document')}. "
+                            f"{older.title} was effective {older.effective_date}. "
+                            "Where they differ, the newer document governs the provisions it names."
+                        )[:500],
+                        "citation_indexes": sorted({index_of[newer.id], index_of[older.id]}),
+                    }
+        return None
+
     async def _final_answer(
         self, call: ToolCall, messages: list[dict[str, Any]], partial_reason: str | None = None
     ) -> Outcome | None:
@@ -623,7 +824,7 @@ class AgentRun:
                 messages, call, "Citation check failed:\n- " + "\n- ".join(verified.failures[:5])
             )
             return None
-        answer = verified.answer
+        answer = await self._normalize(verified.answer)
         if partial_reason and answer["claims"]:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(

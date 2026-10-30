@@ -1,0 +1,6 @@
+{
+  "01-nist-sp-800-61r3-incident-response.pdf": {"authority": "reference", "effective_date": "2025-04", "doc_family": "nist-incident-response"},
+  "02-nist-csf-2.0.pdf": {"authority": "reference", "effective_date": "2024-02-26", "doc_family": "nist-csf"},
+  "03-nist-sp-800-46r2-telework-remote-access.pdf": {"authority": "reference", "effective_date": "2016-07", "doc_family": "nist-telework"},
+  "04-nist-fips-199-security-categorization.pdf": {"authority": "reference", "effective_date": "2004-02", "doc_family": "nist-fips-199"}
+}

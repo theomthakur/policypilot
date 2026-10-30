@@ -124,10 +124,22 @@ export function TracePanel({
             <strong>{totals.steps}</strong>
             <span>steps</span>
           </div>
-          <div>
+          <div title="Tool calls the agent chose to make">
             <strong>{totals.tool_calls}</strong>
             <span>searches</span>
           </div>
+          {totals.tool_attempts !== undefined && (
+            <div title="Actual executions, including retries and fallbacks">
+              <strong>{totals.tool_attempts}</strong>
+              <span>attempts</span>
+            </div>
+          )}
+          {totals.model_requests !== undefined && (
+            <div title="Every model call, including checks and repairs">
+              <strong>{totals.model_requests}</strong>
+              <span>model calls</span>
+            </div>
+          )}
           <div>
             <strong>{totals.prompt_tokens + totals.completion_tokens}</strong>
             <span>tokens</span>

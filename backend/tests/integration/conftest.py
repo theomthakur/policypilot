@@ -27,7 +27,13 @@ TABLES = (
 @pytest.fixture(scope="session", autouse=True)
 def _env_and_schema() -> None:
     os.environ.update(
-        {"APP_ENV": "test", "LLM_PROVIDER": "fake", "EMBEDDING_PROVIDER": "fake", "CORPUS_AUTOLOAD": "false"}
+        {
+            "APP_ENV": "test",
+            "LLM_PROVIDER": "fake",
+            "EMBEDDING_PROVIDER": "fake",
+            "CORPUS_AUTOLOAD": "false",
+            "AGENT_ASSESS_AMBIGUITY": "false",
+        }
     )
     subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=BACKEND, check=True)
 

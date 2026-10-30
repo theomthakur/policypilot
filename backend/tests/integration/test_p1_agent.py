@@ -1,0 +1,396 @@
+"""P1 behaviors: structured clarification, abstention, policy-family discovery and conflict notices,
+follow-up scoping, truthful counters and the turn deadline. A scripted model drives the real loop."""
+
+import asyncio
+import json
+import time
+import uuid
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import select
+
+from tests.integration.conftest import clear_caches
+from tests.integration.test_agent import GUEST, QUOTE_MBPS, REMOTE, Collector, _answer_step, _load
+
+NEW_POLICY = ["1. Password Standard\n\nPasswords must not expire on a schedule. Expiration is prohibited."]
+OLD_POLICY = ["1. Password Policy\n\nPasswords must be changed every 90 days under the rotation rule."]
+QUOTE_NEW = "Passwords must not expire on a schedule."
+QUOTE_OLD = "Passwords must be changed every 90 days under the rotation rule."
+
+
+def _run(
+    model: Any,
+    question: str,
+    ctx_kwargs: dict[str, Any] | None = None,
+    fault: str | None = None,
+    **overrides: Any,
+) -> tuple[Any, Collector]:
+    from app.agent.loop import AgentRun
+    from app.agent.pages import PageCache
+    from app.agent.state import QuestionContext
+    from app.config import get_settings
+    from app.tools.impl import FaultInjector, ToolContext
+
+    settings = get_settings().model_copy(update={"fault_injection_enabled": True, **overrides})
+    emit = Collector()
+    tools = ToolContext(settings, None, FaultInjector(fault, True))
+    context = QuestionContext(question, **(ctx_kwargs or {}))
+
+    async def go() -> Any:
+        return await AgentRun(settings, model, tools, emit, PageCache()).run(context)
+
+    clear_caches()
+    outcome = asyncio.run(go())
+    clear_caches()
+    return outcome, emit
+
+
+def _assess(answerable: bool, **fields: Any) -> Any:
+    from app.llm.client import respond
+
+    return respond(("assess_question", {"answerable": answerable, **fields}))
+
+
+def _document_id(filename_part: str) -> str:
+    from app.db.models import Document
+    from app.db.session import get_sessionmaker
+
+    async def go() -> str:
+        async with get_sessionmaker()() as db:
+            docs = (await db.execute(select(Document))).scalars().all()
+            return str(next(d.id for d in docs if filename_part in d.filename))
+
+    clear_caches()
+    found = asyncio.run(go())
+    clear_caches()
+    return found
+
+
+# ---- P1-A: the code acts on a structured ambiguity assessment -------------------------------------
+
+
+def test_assessment_that_finds_a_missing_detail_makes_the_loop_ask(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew account"})),
+            _assess(
+                False,
+                missing_slot="account type",
+                candidate_interpretations=["Student", "Sponsored guest"],
+                clarification_question="Which type of account do you want to renew?",
+            ),
+        ]
+    )
+    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "clarification_needed"
+    assert outcome.clarification == {
+        "question": "Which type of account do you want to renew?",
+        "options": ["Student", "Sponsored guest"],
+    }
+    assessment = events.of("assessment")[0]["assessment"]
+    assert assessment["answerable"] is False and assessment["missing_slot"] == "account type"
+    assert outcome.totals.model_requests == 2 and outcome.totals.steps == 1
+
+
+def test_specific_question_is_not_interrupted_by_the_assessment(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _assess(True),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "What is the guest bandwidth?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered" and not events.of("clarification_requested")
+    assert events.of("assessment")[0]["assessment"]["answerable"] is True
+    assert outcome.totals.model_requests == 3  # search, assessment, answer
+
+
+def test_a_single_interpretation_never_triggers_a_question(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _assess(False, candidate_interpretations=["Only one"], clarification_question="Which?"),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered"
+
+
+def test_no_assessment_after_a_clarification_reply_or_with_history(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    for kwargs in (
+        {"clarification": ("Which account?", "Student"), "original_question": "Renew my account"},
+        {"history": [("Earlier question", "Earlier answer")]},
+    ):
+        model = ScriptedModel(
+            [
+                respond(("search_documents", {"query": "guest network bandwidth"})),
+                _answer_step("Guest", 1, QUOTE_MBPS),
+            ]
+        )
+        outcome, events = _run(model, "q", ctx_kwargs=kwargs, agent_assess_ambiguity=True)
+        assert outcome.stop_reason == "answered" and not events.of("assessment")
+
+
+def test_a_failed_assessment_never_blocks_the_answer(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            respond(),  # no tool call at all
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered"
+
+
+# ---- P1-B: abstentions are normalized in code -------------------------------------------------------
+
+
+def test_abstention_gets_a_missing_evidence_notice_and_no_citations(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "internet reimbursement"})),
+            respond(("final_answer", {"summary": "The documents do not contain a reimbursement amount."})),
+        ]
+    )
+    outcome, _ = _run(model, "How much is the internet reimbursement?")
+    answer = outcome.answer
+    assert outcome.stop_reason == "insufficient_evidence"
+    assert answer["claims"] == [] and answer["citations"] == [] and answer["partial"] is False
+    assert [n["kind"] for n in answer["notices"]] == ["missing_evidence"]
+
+
+# ---- P1-C: policy families, metadata and conflict notices -----------------------------------------------
+
+
+def _metadata_corpus(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.ingest.pipeline import ensure_corpus_loaded
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    make_pdf(OLD_POLICY, name="corpus/04-password-2023.pdf")
+    make_pdf(NEW_POLICY, name="corpus/05-identity-2025.pdf")
+    make_pdf(GUEST, name="corpus/01-guest.pdf")
+    (corpus / "metadata.json").write_text(
+        json.dumps(
+            {
+                "04-password-2023.pdf": {
+                    "authority": "institutional",
+                    "version": "4.0",
+                    "effective_date": "2023-08-01",
+                    "doc_family": "identity",
+                },
+                "05-identity-2025.pdf": {
+                    "authority": "institutional",
+                    "version": "1.0",
+                    "effective_date": "2025-01-15",
+                    "doc_family": "identity",
+                    "supersedes": [
+                        {
+                            "filename": "04-password-2023.pdf",
+                            "scope": "partial",
+                            "statement": "states that it supersedes the password expiration provisions",
+                        }
+                    ],
+                },
+                "01-guest.pdf": {"authority": "institutional", "doc_family": "network"},
+            }
+        )
+    )
+    clear_caches()
+    asyncio.run(ensure_corpus_loaded(corpus))
+    clear_caches()
+
+
+def _two_claim_step() -> Callable[[list[dict[str, Any]]], Any]:
+    from app.llm.client import respond
+    from tests.integration.test_agent import _evidence_id
+
+    def step(messages: list[dict[str, Any]]) -> Any:
+        new, old = (
+            _evidence_id(messages, "Password Standard", 1),
+            _evidence_id(messages, "Password Policy", 1),
+        )
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "The 2023 policy rotates passwords; the 2025 standard prohibits expiration.",
+                    "claims": [
+                        {"text": "2025 prohibits expiry.", "evidence_ids": [new], "quote": QUOTE_NEW},
+                        {"text": "2023 rotates every 90 days.", "evidence_ids": [old], "quote": QUOTE_OLD},
+                    ],
+                },
+            )
+        )
+
+    return step
+
+
+def test_search_adds_the_other_version_of_a_policy_family_with_metadata(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _metadata_corpus(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [respond(("search_documents", {"query": "passwords must not expire prohibited"})), _two_claim_step()]
+    )
+    outcome, events = _run(model, "Do passwords expire?")
+    hits = events.of("tool_result")[0]["result"]["pages"]
+    titles = {h["title"] for h in hits}
+    assert {"1. Password Standard", "1. Password Policy"} <= titles, titles
+    assert outcome.stop_reason == "answered"
+
+
+def test_citing_a_document_and_the_one_it_supersedes_adds_a_conflict_notice(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _metadata_corpus(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [respond(("search_documents", {"query": "passwords must not expire prohibited"})), _two_claim_step()]
+    )
+    outcome, _ = _run(model, "Do passwords expire?")
+    notices = [n for n in outcome.answer["notices"] if n["kind"] == "conflict"]
+    assert len(notices) == 1
+    assert notices[0]["citation_indexes"] == [1, 2]
+    assert "2025-01-15" in notices[0]["text"] and "2023-08-01" in notices[0]["text"]
+    assert "states that it supersedes" in notices[0]["text"]
+
+
+def test_no_conflict_notice_without_a_documented_relation(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q")
+    assert not [n for n in outcome.answer["notices"] if n["kind"] == "conflict"]
+
+
+# ---- P1-E: follow-ups search the earlier sources first, then everything -----------------------------------
+
+
+def test_follow_up_search_is_scoped_to_earlier_sources(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    guest = _document_id("01-guest")
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network limits"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "And what else?",
+        ctx_kwargs={"history": [("q", "a")], "cited": frozenset({(guest, 1)})},
+    )
+    scopes = [e.get("scope") for e in events.of("tool_call")]
+    assert scopes == ["previous_sources"] and outcome.stop_reason == "answered"
+    assert {h["title"] for h in events.of("tool_result")[0]["result"]["pages"]} == {
+        outcome.answer["citations"][0]["title"]
+    }
+
+
+def test_follow_up_on_a_new_topic_falls_back_to_all_documents(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    remote = _document_id("02-remote")
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth mbps"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "What is the guest bandwidth?",
+        ctx_kwargs={"history": [("q", "a")], "cited": frozenset({(remote, 1)})},
+    )
+    assert [e.get("scope") for e in events.of("tool_call")] == ["previous_sources", "all_documents"]
+    assert outcome.stop_reason == "answered"
+    assert outcome.totals.tool_calls == 1 and outcome.totals.tool_attempts == 2
+
+
+# ---- P1-F: truthful counters and the turn deadline ----------------------------------------------------------
+
+
+def test_counters_separate_logical_calls_attempts_retries_and_blocks(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    same = {"query": "guest network bandwidth"}
+    model = ScriptedModel(
+        [
+            respond(("search_documents", same)),
+            respond(("search_documents", same)),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q", fault="search_documents:timeout:1", agent_tool_timeout_s=0.3)
+    t = outcome.totals
+    assert (t.tool_calls, t.tool_attempts, t.retries, t.blocked_calls) == (1, 2, 1, 1)
+    assert t.model_requests == 3
+
+
+def test_the_turn_deadline_caps_a_slow_tool_and_stops_retries(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel([respond(("search_documents", {"query": "guest network bandwidth"}))])
+    began = time.monotonic()
+    outcome, events = _run(
+        model, "q", fault="search_documents:timeout:5", agent_tool_timeout_s=30.0, agent_turn_timeout_s=1.0
+    )
+    assert time.monotonic() - began < 5  # the 30 s tool timeout did not outlive the 1 s turn
+    assert outcome.totals.retries == 0 and outcome.totals.tool_attempts == 1
+    assert outcome.answer["partial"] is True and uuid.UUID(int=0)  # ended with an honest partial answer

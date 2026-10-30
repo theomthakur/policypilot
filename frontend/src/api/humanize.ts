@@ -17,6 +17,7 @@ export interface HumanInput {
   } | null
   subQuestions?: string[]
   limitName?: string
+  scope?: string | null
 }
 
 export interface HumanEvent {
@@ -60,6 +61,18 @@ export function humanizeEvent(e: HumanInput): HumanEvent {
           /revision/i.test(e.summary)
             ? 'Skipped a search: it had already tried different wording too many times.'
             : 'Skipped a search that repeated an earlier one.',
+        )
+      }
+      if (e.tool === 'search_documents' && e.scope === 'previous_sources') {
+        return say(
+          'Searching',
+          `Looking for ${quote(e.input?.query)} in the documents already used in this conversation.`,
+        )
+      }
+      if (e.tool === 'search_documents' && e.scope === 'all_documents') {
+        return say(
+          'Searching everywhere',
+          'The earlier sources did not cover this, so looking across all the documents.',
         )
       }
       if (e.tool === 'search_documents') {
@@ -134,6 +147,8 @@ export function humanizeEvent(e: HumanInput): HumanEvent {
       )
     case 'clarification_requested':
       return say('Needs a detail from you', e.summary)
+    case 'assessment':
+      return say('Checking the question', e.summary)
     case 'synthesize':
       return say(
         'Writing the answer',

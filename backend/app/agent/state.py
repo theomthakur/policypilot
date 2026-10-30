@@ -23,7 +23,10 @@ class QuestionContext:
 @dataclass
 class Totals:
     steps: int = 0
-    tool_calls: int = 0
+    tool_calls: int = 0  # logical calls that count against the budget
+    tool_attempts: int = 0  # actual executions: logical calls + retries + scope fallbacks
+    blocked_calls: int = 0  # duplicates and over-limit calls refused before running
+    model_requests: int = 0  # every model call, including assessment and repair
     query_revisions: int = 0
     retries: int = 0
     prompt_tokens: int = 0
@@ -34,6 +37,9 @@ class Totals:
         return {
             "steps": self.steps,
             "tool_calls": self.tool_calls,
+            "tool_attempts": self.tool_attempts,
+            "blocked_calls": self.blocked_calls,
+            "model_requests": self.model_requests,
             "query_revisions": self.query_revisions,
             "retries": self.retries,
             "prompt_tokens": self.prompt_tokens,

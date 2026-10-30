@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     agent_turn_timeout_s: float = 60.0
     agent_max_tokens_per_turn: int = 25_000
     agent_max_pages_per_read: int = 3
+    agent_assess_ambiguity: bool = True  # one structured check after the first search of a new question
 
     # Uploads
     upload_max_mb: int = 10

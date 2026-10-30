@@ -38,6 +38,11 @@ class Hit:
     text_rank: int | None
     fused_score: float
     cosine: float | None
+    authority: str = "upload"
+    effective_date: str | None = None
+    version: str | None = None
+    doc_family: str | None = None
+    related: bool = False  # added because it belongs to the same policy family as a top hit
 
 
 @dataclass(frozen=True)
@@ -64,7 +69,8 @@ _VISIBLE = """
 _VECTOR_SQL = text(
     f"""
     SELECT c.id, c.document_id, d.title, c.page_number, c.section, c.text,
-           1 - (c.embedding <=> CAST(:q AS vector)) AS cosine
+           1 - (c.embedding <=> CAST(:q AS vector)) AS cosine,
+           d.authority, d.effective_date, d.version, d.doc_family
     FROM chunks c JOIN documents d ON d.id = c.document_id
     WHERE {_VISIBLE}
     ORDER BY c.embedding <=> CAST(:q AS vector)
@@ -75,13 +81,60 @@ _VECTOR_SQL = text(
 _TEXT_SQL = text(
     f"""
     SELECT c.id, c.document_id, d.title, c.page_number, c.section, c.text,
-           ts_rank_cd(c.tsv, to_tsquery('english', :tsq)) AS rank
+           ts_rank_cd(c.tsv, to_tsquery('english', :tsq)) AS rank,
+           d.authority, d.effective_date, d.version, d.doc_family
     FROM chunks c JOIN documents d ON d.id = c.document_id
     WHERE {_VISIBLE} AND c.tsv @@ to_tsquery('english', :tsq)
     ORDER BY rank DESC
     LIMIT :n
     """
 )
+
+
+_SIBLING_SQL = text(
+    """
+    SELECT DISTINCT ON (c.document_id)
+           c.id, c.document_id, d.title, c.page_number, c.section, c.text,
+           1 - (c.embedding <=> CAST(:q AS vector)) AS cosine,
+           d.authority, d.effective_date, d.version, d.doc_family
+    FROM chunks c JOIN documents d ON d.id = c.document_id
+    WHERE d.status = 'ready' AND d.session_id IS NULL AND d.authority = 'institutional'
+      AND d.doc_family = ANY(:families) AND c.document_id <> ALL(:have)
+    ORDER BY c.document_id, c.embedding <=> CAST(:q AS vector)
+    """
+)
+
+
+async def _family_siblings(
+    db: AsyncSession, hits: list[Hit], vector: list[float], session_id: uuid.UUID | None
+) -> list[Hit]:
+    """Other versions in the same policy family as a top hit, so a newer or older rule is never missed
+    just because the question's wording matched only one of them. Families come from verified metadata."""
+    families = sorted({h.doc_family for h in hits[:3] if h.doc_family and h.authority == "institutional"})
+    if not families:
+        return []
+    have = sorted({h.document_id for h in hits})
+    rows = (await db.execute(_SIBLING_SQL, {"q": str(vector), "families": families, "have": have})).all()
+    return [
+        Hit(
+            chunk_id=r[0],
+            document_id=r[1],
+            title=str(r[2]),
+            page=int(r[3]),
+            section=r[4],
+            excerpt=str(r[5])[:1200],
+            vector_rank=None,
+            text_rank=None,
+            fused_score=0.0,
+            cosine=float(r[6]),
+            authority=str(r[7]),
+            effective_date=r[8],
+            version=r[9],
+            doc_family=r[10],
+            related=True,
+        )
+        for r in rows
+    ]
 
 
 async def hybrid_search(
@@ -135,9 +188,15 @@ async def hybrid_search(
             text_rank=trank.get(cid),
             fused_score=round(scores[cid], 5),
             cosine=cosine.get(cid),
+            authority=str(rows[cid][7]),
+            effective_date=rows[cid][8],  # type: ignore[arg-type]
+            version=rows[cid][9],  # type: ignore[arg-type]
+            doc_family=rows[cid][10],  # type: ignore[arg-type]
         )
         for cid in ordered
     ]
+    if not document_ids:
+        hits = hits + await _family_siblings(db, hits, vector, session_id)
     top_score = hits[0].fused_score if hits else None
     best_cosine = max((h.cosine for h in hits if h.cosine is not None), default=0.0)
     weak = not hits or (

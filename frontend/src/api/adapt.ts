@@ -187,6 +187,9 @@ export function adaptTotals(
   return {
     steps: asNumber(totals.steps),
     tool_calls: asNumber(totals.tool_calls),
+    tool_attempts: asNumber(totals.tool_attempts),
+    blocked_calls: asNumber(totals.blocked_calls),
+    model_requests: asNumber(totals.model_requests),
     prompt_tokens: asNumber(totals.prompt_tokens),
     completion_tokens: asNumber(totals.completion_tokens),
     estimated_cost_usd: asNumber(totals.estimated_cost_usd),
@@ -197,6 +200,7 @@ export function adaptTotals(
 
 const eventTypes: Record<string, TraceEventType> = {
   evaluate: 'evidence_assessment',
+  assessment: 'evidence_assessment',
   clarification_requested: 'clarification',
 }
 
@@ -240,6 +244,7 @@ export function adaptEvent(raw: Raw): TraceEvent {
     weak: Boolean(result.weak),
     errorCode: asString(result.error_code) || undefined,
     revision: (raw.revision as HumanRevision | null | undefined) ?? null,
+    scope: (raw.scope as string | null | undefined) ?? null,
     subQuestions: Array.isArray(raw.sub_questions)
       ? raw.sub_questions.map(String)
       : undefined,

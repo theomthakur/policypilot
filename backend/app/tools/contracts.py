@@ -80,6 +80,15 @@ class AskClarificationInput(_Strict):
     options: list[str] = Field(default_factory=list, max_length=5)
 
 
+class AssessQuestionInput(_Strict):
+    """Structured result of the post-retrieval ambiguity check. The loop, not the model, acts on it."""
+
+    answerable: bool
+    missing_slot: str = Field(default="", max_length=120)
+    candidate_interpretations: list[str] = Field(default_factory=list, max_length=5)
+    clarification_question: str = Field(default="", max_length=300)
+
+
 class ChatReplyInput(_Strict):
     message: str = Field(min_length=1, max_length=800)
 
@@ -101,6 +110,24 @@ class FinalAnswerInput(_Strict):
     claims: list[DraftClaim] = Field(default_factory=list, max_length=12)
     notices: list[Notice] = Field(default_factory=list)
 
+
+ASSESS_TOOL_SPEC: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": "assess_question",
+        "description": "Report whether the question can be answered the same way for every user.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "answerable": {"type": "boolean"},
+                "missing_slot": {"type": "string"},
+                "candidate_interpretations": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
+                "clarification_question": {"type": "string"},
+            },
+            "required": ["answerable"],
+        },
+    },
+}
 
 DATA_TOOLS = ("list_documents", "search_documents", "read_document_pages", "get_document_outline")
 CONTROL_ACTIONS = ("plan", "ask_clarification", "chat_reply", "final_answer")

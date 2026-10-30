@@ -17,6 +17,7 @@
         "tool_call",
         "tool_result",
         "evaluate",
+        "assessment",
         "query_revised",
         "clarification_requested",
         "synthesize",
@@ -93,6 +94,20 @@
       }
     },
     "attempt": { "type": "integer", "minimum": 1, "description": "Retry attempt number for tool_call/tool_result." },
+    "scope": {
+      "type": ["string", "null"],
+      "enum": ["previous_sources", "all_documents", null],
+      "description": "tool_call events of a follow-up: searched the documents cited earlier, or fell back to all documents."
+    },
+    "assessment": {
+      "type": ["object", "null"],
+      "description": "assessment events: whether the question needs a detail the user has not given.",
+      "properties": {
+        "answerable": { "type": "boolean" },
+        "missing_slot": { "type": "string" },
+        "candidates": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "duration_ms": { "type": "integer", "minimum": 0 },
     "tokens": {
       "type": ["object", "null"],

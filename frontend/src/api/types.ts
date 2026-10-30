@@ -85,6 +85,9 @@ export interface AnswerPayload {
 export interface RunTotals {
   steps: number
   tool_calls: number
+  tool_attempts?: number
+  blocked_calls?: number
+  model_requests?: number
   prompt_tokens: number
   completion_tokens: number
   estimated_cost_usd: number

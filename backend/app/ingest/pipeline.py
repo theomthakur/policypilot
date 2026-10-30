@@ -139,6 +139,29 @@ def _sidecar_title(path: Path) -> str | None:
         return None
 
 
+_METADATA_KEYS = ("authority", "version", "effective_date", "doc_family", "supersedes")
+
+
+def sidecar_metadata(path: Path) -> dict[str, object]:
+    """Descriptive metadata for a bundled PDF from a metadata.json next to it. Uploads never have any."""
+    sidecar = path.parent / "metadata.json"
+    try:
+        entry = json.loads(sidecar.read_text()).get(path.name) if sidecar.is_file() else None
+    except (OSError, ValueError):
+        return {}
+    return {k: entry[k] for k in _METADATA_KEYS if k in entry} if isinstance(entry, dict) else {}
+
+
+def apply_metadata(document: Document, path: Path) -> bool:
+    """Set the sidecar metadata on a bundled document. Returns True when anything changed."""
+    changed = False
+    for key, value in sidecar_metadata(path).items():
+        if getattr(document, key) != value:
+            setattr(document, key, value)
+            changed = True
+    return changed
+
+
 async def ensure_corpus_loaded(corpus_dir: Path, source: str = "corpus") -> int:
     """Ingest bundled PDFs not stored yet (matched by SHA-256). Returns how many were ingested."""
     queued = 0
@@ -151,6 +174,9 @@ async def ensure_corpus_loaded(corpus_dir: Path, source: str = "corpus") -> int:
                 )
             ).scalar_one_or_none()
             if existing is not None and existing.status == "ready":
+                if apply_metadata(existing, path):
+                    await bump_corpus_version(db)  # cached search results carry metadata
+                    await db.commit()
                 continue
             if existing is None:
                 existing = Document(
@@ -161,6 +187,7 @@ async def ensure_corpus_loaded(corpus_dir: Path, source: str = "corpus") -> int:
                     source=source,
                     status="queued",
                 )
+                apply_metadata(existing, path)
                 db.add(existing)
                 await db.flush()
             run = IngestionRun(document_id=existing.id)

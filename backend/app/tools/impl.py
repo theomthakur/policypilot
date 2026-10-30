@@ -101,6 +101,9 @@ async def list_documents(ctx: ToolContext, args: ListDocumentsInput) -> ToolResu
                     "page_count": d.page_count,
                     "status": d.status,
                     "source": d.source,
+                    "authority": d.authority,
+                    "effective_date": d.effective_date,
+                    "version": d.version,
                 }
                 for d in docs
             ],
@@ -123,6 +126,10 @@ def _result_to_data(result: SearchResult, version: int, cached: bool) -> dict[st
                 "vector_rank": h.vector_rank,
                 "text_rank": h.text_rank,
                 "fused_score": h.fused_score,
+                "authority": h.authority,
+                "effective_date": h.effective_date,
+                "version": h.version,
+                "related_version": h.related,
             }
             for h in result.hits
         ],
@@ -253,8 +260,11 @@ _TOOLS: dict[str, tuple[type[Any], Callable[[ToolContext, Any], Awaitable[ToolRe
 }
 
 
-async def run_tool(ctx: ToolContext, name: str, raw_args: dict[str, Any]) -> ToolResult:
-    """Validate, apply any injected fault, run under a timeout, and never raise."""
+async def run_tool(
+    ctx: ToolContext, name: str, raw_args: dict[str, Any], max_seconds: float | None = None
+) -> ToolResult:
+    """Validate, apply any injected fault, run under the tool timeout (capped by the turn's remaining time),
+    and never raise."""
     if name not in _TOOLS:
         return _error("INVALID_ARGUMENT", f"Unknown tool {name}.")
     model, fn = _TOOLS[name]
@@ -279,8 +289,13 @@ async def run_tool(ctx: ToolContext, name: str, raw_args: dict[str, Any]) -> Too
             return _error("DEPENDENCY_UNAVAILABLE", "Injected failure.", retryable=True)
         return await fn(ctx, args)
 
+    limit = (
+        ctx.settings.agent_tool_timeout_s
+        if max_seconds is None
+        else min(ctx.settings.agent_tool_timeout_s, max_seconds)
+    )
     try:
-        return await asyncio.wait_for(attempt(), timeout=ctx.settings.agent_tool_timeout_s)
+        return await asyncio.wait_for(attempt(), timeout=limit)
     except TimeoutError:
         return _error("TIMEOUT", f"{name} timed out.", retryable=True)
     except Exception:

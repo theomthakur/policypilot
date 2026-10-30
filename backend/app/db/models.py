@@ -74,6 +74,12 @@ class Document(Base):
         UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=True
     )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Descriptive metadata from a verified sidecar (corpus) or none (uploads). Never grants authority.
+    authority: Mapped[str] = mapped_column(String(20), nullable=False, default="upload")
+    version: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    effective_date: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD or YYYY-MM
+    doc_family: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    supersedes: Mapped[list[dict[str, str]]] = mapped_column(JSONB, nullable=False, default=list)
     created_at: Mapped[datetime] = created_at_col()
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
