@@ -12,10 +12,10 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | 3. Expected components A to J | 8.7 | Evaluation pass rate and run-to-run noise |
 | 4. Eight required test cases | 8.1 | Conflict case is unstable; clarification case passes on one run |
 | 5. Technology | 9.5 | None |
-| 6. What to submit | 7.8 | Demo not recorded; some docs are out of date |
+| 6. What to submit | 8.0 | Demo not recorded; some docs are out of date |
 | 7. Interview preparation | 7.0 | Needs rehearsal by the author |
 | 8. Optional enhancements | 8.3 | OpenShift not run on a real cluster |
-| **Overall** | **8.3** | Demo recording, stale docs, evaluation noise |
+| **Overall** | **8.4** | Demo recording, stale docs, evaluation noise |
 
 ## 2. Problem statement
 
@@ -79,7 +79,7 @@ Not passing in the latest run and stated openly in `docs/evaluation.md`: CASE-6 
 |---|---|---:|---|---|
 | GitHub repository with setup instructions | DONE | 9 | github.com/theomthakur/policypilot, `README.md`, tags `v0.2.0-rc1` to `rc4` | Merge `integration/full-stack` to `main` (author) |
 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, evaluation command, expected cost | DONE | 9 | `docs/reproducibility.md`, `.env.example`, `backend/app/agent/prompts/`, `contracts/tools.schema.json` | None |
-| Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | PARTIAL | 8 | `docs/system-design.md` and the System design page | Page and diagram are not yet updated for sessions history, the final UI and the latest measurements |
+| Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | DONE | 9 | The System design page (one flow from upload to answer, with where Compose, Kubernetes and OpenShift fit) and `docs/system-design.md` | `docs/system-design.md` text still describes 29 Oct |
 | Agent and baseline evaluation results and failure analysis | DONE | 8 | `docs/evaluation.md`, saved traces | Pass rate and single-run noise |
 | Short recorded demo or reproducible walkthrough (multi-document question, re-retrieval, clarification, failed tool call, saved traces) | **OPEN** | 4 | Walkthrough script `docs/demo.md` is ready; no recording made | **Record the demo** (author) |
 | Short summary of achievements, unfinished work, improvements | DONE | 9 | `docs/summary.md` | None |
@@ -112,7 +112,7 @@ Not passing in the latest run and stated openly in `docs/evaluation.md`: CASE-6 
 5. Submit by 11 AM on Sunday 1 Nov.
 
 **Mine, still open**
-1. Update the System design and Presentation pages, `docs/system-design.md`, `docs/requirements.md` and `docs/submission-checklist.md` for the final state (they still describe 29 Oct).
+1. Update `docs/system-design.md`, `docs/requirements.md` and `docs/submission-checklist.md` for the final state (they still describe 29 Oct). The System design page and the 5-slide Presentation are already updated.
 2. Run `scripts/verify_clean_checkout.sh` on the final commit and confirm CI is green on it.
 3. Put the coding-agent transcripts inside the repo before submission (Claude Code prunes its own logs).
 4. Restore the daily budget cap to 1.00 (temporarily 1.85 for UI testing).
