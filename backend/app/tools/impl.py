@@ -127,6 +127,7 @@ def _result_to_data(result: SearchResult, version: int, cached: bool) -> dict[st
             for h in result.hits
         ],
         "weak": result.weak,
+        "off_topic": result.off_topic,
         "top_score": result.top_score,
         "corpus_version": version,
         "cached": cached,

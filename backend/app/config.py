@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     rrf_k: int = 60
     weak_score_threshold: float = 0.02
     weak_min_cosine: float = 0.5
+    # Topicality: best similarity below this AND no keyword match at all means nothing in the library is
+    # about the question (measured: off-topic questions <= 0.59, in-scope >= 0.67; see ADR 0005).
+    off_topic_max_cosine: float = 0.63
+    off_topic_enabled: bool | None = None  # None: on only with real embeddings (fake ones carry no meaning)
 
     # Agent limits
     agent_max_steps: int = 8
@@ -84,6 +88,12 @@ class Settings(BaseSettings):
             f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+
+    @property
+    def off_topic_check(self) -> bool:
+        if self.off_topic_enabled is not None:
+            return self.off_topic_enabled
+        return self.embedding_provider == "local"
 
     @property
     def llm_configured(self) -> bool:

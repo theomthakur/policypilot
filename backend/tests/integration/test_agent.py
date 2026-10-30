@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from tests.integration.conftest import clear_caches
 
 GUEST = [
@@ -596,7 +598,7 @@ def test_malformed_arguments_cost_no_budget_and_are_not_weak_results(
     assert not events.of("limit_reached") and outcome.totals.query_revisions == 1
 
 
-def test_chat_reply_is_rejected_for_a_real_policy_question(
+def test_chat_reply_for_a_real_question_triggers_a_search_of_the_users_own_words(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.llm.client import ScriptedModel, respond
@@ -605,12 +607,12 @@ def test_chat_reply_is_rejected_for_a_real_policy_question(
     model = ScriptedModel(
         [
             respond(("chat_reply", {"message": "I'm here to help with questions about policies!"})),
-            respond(("search_documents", {"query": "guest network bandwidth"})),
             _answer_step("Guest", 1, QUOTE_MBPS),
         ]
     )
     outcome, _ = _run(model, "What is the bandwidth limit for guests on wifi?")
-    assert "not small talk" in next(m["content"] for m in model.calls[1] if m["role"] == "tool")
+    result = next(m["content"] for m in model.calls[1] if m["role"] == "tool")
+    assert '"hits"' in result and "Guest" in result  # the search ran and answered the chat_reply call
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
 
 
@@ -654,3 +656,47 @@ def test_pages_cited_in_the_previous_answer_are_flagged_for_follow_ups(
     )
     seen = next(m["content"] for m in model.calls[1] if m["role"] == "tool")
     assert '"already_cited": true' in seen and '"already_cited": false' in seen
+
+
+def test_a_question_about_the_assistant_is_small_talk_even_when_long(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel([respond(("chat_reply", {"message": "I answer questions about the policies."}))])
+    outcome, _ = _run(model, "What can you help me with?")
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 0
+
+
+def test_a_question_nothing_in_the_library_is_about_is_answered_in_code(
+    monkeypatch: pytest.MonkeyPatch, make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    monkeypatch.setenv("OFF_TOPIC_ENABLED", "true")
+    monkeypatch.setenv("OFF_TOPIC_MAX_COSINE", "0.99")  # fake embeddings: only "no keyword match" decides
+    model = ScriptedModel([respond(("search_documents", {"query": "zebra quantum"}))])
+    outcome, events = _run(model, "Who is the founder of Zebra Quantum?")
+    assert outcome.stop_reason == "insufficient_evidence" and outcome.answer["citations"] == []
+    assert "does not look related" in outcome.answer["summary"]
+    assert len(model.calls) == 1 and events.of("answer")  # the model was not asked to stretch anything
+
+
+def test_the_off_topic_check_never_applies_when_keywords_match(
+    monkeypatch: pytest.MonkeyPatch, make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    monkeypatch.setenv("OFF_TOPIC_ENABLED", "true")
+    monkeypatch.setenv("OFF_TOPIC_MAX_COSINE", "0.99")
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q")
+    assert outcome.stop_reason == "answered"

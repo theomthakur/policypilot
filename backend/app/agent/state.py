@@ -61,6 +61,7 @@ class RunState:
     last_search_weak: bool = False
     last_search_reason: str = "no_hits"
     tool_failures: int = 0
+    ledger_has_good: bool = False  # an earlier search in this turn already found on-topic material
     weak_revisions: int = 0
     planned: bool = False
     repair_used: bool = False

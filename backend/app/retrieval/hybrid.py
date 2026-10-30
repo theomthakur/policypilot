@@ -45,6 +45,7 @@ class SearchResult:
     hits: list[Hit]
     weak: bool
     top_score: float | None
+    off_topic: bool = False
 
 
 def _or_query(query: str) -> str:
@@ -144,4 +145,7 @@ async def hybrid_search(
         and top_score < settings.weak_score_threshold
         and best_cosine < settings.weak_min_cosine
     )
-    return SearchResult(hits=hits, weak=weak, top_score=top_score)
+    off_topic = bool(
+        settings.off_topic_check and not text_rows and best_cosine < settings.off_topic_max_cosine
+    )
+    return SearchResult(hits=hits, weak=weak, top_score=top_score, off_topic=off_topic)

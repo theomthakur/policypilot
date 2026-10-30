@@ -8,6 +8,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import time
 import uuid
 from typing import Any
@@ -32,6 +33,10 @@ logger = logging.getLogger("policypilot.agent")
 
 # A greeting, thanks or "what can you do" is short; anything longer is treated as a real question.
 CHAT_MAX_WORDS = 6
+# Questions about the assistant itself are small talk however long they are.
+ABOUT_ME = re.compile(
+    r"\b(what|how) (can|could|do|would) you (help|do|assist)\b|\bwho are you\b|\bwhat are you\b", re.I
+)
 
 
 WRAP_UP = (
@@ -133,6 +138,7 @@ class AgentRun:
         self.specs = openai_tool_specs(include_outline)
         self.totals = Totals(model=model.name)
         self.state = RunState()
+        self.question = ""
         self.question_words = 0
         self.cited: frozenset[tuple[str, int]] = frozenset()
         self.started = time.monotonic()
@@ -242,6 +248,7 @@ class AgentRun:
 
     # ---- main loop -----------------------------------------------------------------------------
     async def run(self, ctx: QuestionContext) -> Outcome:
+        self.question = ctx.question
         self.question_words = len(ctx.question.split())
         self.cited = ctx.cited
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
@@ -282,14 +289,13 @@ class AgentRun:
                     summary="Plan: " + "; ".join(map(str, call.arguments.get("sub_questions", [])))[:260],
                 )
             elif call.name == "chat_reply":
-                if self.question_words >= CHAT_MAX_WORDS:
-                    self._tool_message(
-                        messages,
-                        call,
-                        "This is a question about the policies, not small talk. Search the documents "
-                        "(ask for clarification only after a search shows the answer depends on a "
-                        "missing detail).",
-                    )
+                if self.question_words >= CHAT_MAX_WORDS and not ABOUT_ME.search(self.question):
+                    # Not small talk. Instead of hoping the model searches, search for the user's own words
+                    # and answer its chat_reply call with the results.
+                    synthetic = ToolCall(call.id, "search_documents", {"query": self.question[:300]})
+                    limited = await self._data_tool(synthetic, messages)
+                    if limited is not None:
+                        return limited
                     continue
                 return await self._chat(call)
             elif call.name == "ask_clarification":
@@ -339,6 +345,36 @@ class AgentRun:
             return
         self.state.planned = True
         self._tool_message(messages, call, "Plan recorded. Continue.")
+
+    async def _off_topic(self) -> Outcome:
+        """Nothing in the library is about this: say so plainly instead of stretching unrelated text."""
+        answer: dict[str, Any] = {
+            "summary": (
+                "That does not look related to the documents in this library, so I do not have an "
+                "answer for it. I can help with questions about accounts and access, data handling, "
+                "security and incident response, remote work, research computing and approved cloud services."
+            ),
+            "claims": [],
+            "citations": [],
+            "notices": [
+                {
+                    "kind": "missing_evidence",
+                    "text": "Nothing in the available documents is about this topic.",
+                    "citation_indexes": [],
+                }
+            ],
+            "unverified_claims": [],
+            "stop_reason": "insufficient_evidence",
+            "partial": False,
+        }
+        await self.emit(
+            "answer",
+            "ok",
+            state="EMIT",
+            summary=answer["summary"][:300],
+            stop_reason="insufficient_evidence",
+        )
+        return self._finish("insufficient_evidence", answer)
 
     async def _chat(self, call: ToolCall) -> Outcome:
         """A direct reply to a greeting, thanks or a question about the assistant; no documents involved."""
@@ -473,6 +509,8 @@ class AgentRun:
         if call.name == "search_documents":
             st.last_query = str(call.arguments.get("query", ""))
             data = result.data or {}
+            if data.get("hits") and not data.get("off_topic"):
+                st.ledger_has_good = True
             st.last_search_weak = (result.status != "ok" and not bad_arguments) or bool(data.get("weak"))
             st.last_search_reason = (
                 "no_hits" if result.status != "ok" or not data.get("hits") else "low_score"
@@ -484,6 +522,9 @@ class AgentRun:
                 "content": _model_view(call.name, result, st, self.cited),
             }
         )
+        data = result.data or {}
+        if call.name == "search_documents" and data.get("off_topic") and not st.ledger_has_good:
+            return await self._off_topic()
         return None
 
     @staticmethod
