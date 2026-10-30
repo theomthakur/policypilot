@@ -3494,3 +3494,32 @@ th {
 .mode-hint.is-hidden {
   display: none;
 }
+
+/* The sidebar is the only navigation on desktop, on every page */
+@media (min-width: 701px) {
+  .app-shell .topbar {
+    display: none;
+  }
+}
+.sidebar-link.active {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.pane-page {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.pane-page > .page {
+  min-height: 100%;
+  height: auto;
+}
+@media (max-width: 700px) {
+  .app-shell.view-architecture .pane-sidebar,
+  .app-shell.view-presentation .pane-sidebar {
+    display: none;
+  }
+}

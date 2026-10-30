@@ -486,6 +486,150 @@ export function App() {
     )
   }
 
+  const sidebar = (
+    <aside
+      className={`workspace-pane pane-sidebar${showSidebar ? '' : ' is-collapsed'} ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
+      aria-label="Workspace sidebar"
+    >
+      <div className="sidebar-head">
+        <button
+          type="button"
+          className="sidebar-logo"
+          aria-label={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
+          aria-expanded={showSidebar}
+          title={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
+          onClick={() => setShowSidebar(!showSidebar)}
+        >
+          <PolicyPilotMark className="sidebar-mark" />
+        </button>
+        <span className="sidebar-name">PolicyPilot</span>
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+          onClick={() => setShowSidebar(false)}
+          tabIndex={showSidebar ? 0 : -1}
+        >
+          <IconSidebar />
+        </button>
+      </div>
+      <button
+        type="button"
+        className="sidebar-new"
+        title="New session"
+        aria-label="New session"
+        onClick={() => {
+          navigateTo('workspace')
+          void resetSession()
+        }}
+        disabled={busy}
+      >
+        <IconPlus />
+        <span className="nav-label">New session</span>
+      </button>
+      <div className="sidebar-nav" role="tablist">
+        {(
+          [
+            ['documents', 'Knowledge base', <IconBook key="b" />],
+            ['activity', 'Agent activity', <IconActivity key="a" />],
+          ] as const
+        ).map(([key, label, icon]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={sidebarTab === key && appView === 'workspace'}
+            aria-label={label}
+            title={label}
+            className={
+              sidebarTab === key && appView === 'workspace' ? 'active' : ''
+            }
+            onClick={() => {
+              setSidebarTab(key)
+              setShowSidebar(true)
+            }}
+          >
+            {icon}
+            <span className="nav-label">{label}</span>
+            {key === 'activity' && turn.events.length > 0 && (
+              <span className="tab-count">{turn.events.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div
+        className="sidebar-content"
+        hidden={!showSidebar || appView !== 'workspace'}
+      >
+        {sidebarTab === 'documents' ? (
+          <DocumentsPanel
+            onView={(document) =>
+              setViewer({ id: document.id, title: document.title })
+            }
+          />
+        ) : (
+          <TracePanel
+            events={turn.events}
+            totals={turn.totals}
+            streamStatus={turn.status}
+            developer={developer}
+          />
+        )}
+      </div>
+      <div className="sidebar-footer">
+        <button
+          type="button"
+          className="sidebar-link"
+          title="System design"
+          onClick={() => navigateTo('architecture')}
+        >
+          <IconDiagram />
+          <span className="nav-label">System design</span>
+        </button>
+        <button
+          type="button"
+          className="sidebar-link"
+          title="Presentation"
+          onClick={() => navigateTo('presentation')}
+        >
+          <IconSlides />
+          <span className="nav-label">Presentation</span>
+        </button>
+        <div className="sidebar-tools">
+          <button
+            type="button"
+            className={`tool-button${developer ? ' on' : ''}`}
+            aria-pressed={developer}
+            aria-label="Developer mode"
+            title="Developer mode: metrics, technical details and the Agent / Quick switch"
+            onClick={() => setDeveloper(!developer)}
+          >
+            <IconCode />
+          </button>
+          <button
+            type="button"
+            className="tool-button"
+            aria-label={
+              theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+            }
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            <ThemeIcon theme={theme} />
+          </button>
+          {auth.data?.user && (
+            <AccountMenu
+              name={auth.data.user.name}
+              email={auth.data.user.email}
+              onSignOut={() => void signOut()}
+            />
+          )}
+        </div>
+      </div>
+    </aside>
+  )
+
   return (
     <div className={`app-shell view-${appView}`}>
       {launching && (
@@ -620,145 +764,7 @@ export function App() {
           </nav>
 
           <main className={`workspace${showSidebar ? '' : ' no-sidebar'}`}>
-            <aside
-              className={`workspace-pane pane-sidebar${showSidebar ? '' : ' is-collapsed'} ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
-              aria-label="Workspace sidebar"
-            >
-              <div className="sidebar-head">
-                <button
-                  type="button"
-                  className="sidebar-logo"
-                  aria-label={
-                    showSidebar ? 'Collapse sidebar' : 'Expand sidebar'
-                  }
-                  aria-expanded={showSidebar}
-                  title={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
-                  onClick={() => setShowSidebar(!showSidebar)}
-                >
-                  <PolicyPilotMark className="sidebar-mark" />
-                </button>
-                <span className="sidebar-name">PolicyPilot</span>
-                <button
-                  type="button"
-                  className="sidebar-toggle"
-                  aria-label="Collapse sidebar"
-                  title="Collapse sidebar"
-                  onClick={() => setShowSidebar(false)}
-                  tabIndex={showSidebar ? 0 : -1}
-                >
-                  <IconSidebar />
-                </button>
-              </div>
-              <button
-                type="button"
-                className="sidebar-new"
-                title="New session"
-                aria-label="New session"
-                onClick={() => void resetSession()}
-                disabled={busy}
-              >
-                <IconPlus />
-                <span className="nav-label">New session</span>
-              </button>
-              <div className="sidebar-nav" role="tablist">
-                {(
-                  [
-                    ['documents', 'Knowledge base', <IconBook key="b" />],
-                    ['activity', 'Agent activity', <IconActivity key="a" />],
-                  ] as const
-                ).map(([key, label, icon]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={sidebarTab === key}
-                    aria-label={label}
-                    title={label}
-                    className={sidebarTab === key ? 'active' : ''}
-                    onClick={() => {
-                      setSidebarTab(key)
-                      setShowSidebar(true)
-                    }}
-                  >
-                    {icon}
-                    <span className="nav-label">{label}</span>
-                    {key === 'activity' && turn.events.length > 0 && (
-                      <span className="tab-count">{turn.events.length}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="sidebar-content" hidden={!showSidebar}>
-                {sidebarTab === 'documents' ? (
-                  <DocumentsPanel
-                    onView={(document) =>
-                      setViewer({ id: document.id, title: document.title })
-                    }
-                  />
-                ) : (
-                  <TracePanel
-                    events={turn.events}
-                    totals={turn.totals}
-                    streamStatus={turn.status}
-                    developer={developer}
-                  />
-                )}
-              </div>
-              <div className="sidebar-footer">
-                <button
-                  type="button"
-                  className="sidebar-link"
-                  title="System design"
-                  onClick={() => navigateTo('architecture')}
-                >
-                  <IconDiagram />
-                  <span className="nav-label">System design</span>
-                </button>
-                <button
-                  type="button"
-                  className="sidebar-link"
-                  title="Presentation"
-                  onClick={() => navigateTo('presentation')}
-                >
-                  <IconSlides />
-                  <span className="nav-label">Presentation</span>
-                </button>
-                <div className="sidebar-tools">
-                  <button
-                    type="button"
-                    className={`tool-button${developer ? ' on' : ''}`}
-                    aria-pressed={developer}
-                    aria-label="Developer mode"
-                    title="Developer mode: metrics, technical details and the Agent / Quick switch"
-                    onClick={() => setDeveloper(!developer)}
-                  >
-                    <IconCode />
-                  </button>
-                  <button
-                    type="button"
-                    className="tool-button"
-                    aria-label={
-                      theme === 'dark'
-                        ? 'Switch to light mode'
-                        : 'Switch to dark mode'
-                    }
-                    title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                    onClick={() =>
-                      setTheme(theme === 'dark' ? 'light' : 'dark')
-                    }
-                  >
-                    <ThemeIcon theme={theme} />
-                  </button>
-                  {auth.data?.user && (
-                    <AccountMenu
-                      name={auth.data.user.name}
-                      email={auth.data.user.email}
-                      onSignOut={() => void signOut()}
-                    />
-                  )}
-                </div>
-              </div>
-            </aside>
+            {sidebar}
             <div
               className={`workspace-pane pane-conversation ${mobilePanel === 'conversation' ? 'mobile-active' : ''}`}
             >
@@ -776,10 +782,17 @@ export function App() {
             </div>
           </main>
         </>
-      ) : appView === 'architecture' ? (
-        <ArchitecturePage onBack={() => navigateTo('workspace')} />
       ) : (
-        <PresentationPage onBack={() => navigateTo('workspace')} />
+        <div className="workspace">
+          {sidebar}
+          <div className="workspace-pane pane-page mobile-active">
+            {appView === 'architecture' ? (
+              <ArchitecturePage onBack={() => navigateTo('workspace')} />
+            ) : (
+              <PresentationPage onBack={() => navigateTo('workspace')} />
+            )}
+          </div>
+        </div>
       )}
 
       <CitationDrawer
