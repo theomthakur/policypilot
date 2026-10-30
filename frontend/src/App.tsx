@@ -664,7 +664,9 @@ export function App() {
             }}
           >
             {icon}
-            <span className="nav-label">{label}</span>
+            <span className="nav-label">
+              {key === 'documents' ? 'Knowledge' : label}
+            </span>
             {key === 'activity' && turn.events.length > 0 && (
               <span className="tab-count">{turn.events.length}</span>
             )}
