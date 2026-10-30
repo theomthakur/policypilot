@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # Topicality: best similarity below this AND no keyword match at all means nothing in the library is
     # about the question (measured: off-topic questions <= 0.59, in-scope >= 0.67; see ADR 0005).
     off_topic_max_cosine: float = 0.63
-    reference_score_weight: float = 1.0  # below 1: rank general reference guidance under institution policy
+    reference_score_weight: float = 0.9  # below 1: rank general reference guidance under institution policy
     off_topic_enabled: bool | None = None  # None: on only with real embeddings (fake ones carry no meaning)
 
     # Agent limits
