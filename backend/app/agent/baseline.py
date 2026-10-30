@@ -44,7 +44,7 @@ async def run_baseline(
         summary="Calling search_documents.",
     )
     result = await run_tool(tools, "search_documents", args)
-    totals.tool_calls = 1
+    totals.tool_calls = totals.tool_attempts = 1
     await emit(
         "tool_result",
         result.status,
@@ -70,7 +70,7 @@ async def run_baseline(
     ]
     began = time.monotonic()
     response = await model.complete(messages, openai_tool_specs(False), "final_answer")
-    totals.steps = 1
+    totals.steps = totals.model_requests = 1
     totals.prompt_tokens, totals.completion_tokens = response.prompt_tokens, response.completion_tokens
     await emit(
         "evaluate",

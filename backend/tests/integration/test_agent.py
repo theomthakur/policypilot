@@ -401,6 +401,7 @@ def test_baseline_retrieves_once_and_generates_once(make_pdf: Callable[..., Path
     outcome = asyncio.run(go())
     clear_caches()
     assert outcome.stop_reason == "answered" and outcome.totals.steps == 1 and outcome.totals.tool_calls == 1
+    assert outcome.totals.tool_attempts == 1 and outcome.totals.model_requests == 1
     assert model.forced == ["final_answer"] and "plan" not in emit.types()
 
 

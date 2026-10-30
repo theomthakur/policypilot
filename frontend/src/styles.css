@@ -3716,3 +3716,39 @@ th {
 .sidebar-footer {
   margin-top: auto;
 }
+
+/* Run totals: a plain list of label and value, so long values never spill out of a tile */
+.run-totals {
+  display: block;
+  padding: 10px 14px 12px;
+}
+.run-totals > div {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 0;
+  padding: 6px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.run-totals > div:last-child {
+  border-bottom: 0;
+}
+.run-totals strong {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.run-totals span {
+  color: var(--muted);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.run-totals span::first-letter {
+  text-transform: uppercase;
+}
