@@ -2664,3 +2664,321 @@ time {
     display: block;
   }
 }
+
+/* ===== Workspace restyle: flat, quiet and light, in the manner of ChatGPT's light mode ===== */
+:root {
+  --cg-bg: #ffffff;
+  --cg-side: #f9f9f9;
+  --cg-line: #ececec;
+  --cg-bubble: #f4f4f4;
+  --cg-ink: #0d0d0d;
+  --cg-muted: #6b6b6b;
+  --cg-hover: #efefef;
+}
+:root[data-theme='dark'] {
+  --cg-bg: #212121;
+  --cg-side: #171717;
+  --cg-line: #2f2f2f;
+  --cg-bubble: #2f2f2f;
+  --cg-ink: #ececec;
+  --cg-muted: #a1a1a1;
+  --cg-hover: #2a2a2a;
+}
+.app-shell:has(.workspace) {
+  background: var(--cg-bg);
+}
+.app-shell:has(.workspace) .topbar {
+  min-height: 56px;
+  padding: 8px 20px;
+  background: var(--cg-bg);
+  border-top: 0;
+  border-bottom: 1px solid var(--cg-line);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.app-shell:has(.workspace) .topbar .header-mark {
+  width: 32px;
+  height: 32px;
+}
+.app-shell:has(.workspace) .topbar .brand span {
+  display: none;
+}
+.app-shell:has(.workspace) .topbar .brand strong {
+  color: var(--cg-ink);
+  font-size: 16px;
+}
+.app-shell:has(.workspace) .primary-nav button.active {
+  color: var(--cg-ink);
+  background: var(--cg-hover);
+}
+.app-shell:has(.workspace) .primary-nav button.active::after {
+  display: none;
+}
+.app-shell:has(.workspace) .primary-nav button:hover {
+  color: var(--cg-ink);
+  background: var(--cg-hover);
+}
+.app-shell:has(.workspace) .secondary-button {
+  color: var(--cg-ink);
+  border-color: var(--cg-line);
+  background: transparent;
+}
+
+.workspace {
+  gap: 0;
+  padding: 0;
+  background: var(--cg-bg);
+}
+.workspace .panel,
+.workspace .pane-conversation .panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.pane-documents,
+.pane-trace {
+  gap: 0;
+  background: var(--cg-side);
+}
+.pane-documents {
+  border-right: 1px solid var(--cg-line);
+}
+.pane-trace {
+  border-left: 1px solid var(--cg-line);
+}
+.collapse-bar {
+  border: 0;
+  border-bottom: 1px solid var(--cg-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.collapse-bar:hover {
+  color: var(--cg-ink);
+  background: var(--cg-hover);
+  border-color: var(--cg-line);
+}
+.collapse-bar.is-collapsed {
+  border-bottom: 0;
+}
+.collapse-label em {
+  background: var(--cg-ink);
+  color: var(--cg-bg);
+}
+.workspace .panel-heading {
+  min-height: 0;
+  padding: 14px 16px 10px;
+  border-bottom: 0;
+  background: transparent;
+}
+.workspace .panel-heading .eyebrow {
+  display: none;
+}
+.workspace .panel-heading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.workspace .count-badge {
+  color: var(--cg-muted);
+  background: var(--cg-hover);
+  border: 0;
+  font-weight: 500;
+}
+.workspace .document-card {
+  border-bottom: 0;
+  border-radius: 10px;
+  padding: 9px;
+}
+.workspace .document-card:hover {
+  background: var(--cg-hover);
+}
+.workspace .pdf-mark {
+  width: 30px;
+  height: 36px;
+  color: var(--cg-muted);
+  background: var(--cg-hover);
+}
+.workspace .document-card .secondary-button,
+.workspace .document-card button {
+  border-color: var(--cg-line);
+  color: var(--cg-ink);
+  background: transparent;
+}
+.workspace .dropzone,
+.workspace .upload-zone,
+.workspace [class*='upload'] {
+  border-color: var(--cg-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Conversation: no card, answers as plain text, your message in a soft grey bubble */
+.conversation-heading {
+  padding: 8px 16px;
+  min-height: 0;
+  justify-content: flex-end;
+  border-bottom: 0;
+}
+.conversation-heading > div:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.workspace .messages {
+  padding-top: 12px;
+}
+.workspace .message {
+  max-width: 100%;
+  margin-bottom: 24px;
+}
+.workspace .message-author {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.workspace .message-meta {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--cg-muted);
+  font-size: 12px;
+}
+.workspace .message-user .user-avatar {
+  display: none;
+}
+.workspace .message-user .message-content > p {
+  max-width: 75%;
+  padding: 10px 18px;
+  color: var(--cg-ink);
+  background: var(--cg-bubble);
+  border-radius: 22px;
+  font-size: 16px;
+}
+.workspace .assistant-avatar {
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+}
+.workspace .answer-bubble {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.workspace .answer-bubble p {
+  color: var(--cg-ink);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.workspace .citation-chip {
+  color: var(--cg-ink);
+  background: var(--cg-bg);
+  border: 1px solid var(--cg-line);
+  border-radius: 999px;
+  font-size: 12.5px;
+}
+.workspace .citation-chip:hover {
+  background: var(--cg-hover);
+  border-color: var(--cg-line);
+}
+.workspace .citation-chip > span:first-child {
+  color: var(--cg-muted);
+  font-weight: 600;
+}
+.workspace .followups button {
+  color: var(--cg-ink);
+  background: var(--cg-bg);
+  border-color: var(--cg-line);
+}
+.workspace .followups button:hover {
+  background: var(--cg-hover);
+}
+.workspace .message-tools button:hover {
+  color: var(--cg-ink);
+  border-color: var(--cg-line);
+}
+
+/* Welcome: quiet and centred */
+.workspace .welcome-state {
+  margin-top: 12vh;
+}
+.workspace .welcome-kicker {
+  display: none;
+}
+.workspace .welcome-state h3 {
+  color: var(--cg-ink);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.workspace .welcome-state > p {
+  color: var(--cg-muted);
+}
+.workspace .example-prompts button {
+  color: var(--cg-ink);
+  background: var(--cg-bg);
+  border: 1px solid var(--cg-line);
+  border-radius: 14px;
+}
+.workspace .example-prompts button:hover {
+  background: var(--cg-hover);
+}
+
+/* Composer: one rounded input, round send button */
+.workspace .composer-wrap {
+  border-top: 0;
+  background: transparent;
+  padding-top: 4px;
+}
+.workspace .composer {
+  max-width: 880px;
+  padding: 10px 10px 10px 20px;
+  background: var(--cg-bg);
+  border: 1px solid var(--cg-line);
+  border-radius: 26px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+.workspace .composer:focus-within {
+  border-color: #c9c9c9;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.09);
+}
+.workspace .send-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--cg-bg);
+  background: var(--cg-ink);
+}
+.workspace .send-button:hover {
+  background: var(--cg-ink);
+  opacity: 0.8;
+}
+.workspace .send-button:disabled {
+  opacity: 0.25;
+}
+.workspace .composer-wrap > p {
+  color: var(--cg-muted);
+  font-size: 12px;
+}
+.workspace .mode-toggle {
+  background: var(--cg-hover);
+}
+.workspace .mode-toggle button.active {
+  color: var(--cg-ink);
+  box-shadow: none;
+}
+.workspace .mode-hint {
+  color: var(--cg-muted);
+}
+.workspace .mode-hint strong {
+  color: var(--cg-ink);
+}
