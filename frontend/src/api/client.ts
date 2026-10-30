@@ -216,6 +216,10 @@ export function uploadDocument(
   })
 }
 
+export function documentFileUrl(documentId: string, page?: number): string {
+  return `${API_BASE}/documents/${documentId}/file${page ? `#page=${page}` : ''}`
+}
+
 export function turnEventsUrl(turnId: string): string {
   return `${API_BASE}/turns/${turnId}/events`
 }

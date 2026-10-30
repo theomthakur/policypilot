@@ -14,7 +14,9 @@ import {
   type DisplayMessage,
 } from './components/ConversationPanel'
 import { DocumentsPanel } from './components/DocumentsPanel'
+import { PdfViewer, type ViewerTarget } from './components/PdfViewer'
 import { PasscodeDialog } from './components/PasscodeDialog'
+import { newId } from './api/ids'
 import { systemTheme, usePreference } from './hooks/usePreference'
 import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
@@ -53,6 +55,15 @@ export function App() {
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
   const [chosenMode, setMode] = useState<'agent' | 'baseline'>('agent')
   const [citation, setCitation] = useState<Citation | null>(null)
+  const [viewer, setViewer] = useState<ViewerTarget | null>(null)
+  const [showDocuments, setShowDocuments] = usePreference<boolean>(
+    'pp_show_documents',
+    true,
+  )
+  const [showTrace, setShowTrace] = usePreference<boolean>(
+    'pp_show_trace',
+    true,
+  )
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
   const [appView, setAppView] = useState<AppView>(viewFromHash)
@@ -189,7 +200,7 @@ export function App() {
     setSendError(null)
     setMessages((current) => [
       ...current,
-      { id: `user-${crypto.randomUUID()}`, role: 'user', text: content },
+      { id: `user-${newId()}`, role: 'user', text: content },
     ])
     sentMode.current = mode
     try {
@@ -238,7 +249,7 @@ export function App() {
   }
 
   const streamLabel =
-    turn.events.at(-1)?.summary ??
+    turn.events.filter((event) => !event.hidden).at(-1)?.summary ??
     (mode === 'baseline' ? 'Running one-pass retrieval…' : null)
   const degraded = health.data?.status === 'degraded'
 
@@ -287,14 +298,13 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-actions">
-          {(developer || health.data?.status !== 'ok') && (
-            <span
-              className={`health-pill health-${health.data?.status ?? (health.isError ? 'down' : 'checking')}`}
-            >
-              <span />
-              {health.data?.status ?? (health.isError ? 'offline' : 'checking')}
-            </span>
-          )}
+          <span
+            className={`health-pill health-${health.data?.status ?? (health.isError ? 'down' : 'checking')}${developer || health.data?.status !== 'ok' ? '' : ' is-quiet'}`}
+            aria-hidden={!(developer || health.data?.status !== 'ok')}
+          >
+            <span />
+            {health.data?.status ?? (health.isError ? 'offline' : 'checking')}
+          </span>
           <button
             className={`switch${developer ? ' on' : ''}`}
             type="button"
@@ -367,11 +377,17 @@ export function App() {
             )}
           </nav>
 
-          <main className="workspace">
+          <main
+            className={`workspace${showDocuments ? '' : ' no-documents'}${showTrace ? '' : ' no-trace'}`}
+          >
             <div
               className={`workspace-pane pane-documents ${mobilePanel === 'documents' ? 'mobile-active' : ''}`}
             >
-              <DocumentsPanel />
+              <DocumentsPanel
+                onView={(document) =>
+                  setViewer({ id: document.id, title: document.title })
+                }
+              />
             </div>
             <div
               className={`workspace-pane pane-conversation ${mobilePanel === 'conversation' ? 'mobile-active' : ''}`}
@@ -386,6 +402,10 @@ export function App() {
                 onModeChange={setMode}
                 onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}
+                showDocuments={showDocuments}
+                showTrace={showTrace}
+                onToggleDocuments={() => setShowDocuments(!showDocuments)}
+                onToggleTrace={() => setShowTrace(!showTrace)}
               />
             </div>
             <div
@@ -406,7 +426,19 @@ export function App() {
         <PresentationPage onBack={() => navigateTo('workspace')} />
       )}
 
-      <CitationDrawer citation={citation} onClose={() => setCitation(null)} />
+      <CitationDrawer
+        citation={citation}
+        onClose={() => setCitation(null)}
+        onViewPdf={(item) => {
+          setCitation(null)
+          setViewer({
+            id: item.document_id,
+            title: item.document_title,
+            page: item.page,
+          })
+        }}
+      />
+      <PdfViewer target={viewer} onClose={() => setViewer(null)} />
       <PasscodeDialog open={authRequired} onSubmit={submitPasscode} />
     </div>
   )

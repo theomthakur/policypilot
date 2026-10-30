@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { AnswerPayload, Citation } from '../api/types'
 import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
-import { renderInline } from './formatText'
+import { RichText } from './formatText'
 import { PolicyPilotMark } from './PolicyPilotMark'
 
 export interface DisplayMessage {
@@ -23,6 +23,10 @@ interface ConversationPanelProps {
   onModeChange: (mode: 'agent' | 'baseline') => void
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
+  showDocuments: boolean
+  showTrace: boolean
+  onToggleDocuments: () => void
+  onToggleTrace: () => void
 }
 
 const examples = [
@@ -50,7 +54,7 @@ function AnswerView({
         </div>
       ))}
       {answer.paragraphs.map((paragraph, index) => (
-        <p key={index}>{renderInline(paragraph)}</p>
+        <RichText key={index} text={paragraph} />
       ))}
       {answer.citations.length > 0 && (
         <div className="citation-list" aria-label="Answer citations">
@@ -77,6 +81,45 @@ function AnswerView({
   )
 }
 
+const followUps = ['What else should I know?', 'Explain that in simpler words']
+
+function lastAnswerHasSources(messages: DisplayMessage[]): boolean {
+  const last = messages.at(-1)
+  return Boolean(
+    last?.role === 'assistant' &&
+      last.answer &&
+      !last.answer.clarification &&
+      last.answer.citations.length > 0,
+  )
+}
+
+function CopyButton({ answer }: { answer: AnswerPayload }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    const sources = answer.citations
+      .map((c) => `[${c.number}] ${c.document_title}, p. ${c.page}`)
+      .join('\n')
+    const text = [
+      answer.paragraphs.join('\n\n'),
+      sources && `Sources:\n${sources}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      // Clipboard access can be blocked; the answer is still selectable.
+    }
+  }
+  return (
+    <button type="button" onClick={() => void copy()}>
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  )
+}
+
 export function ConversationPanel({
   messages,
   busy,
@@ -87,14 +130,23 @@ export function ConversationPanel({
   onModeChange,
   onSend,
   onCitationOpen,
+  showDocuments,
+  showTrace,
+  onToggleDocuments,
+  onToggleTrace,
 }: ConversationPanelProps) {
   const [content, setContent] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Keep the newest content in view without the page jumping: new messages scroll smoothly,
+  // and the one-line status below changes in place instead of pushing the conversation down.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [busy, messages])
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages.length])
+  useLayoutEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [busy, streamLabel])
 
   const submit = () => {
     const value = content.trim()
@@ -120,42 +172,65 @@ export function ConversationPanel({
           <p className="eyebrow">Grounded policy assistant</p>
           <h2 id="conversation-title">Conversation</h2>
         </div>
-        {developer && (
-          <div className="mode-toggle" aria-label="Answer mode">
-            <button
-              className={mode === 'agent' ? 'active' : ''}
-              type="button"
-              onClick={() => onModeChange('agent')}
-            >
-              Agent
-            </button>
-            <button
-              className={mode === 'baseline' ? 'active' : ''}
-              type="button"
-              onClick={() => onModeChange('baseline')}
-            >
-              Quick
-            </button>
-          </div>
-        )}
+        <div className="pane-toggles" aria-label="Panels">
+          <button
+            type="button"
+            className={showDocuments ? 'on' : ''}
+            aria-pressed={showDocuments}
+            onClick={onToggleDocuments}
+          >
+            Documents
+          </button>
+          <button
+            type="button"
+            className={showTrace ? 'on' : ''}
+            aria-pressed={showTrace}
+            onClick={onToggleTrace}
+          >
+            Trace
+          </button>
+        </div>
+        <div
+          className={`mode-toggle${developer ? '' : ' is-hidden'}`}
+          aria-label="Answer mode"
+          aria-hidden={!developer}
+        >
+          <button
+            className={mode === 'agent' ? 'active' : ''}
+            tabIndex={developer ? 0 : -1}
+            type="button"
+            onClick={() => onModeChange('agent')}
+          >
+            Agent
+          </button>
+          <button
+            className={mode === 'baseline' ? 'active' : ''}
+            tabIndex={developer ? 0 : -1}
+            type="button"
+            onClick={() => onModeChange('baseline')}
+          >
+            Quick
+          </button>
+        </div>
       </div>
-      {developer && (
-        <p className="mode-hint">
-          {mode === 'agent' ? (
-            <>
-              <strong>Agent:</strong> searches, searches again with different
-              words when unsure, asks you when your question is unclear, and
-              checks every quote. Slower, more careful.
-            </>
-          ) : (
-            <>
-              <strong>Quick:</strong> searches once and answers once, with the
-              same quote check. Faster, and the simple version the agent is
-              compared against.
-            </>
-          )}
-        </p>
-      )}
+      <p
+        className={`mode-hint${developer ? '' : ' is-hidden'}`}
+        aria-hidden={!developer}
+      >
+        {mode === 'agent' ? (
+          <>
+            <strong>Agent:</strong> searches, searches again with different
+            words when unsure, asks you when your question is unclear, and
+            checks every quote. Slower, more careful.
+          </>
+        ) : (
+          <>
+            <strong>Quick:</strong> searches once and answers once, with the
+            same quote check. Faster, and the simple version the agent is
+            compared against.
+          </>
+        )}
+      </p>
 
       <div className="messages" aria-live="polite">
         {messages.length === 0 && (
@@ -216,9 +291,24 @@ export function ConversationPanel({
                   onCitationOpen={onCitationOpen}
                 />
               )}
+              {message.role === 'assistant' && message.answer && (
+                <div className="message-tools">
+                  <CopyButton answer={message.answer} />
+                </div>
+              )}
             </div>
           </article>
         ))}
+
+        {!busy && lastAnswerHasSources(messages) && (
+          <div className="followups" aria-label="Suggested follow-up questions">
+            {followUps.map((text) => (
+              <button key={text} type="button" onClick={() => onSend(text)}>
+                {text}
+              </button>
+            ))}
+          </div>
+        )}
 
         {busy && (
           <article className="message message-assistant working-message">
@@ -227,13 +317,15 @@ export function ConversationPanel({
             </div>
             <div className="message-content">
               <span className="message-author">PolicyPilot</span>
-              <p>
+              <p className="working-line">
                 <span className="thinking-dots">
                   <i />
                   <i />
                   <i />
                 </span>
-                {streamLabel ?? 'Inspecting evidence…'}
+                <span className="working-text">
+                  {streamLabel ?? 'Looking through the documents…'}
+                </span>
               </p>
             </div>
           </article>

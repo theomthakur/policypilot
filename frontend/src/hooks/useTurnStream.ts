@@ -155,5 +155,7 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
   // Right after a new turn id arrives, state still belongs to the previous turn for one render. Showing
   // it would attach the previous answer to the new question, so a mismatch reads as a fresh turn.
   if (state.turnId === turnId) return state
-  return turnId ? { ...initialState, turnId, status: 'streaming' } : initialState
+  return turnId
+    ? { ...initialState, turnId, status: 'streaming' }
+    : initialState
 }

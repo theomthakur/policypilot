@@ -31,7 +31,7 @@ export interface PolicyDocument {
   filename: string
   page_count: number
   status: DocumentStatus
-  source: 'bundled' | 'uploaded'
+  source: 'bundled' | 'reference' | 'uploaded'
   error?: string | null
 }
 

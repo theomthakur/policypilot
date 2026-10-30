@@ -68,7 +68,12 @@ export function adaptDocument(raw: Raw): PolicyDocument {
     filename: asString(raw.filename),
     page_count: asNumber(raw.page_count),
     status: documentStatus[asString(raw.status)] ?? 'pending',
-    source: raw.source === 'corpus' ? 'bundled' : 'uploaded',
+    source:
+      raw.source === 'corpus'
+        ? 'bundled'
+        : raw.source === 'reference'
+          ? 'reference'
+          : 'uploaded',
     error: (raw.error as string | null | undefined) ?? null,
   }
 }

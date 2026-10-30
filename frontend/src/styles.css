@@ -2100,3 +2100,322 @@ progress {
 .answer-view p {
   white-space: pre-line;
 }
+
+/* ===== Stable top bar: the nav never moves when the right-hand controls change ===== */
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 20px;
+}
+.topbar .brand {
+  justify-self: start;
+}
+.topbar .primary-nav {
+  justify-self: center;
+}
+.topbar .topbar-actions {
+  justify-self: end;
+}
+.health-pill.is-quiet {
+  visibility: hidden;
+}
+@media (max-width: 1000px) {
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== Workspace: panels can be hidden so the conversation gets the room ===== */
+.workspace {
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(
+      300px,
+      400px
+    );
+}
+.workspace.no-documents {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+}
+.workspace.no-trace {
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+}
+.workspace.no-documents.no-trace {
+  grid-template-columns: minmax(0, 1fr);
+}
+.workspace.no-documents .pane-documents,
+.workspace.no-trace .pane-trace {
+  display: none;
+}
+.pane-toggles {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.pane-toggles button {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pane-toggles button.on {
+  color: var(--violet-text);
+  border-color: var(--violet-text);
+  background: var(--violet-soft);
+}
+
+/* ===== Conversation: readable size, full use of the width, nothing that jumps ===== */
+.messages {
+  padding: 28px clamp(14px, 2.2vw, 36px) 28px;
+}
+.message {
+  max-width: 1180px;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+.message-author {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.message-meta {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.message-content > p,
+.answer-view p,
+.answer-view li {
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.answer-view p {
+  margin: 0 0 10px;
+}
+.answer-view ul {
+  margin: 4px 0 12px;
+  padding-left: 1.25em;
+}
+.answer-view li {
+  margin: 5px 0;
+}
+.message-user .message-content > p {
+  max-width: 78%;
+  font-size: 15.5px;
+}
+.citation-chip {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.answer-notice {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.working-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 14px !important;
+}
+.working-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.message-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.message-tools button {
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.message-tools button:hover {
+  color: var(--violet-text);
+  border-color: var(--line);
+}
+.followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 1180px;
+  margin: -10px auto 22px;
+  padding-left: 48px;
+}
+.followups button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--violet-text);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.followups button:hover {
+  background: var(--violet-soft);
+}
+.composer-wrap {
+  padding: 12px clamp(14px, 2.2vw, 36px) 16px;
+}
+.composer {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.composer textarea {
+  font-size: 16px;
+}
+.composer-wrap > p {
+  font-size: 11.5px;
+}
+
+/* Welcome state: centered under the logo */
+.welcome-state {
+  width: min(680px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6vh auto 0;
+  text-align: center;
+}
+.welcome-kicker {
+  width: 100%;
+  font-size: 12px !important;
+  text-align: center;
+}
+.welcome-state h3 {
+  font-size: 30px;
+}
+.welcome-state > p {
+  max-width: 480px;
+  font-size: 15px;
+}
+.example-prompts {
+  width: 100%;
+}
+.example-prompts button {
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+/* ===== Trace and document list: readable sizes ===== */
+.trace-event strong,
+.event-title-row strong {
+  font-family: inherit;
+  font-size: 14px;
+  text-transform: none;
+}
+.event-body p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.event-status {
+  font-size: 10.5px;
+}
+.document-details strong {
+  font-size: 13.5px;
+}
+.document-details span {
+  font-size: 12px;
+}
+.doc-view {
+  align-self: center;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--violet-text);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.doc-view:hover {
+  background: var(--violet-soft);
+}
+.link-button {
+  padding: 0;
+  border: 0;
+  color: var(--violet-text);
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ===== PDF viewer ===== */
+.viewer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 6, 16, 0.55);
+  backdrop-filter: blur(2px);
+}
+.pdf-viewer {
+  width: min(1100px, 94vw);
+  height: min(92vh, 1000px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+}
+.pdf-viewer header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.pdf-viewer h2 {
+  margin: 2px 0 0;
+  font-size: 16px;
+}
+.pdf-viewer .eyebrow {
+  margin: 0;
+}
+.viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.viewer-actions a {
+  color: var(--violet-text);
+  font-size: 13px;
+}
+.pdf-viewer iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+
+/* Developer-only controls keep their space when hidden, so toggling never moves the conversation. */
+.mode-toggle.is-hidden,
+.mode-hint.is-hidden {
+  visibility: hidden;
+}
+.mode-hint {
+  min-height: 3.4em;
+}
+.conversation-heading {
+  min-height: 76px;
+}

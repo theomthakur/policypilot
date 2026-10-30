@@ -7,7 +7,11 @@ function StatusDot({ status }: { status: PolicyDocument['status'] }) {
   return <span className={`status-dot status-${status}`} aria-hidden="true" />
 }
 
-export function DocumentsPanel() {
+export function DocumentsPanel({
+  onView,
+}: {
+  onView?: (document: PolicyDocument) => void
+}) {
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -162,7 +166,11 @@ export function DocumentsPanel() {
               <span>
                 {document.page_count}{' '}
                 {document.page_count === 1 ? 'page' : 'pages'} ·{' '}
-                {document.source}
+                {document.source === 'reference'
+                  ? 'public reference'
+                  : document.source === 'bundled'
+                    ? 'sample policy'
+                    : 'your upload'}
               </span>
               <span className="document-status">
                 <StatusDot status={document.status} />
@@ -172,6 +180,16 @@ export function DocumentsPanel() {
                 <span className="document-error">{document.error}</span>
               )}
             </div>
+            {onView && document.status === 'ready' && (
+              <button
+                className="doc-view"
+                type="button"
+                onClick={() => onView(document)}
+                aria-label={`View the PDF: ${document.title}`}
+              >
+                View
+              </button>
+            )}
           </article>
         ))}
       </div>

@@ -6,6 +6,7 @@ import type { Citation } from '../api/types'
 interface CitationDrawerProps {
   citation: Citation | null
   onClose: () => void
+  onViewPdf?: (citation: Citation) => void
 }
 
 function HighlightedText({ text, quote }: { text: string; quote: string }) {
@@ -21,7 +22,11 @@ function HighlightedText({ text, quote }: { text: string; quote: string }) {
   )
 }
 
-export function CitationDrawer({ citation, onClose }: CitationDrawerProps) {
+export function CitationDrawer({
+  citation,
+  onClose,
+  onViewPdf,
+}: CitationDrawerProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const page = useQuery({
     queryKey: ['page', citation?.document_id, citation?.page],
@@ -61,7 +66,21 @@ export function CitationDrawer({ citation, onClose }: CitationDrawerProps) {
               Verified source · Citation {citation.number}
             </p>
             <h2 id="citation-title">{citation.document_title}</h2>
-            <p>PDF page {citation.page}</p>
+            <p>
+              PDF page {citation.page}
+              {onViewPdf && (
+                <>
+                  {' · '}
+                  <button
+                    className="link-button"
+                    type="button"
+                    onClick={() => onViewPdf(citation)}
+                  >
+                    Open the PDF at this page
+                  </button>
+                </>
+              )}
+            </p>
           </div>
           <button
             ref={closeRef}
