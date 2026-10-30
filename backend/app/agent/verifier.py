@@ -110,13 +110,31 @@ def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
     - Claims that cite nothing (models sometimes write "not found" as a claim) are dropped; when nothing
       else is left the answer is reported as missing evidence.
     """
-    args = dict(arguments)
+    # Keep only the fields the contract defines. A stray field (for example a top-level "missing_evidence")
+    # used to fail the whole turn; a missing-evidence note becomes a proper notice instead.
+    args = {k: v for k, v in arguments.items() if k in ("summary", "claims", "notices")}
+    stray = arguments.get("missing_evidence")
+    if stray:
+        text = stray.get("text") if isinstance(stray, dict) else stray
+        notices = list(args.get("notices") or [])
+        notices.append(
+            {"kind": "missing_evidence", "text": str(text or "The documents do not contain this.")}
+        )
+        args["notices"] = notices
     if isinstance(args.get("summary"), str):
         args["summary"] = _clip(args["summary"], 1500)
-    notices = args.get("notices")
-    if isinstance(notices, list):
+    raw_notices = args.get("notices")
+    if isinstance(raw_notices, list):
         args["notices"] = [
-            {**n, "text": _clip(n.get("text", ""), 500)} for n in notices if isinstance(n, dict)
+            {
+                "kind": n.get("kind")
+                if n.get("kind") in ("conflict", "missing_evidence", "partial", "assumption")
+                else "partial",
+                "text": _clip(n.get("text", ""), 500),
+                **({"evidence_ids": n["evidence_ids"]} if isinstance(n.get("evidence_ids"), list) else {}),
+            }
+            for n in raw_notices
+            if isinstance(n, dict)
         ]
     claims = args.get("claims")
     if not isinstance(claims, list):
@@ -132,7 +150,6 @@ def sanitize_final_answer(arguments: dict[str, Any]) -> dict[str, Any]:
         ids = claim["evidence_ids"]
         cleaned.append(
             {
-                **claim,
                 "text": _clip(claim.get("text", ""), 600),
                 "quote": _clip(str(claim["quote"]), 400),
                 "evidence_ids": list(ids)[:4] if isinstance(ids, list) else ids,

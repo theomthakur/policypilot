@@ -5,6 +5,7 @@ clarification, no tool loop. Citations go through the same verifier, without a r
 """
 
 import json
+import logging
 import time
 import uuid
 from typing import Any
@@ -16,6 +17,8 @@ from app.config import Settings
 from app.llm.client import ChatModel
 from app.tools.contracts import FinalAnswerInput, openai_tool_specs
 from app.tools.impl import ToolContext, run_tool
+
+logger = logging.getLogger("policypilot.baseline")
 
 
 async def run_baseline(
@@ -80,10 +83,14 @@ async def run_baseline(
 
     call = next((c for c in response.tool_calls if c.name == "final_answer"), None)
     if call is None:
+        logger.warning("baseline: the model did not call final_answer: %s", str(response.content)[:200])
         return Outcome("error", None, None, totals, state.ledger)
     try:
         draft = FinalAnswerInput.model_validate(sanitize_final_answer(call.arguments))
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "baseline: invalid final_answer: %s | args=%s", str(exc)[:300], str(call.arguments)[:300]
+        )
         return Outcome("error", None, None, totals, state.ledger)
     verified = await verify_answer(draft, state.ledger, page_text)
     answer = verified.answer

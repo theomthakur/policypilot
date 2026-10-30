@@ -142,3 +142,30 @@ def test_a_slightly_long_field_is_shortened_instead_of_failing_the_turn() -> Non
     claim = draft.claims[0]
     assert len(claim.quote) <= 400 and long_quote.startswith(claim.quote)  # still a literal prefix
     assert len(claim.text) <= 600 and len(claim.evidence_ids) == 4 and len(draft.notices[0].text) <= 500
+
+
+def test_unknown_fields_do_not_fail_the_turn_and_a_stray_missing_evidence_becomes_a_notice() -> None:
+    from app.agent.verifier import sanitize_final_answer
+    from app.tools.contracts import FinalAnswerInput
+
+    draft = FinalAnswerInput.model_validate(
+        sanitize_final_answer(
+            {
+                "summary": "The documents do not cover apples.",
+                "claims": [],
+                "missing_evidence": {"text": "Nothing about apples.", "evidence_ids": []},
+                "confidence": 0.2,
+            }
+        )
+    )
+    assert draft.notices[0].kind == "missing_evidence" and draft.notices[0].text == "Nothing about apples."
+    odd = FinalAnswerInput.model_validate(
+        sanitize_final_answer(
+            {
+                "summary": "s",
+                "claims": [{"text": "t", "evidence_ids": ["E1"], "quote": "q", "extra": 1}],
+                "notices": [{"kind": "made_up_kind", "text": "n", "oops": True}],
+            }
+        )
+    )
+    assert odd.notices[0].kind == "partial" and len(odd.claims) == 1
