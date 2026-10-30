@@ -1,0 +1,9 @@
+PASS delete the API pod: a new one serves again           6s
+PASS delete the Redis pod: a new one serves, API stays ready 5s
+PASS delete the PostgreSQL pod: 15 documents survive (PVC) 4s
+PASS bad image: old pod kept serving, then rollback       26s
+PASS backup and restore into a scratch database (15 documents) 1s
+job succeeded attempts=2 fence=2; trace shows 1 resumed marker(s)
+[alice] answer: The documents confirm that service account passwords must be a minimum of 24 characters and generated using a cryptographically secure random ge
+PASS crash the worker mid-question: lease expires, a new worker finishes it 108s
+recovery drills passed

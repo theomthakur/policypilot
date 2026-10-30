@@ -61,6 +61,7 @@ spec:
             exec:
               command: ["python", "-c", "import socket; socket.create_connection(('postgres', 5432), 3)"]
             periodSeconds: 30
+            timeoutSeconds: 10   # starting Python inside a CPU-limited container can take longer than the default 1 s
             failureThreshold: 4
           resources:
             requests: {cpu: 250m, memory: 768Mi}

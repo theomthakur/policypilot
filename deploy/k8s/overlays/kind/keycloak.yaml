@@ -64,12 +64,3 @@ spec:
         - {name: tmp, emptyDir: {}}
         - name: realm
           configMap: {name: keycloak-realm}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata: {name: keycloak}
-spec:
-  podSelector: {matchLabels: {app.kubernetes.io/name: keycloak}}
-  policyTypes: [Ingress]
-  ingress:
-    - ports: [{protocol: TCP, port: 8080}]   # the API (token exchange) and the browser (through the node port)

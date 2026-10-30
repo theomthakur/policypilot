@@ -104,3 +104,12 @@ spec:
             matchExpressions:
               - {key: app.kubernetes.io/name, operator: In, values: [api, worker, seed]}
       ports: [{protocol: TCP, port: 6379}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: keycloak}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: keycloak}}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{protocol: TCP, port: 8080}]   # the API (token exchange) and the browser (through the node port)

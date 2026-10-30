@@ -9,6 +9,8 @@ namespace: policypilot
 resources:
   - ../../base
   - route.yaml
+components:
+  - ../../components/network-policies
 patches:
   - target: {kind: Deployment}
     patch: |-

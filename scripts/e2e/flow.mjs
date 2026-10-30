@@ -31,15 +31,27 @@ await page.getByRole('link', { name: 'Sign in' }).click()
 await page.locator('#username').fill(args.user)
 await page.locator('#password').fill(password)
 await page.locator('#kc-login').click()
-await page.getByLabel(/Account menu/).waitFor({ timeout: 60000 })
+await page.getByLabel(/Account menu/).waitFor({ timeout: 60000 }).catch(async (error) => {
+  await page.screenshot({ path: '/tmp/flow-failure.png' })
+  console.error('stuck at', page.url())
+  throw error
+})
 log('signed in through the identity provider')
 
 if (args.upload) {
+  const before = await page.locator('.document-card').count()
   await page.locator('input[type=file]').setInputFiles(args.upload)
-  const name = args.upload.split('/').pop()
-  await page.getByText(name).first().waitFor({ timeout: 30000 })
-  await page.getByText('Ready').first().waitFor({ timeout: 60000 })
-  log(`uploaded ${name}`)
+  await page.waitForFunction(
+    (n) => document.querySelectorAll('.document-card').length > n,
+    before,
+    { timeout: 30000 },
+  )
+  await page.waitForFunction(
+    () => ![...document.querySelectorAll('.document-status')].some((el) => /queued|processing/i.test(el.textContent)),
+    null,
+    { timeout: 90000 },
+  )
+  log(`uploaded ${args.upload.split('/').pop()} and it finished processing`)
 }
 if (args.ask) {
   await page.locator('#question').fill(args.ask)

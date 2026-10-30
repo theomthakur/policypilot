@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Default-deny plus the connections the application actually makes. Opt in from an overlay:
+#   components: [../../components/network-policies]
+# Needs a CNI that enforces NetworkPolicy. On the kind cluster used for the drills (kindnet) enforcement made
+# new connections intermittently fail or stall (7 of 40 failed in a test), so the kind overlay leaves this out;
+# see docs/kubernetes.md. Enforcement has therefore not been demonstrated in this repository.
+resources:
+  - networkpolicy.yaml
