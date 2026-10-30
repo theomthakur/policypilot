@@ -3752,3 +3752,20 @@ th {
 .run-totals span::first-letter {
   text-transform: uppercase;
 }
+
+/* History: space between conversations, and a focus ring that hugs the row */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.history-item {
+  margin: 0;
+}
+.history-open:focus-visible,
+.history-delete:focus-visible {
+  outline: none;
+}
+.history-item:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--violet-text);
+}
