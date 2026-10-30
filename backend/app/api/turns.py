@@ -20,7 +20,9 @@ from app.api.deps import (
     still_signed_in,
 )
 from app.api.errors import ApiError
-from app.db.models import Session, TraceEvent, Turn
+from app.config import get_settings
+from app.db.models import Job, Session, TraceEvent, Turn
+from app.jobs import queue
 from app.state import limits, session_state
 from app.turns import service
 
@@ -58,6 +60,7 @@ async def post_message(
     db: DbSession,
     current: CurrentSession,
     x_demo_passcode: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str | None, Header(max_length=100)] = None,
 ) -> dict[str, str]:
     require_passcode(x_demo_passcode)
     require_owner(session_id, current)
@@ -72,12 +75,31 @@ async def post_message(
         pending = state.get("pending_clarification")
         if not pending or pending.get("turn_id") != str(body.reply_to_clarification):
             raise ApiError(400, "INVALID_ARGUMENT", "No pending clarification with that id.")
+    key = f"{session_id}:{idempotency_key}" if idempotency_key else None
+    if key:
+        earlier = (await db.execute(select(Job).where(Job.idempotency_key == key))).scalar_one_or_none()
+        if earlier is not None:  # a retried request: same turn, no second answer
+            return {"turn_id": earlier.payload["turn_id"], "session_id": str(session_id)}
     turn = Turn(
         session_id=session_id, question=content, mode=body.mode, reply_to_turn_id=body.reply_to_clarification
     )
     db.add(turn)
+    await db.flush()
+    settings = get_settings()
+    await queue.enqueue(
+        db,
+        "turn",
+        {
+            "turn_id": str(turn.id),
+            "session_id": str(session_id),
+            "fault": body.fault_inject,
+            "reply_to": str(body.reply_to_clarification) if body.reply_to_clarification else None,
+        },
+        session_id,
+        settings.job_max_attempts,
+        key,
+    )
     await db.commit()
-    service.spawn(turn.id, session_id, body.fault_inject, body.reply_to_clarification)
     return {"turn_id": str(turn.id), "session_id": str(session_id)}
 
 

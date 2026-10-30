@@ -9,6 +9,7 @@ import subprocess
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,7 +21,7 @@ if os.getenv("INTEGRATION") != "1":
 BACKEND = Path(__file__).resolve().parents[2]
 TABLES = (
     "citations, evidence, trace_events, turns, chunks, document_pages, ingestion_runs, "
-    "documents, sessions, evaluation_cases, evaluation_runs, app_state"
+    "documents, sessions, evaluation_cases, evaluation_runs, app_state, jobs, auth_sessions, users"
 )
 
 
@@ -56,6 +57,29 @@ async def _truncate() -> None:
         await conn.execute(text(f"TRUNCATE {TABLES} CASCADE"))
     await get_redis().flushdb()
     await get_redis().aclose()
+
+
+@pytest.fixture(autouse=True)
+def _close_test_clients(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Embedded job workers live as long as an entered TestClient. Make entering idempotent (helpers enter a
+    client and tests then use it in `with`) and close every client at the end of the test, so one test's
+    worker never claims another test's jobs."""
+    opened: list[TestClient] = []
+    real_init, real_enter = TestClient.__init__, TestClient.__enter__
+
+    def init(self: TestClient, *args: Any, **kwargs: Any) -> None:
+        real_init(self, *args, **kwargs)
+        opened.append(self)
+
+    def enter(self: TestClient) -> TestClient:
+        return self if self.portal is not None else real_enter(self)
+
+    monkeypatch.setattr(TestClient, "__init__", init)
+    monkeypatch.setattr(TestClient, "__enter__", enter)
+    yield
+    for client in opened:
+        if client.portal is not None:
+            client.__exit__(None, None, None)
 
 
 @pytest.fixture(autouse=True)

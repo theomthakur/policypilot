@@ -8,6 +8,7 @@ import {
 } from './adapt'
 import type {
   ApiErrorBody,
+  AuthState,
   RunConfiguration,
   SessionResponse,
   Turn,
@@ -66,9 +67,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   })
 
   if (!response.ok) {
+    const error = await parseError(response)
     if (response.status === 401)
-      window.dispatchEvent(new Event('policypilot:auth-required'))
-    throw await parseError(response)
+      window.dispatchEvent(
+        new Event(
+          error.code === 'AUTH_REQUIRED'
+            ? 'policypilot:signin-required'
+            : 'policypilot:auth-required',
+        ),
+      )
+    throw error
   }
 
   return (await response.json()) as T
@@ -95,6 +103,17 @@ export const api = {
     adaptIngestion(
       await request<Record<string, unknown>>(`/ingestion/${runId}`),
     ),
+  getAuthState: () => request<AuthState>('/auth/me'),
+  logout: async () => {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'same-origin',
+    })
+  },
+  resumeSession: (sessionId: string) =>
+    request<{ session_id: string }>(`/sessions/${sessionId}/resume`, {
+      method: 'POST',
+    }),
   createSession: () =>
     request<{ session_id: string }>('/sessions', { method: 'POST' }),
   getSession: async (sessionId: string): Promise<SessionResponse> => {

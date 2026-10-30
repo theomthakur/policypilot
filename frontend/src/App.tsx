@@ -16,6 +16,8 @@ import {
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PdfViewer, type ViewerTarget } from './components/PdfViewer'
 import { PasscodeDialog } from './components/PasscodeDialog'
+import { SignInScreen } from './components/SignInScreen'
+import { AccountMenu } from './components/AccountMenu'
 import { failureAnswer } from './api/failure'
 import { newId } from './api/ids'
 import { systemTheme, usePreference } from './hooks/usePreference'
@@ -143,6 +145,39 @@ export function App() {
     window.history.replaceState(null, '', nextUrl)
   }
 
+  const auth = useQuery({
+    queryKey: ['auth'],
+    queryFn: api.getAuthState,
+    retry: false,
+    staleTime: Infinity,
+  })
+  const needsSignIn =
+    auth.data?.mode !== undefined &&
+    auth.data.mode !== 'off' &&
+    !auth.data.authenticated
+  const [signInEnded, setSignInEnded] = useState(false)
+
+  useEffect(() => {
+    const ended = () => {
+      setSignInEnded(true)
+      void queryClient.invalidateQueries({ queryKey: ['auth'] })
+    }
+    window.addEventListener('policypilot:signin-required', ended)
+    return () =>
+      window.removeEventListener('policypilot:signin-required', ended)
+  }, [queryClient])
+
+  const signOut = async () => {
+    await api.logout()
+    localStorage.removeItem(SESSION_KEY)
+    setSessionId(null)
+    setMessages([])
+    setActiveTurnId(null)
+    queryClient.clear()
+    await queryClient.invalidateQueries({ queryKey: ['auth'] })
+    window.location.assign('/')
+  }
+
   const health = useQuery({
     queryKey: ['health'],
     queryFn: api.healthReady,
@@ -153,27 +188,38 @@ export function App() {
   const session = useQuery({
     queryKey: ['session', sessionId],
     queryFn: () => api.getSession(sessionId!),
-    enabled: Boolean(sessionId),
+    enabled: Boolean(sessionId) && !needsSignIn,
     retry: false,
   })
 
   const turn = useTurnStream(activeTurnId)
   const busy = turn.status === 'streaming' || turn.status === 'polling'
 
-  const createSession = useCallback(async () => {
-    if (creatingSession.current) return
-    creatingSession.current = true
-    try {
-      const response = await api.createSession()
-      localStorage.setItem(SESSION_KEY, response.session_id)
-      setSessionId(response.session_id)
-      setMessages([])
-      setActiveTurnId(null)
-      completedTurn.current = null
-    } finally {
-      creatingSession.current = false
-    }
-  }, [])
+  const latestOwned = auth.data?.latest_session_id ?? null
+  const createSession = useCallback(
+    async (forceNew = false) => {
+      if (creatingSession.current) return
+      creatingSession.current = true
+      try {
+        // After signing in again, pick the last conversation back up instead of starting an empty one.
+        const response =
+          !forceNew && latestOwned
+            ? await api.resumeSession(latestOwned)
+            : await api.createSession()
+        localStorage.setItem(SESSION_KEY, response.session_id)
+        setSessionId(response.session_id)
+        setMessages([])
+        setActiveTurnId(null)
+        completedTurn.current = null
+        void queryClient.invalidateQueries({
+          queryKey: ['session', response.session_id],
+        })
+      } finally {
+        creatingSession.current = false
+      }
+    },
+    [latestOwned, queryClient],
+  )
 
   useEffect(() => {
     const requireAuth = () => setAuthRequired(true)
@@ -182,9 +228,11 @@ export function App() {
       window.removeEventListener('policypilot:auth-required', requireAuth)
   }, [])
 
+  const authReady = auth.isFetched && !needsSignIn
   useEffect(() => {
-    if (!sessionId && !authRequired) void createSession().catch(() => undefined)
-  }, [authRequired, createSession, sessionId])
+    if (authReady && !sessionId && !authRequired)
+      void createSession().catch(() => undefined)
+  }, [authReady, authRequired, createSession, sessionId])
 
   // A saved session id can outlive its cookie or database; start a fresh session instead of failing forever.
   useEffect(() => {
@@ -264,7 +312,7 @@ export function App() {
     setSessionId(null)
     setMessages([])
     setActiveTurnId(null)
-    await createSession()
+    await createSession(true)
   }
 
   const submitPasscode = async (passcode: string) => {
@@ -284,6 +332,17 @@ export function App() {
     turn.events.filter((event) => !event.hidden).at(-1)?.summary ??
     (mode === 'baseline' ? 'Running one-pass retrieval…' : null)
   const degraded = health.data?.status === 'degraded'
+
+  if (needsSignIn && !launching) {
+    const failed = new URLSearchParams(window.location.search).has('auth_error')
+    return (
+      <div className="app-shell">
+        <SignInScreen
+          reason={signInEnded ? 'expired' : failed ? 'failed' : 'first'}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="app-shell">
@@ -363,6 +422,13 @@ export function App() {
           >
             {theme === 'dark' ? '☀' : '☾'}
           </button>
+          {auth.data?.user && (
+            <AccountMenu
+              name={auth.data.user.name}
+              email={auth.data.user.email}
+              onSignOut={() => void signOut()}
+            />
+          )}
           <button
             className="secondary-button"
             type="button"

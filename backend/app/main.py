@@ -15,6 +15,7 @@ from app.api import auth, config, documents, health, sessions, turns
 from app.api.errors import install_error_handlers
 from app.auth.service import validate_settings
 from app.config import get_settings
+from app.jobs.worker import Worker
 from app.logging import configure_logging, request_id_var
 
 API_PREFIX = "/api/v1"
@@ -22,13 +23,29 @@ API_PREFIX = "/api/v1"
 logger = logging.getLogger("policypilot")
 
 
+SEED_LOCK = 7_461_001  # PostgreSQL advisory lock: only one instance seeds the shared corpus at a time
+
+
 async def _load_all(corpus_dir: Path, reference_dir: str) -> int:
+    from sqlalchemy import text
+
+    from app.db.session import get_engine
     from app.ingest.pipeline import ensure_corpus_loaded
 
-    loaded = await ensure_corpus_loaded(corpus_dir)
-    if reference_dir:
-        loaded += await ensure_corpus_loaded(Path(reference_dir), source="reference")
-    return loaded
+    async with get_engine().connect() as lock_conn:
+        got = (
+            await lock_conn.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": SEED_LOCK})
+        ).scalar_one()
+        if not got:
+            logger.info("another instance is seeding the corpus; skipping")
+            return 0
+        try:
+            loaded = await ensure_corpus_loaded(corpus_dir)
+            if reference_dir:
+                loaded += await ensure_corpus_loaded(Path(reference_dir), source="reference")
+            return loaded
+        finally:
+            await lock_conn.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": SEED_LOCK})
 
 
 @asynccontextmanager
@@ -37,7 +54,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     background: asyncio.Task[int] | None = None
     if settings.corpus_autoload:
         background = asyncio.create_task(_load_all(Path(settings.corpus_dir), settings.reference_dir))
+    worker: Worker | None = None
+    worker_task: asyncio.Task[None] | None = None
+    if settings.worker_embedded:
+        worker = Worker()
+        worker_task = asyncio.create_task(worker.run())
     yield
+    if worker is not None and worker_task is not None:
+        await worker.stop(drain_seconds=20.0)
+        await worker_task
     if background is not None and not background.done():
         background.cancel()
 

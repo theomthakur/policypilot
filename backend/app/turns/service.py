@@ -1,16 +1,15 @@
-"""Runs one turn in the background: builds context, runs the agent or baseline, persists everything.
+"""Runs one turn as a durable job: builds context, runs the agent or baseline, persists everything.
 
 The request that starts a turn returns immediately; the trace is written to trace_events as it happens,
 so the SSE endpoint and the polling endpoint both read the same rows.
 """
 
-import asyncio
 import logging
 import time
 import uuid
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.agent import prompts
 from app.agent.baseline import run_baseline
@@ -25,15 +24,14 @@ from app.state import limits, session_state
 from app.tools.impl import FaultInjector, ToolContext
 
 logger = logging.getLogger("policypilot.turns")
-_running: set[asyncio.Task[None]] = set()  # strong references so tasks are not garbage collected
 
 
 class TracePersister:
     """Emitter that stores each event with the next sequence number and a real timestamp."""
 
-    def __init__(self, turn_id: uuid.UUID) -> None:
+    def __init__(self, turn_id: uuid.UUID, start_seq: int = 0) -> None:
         self.turn_id = turn_id
-        self.seq = 0
+        self.seq = start_seq
 
     async def __call__(self, type: str, status: str = "ok", **fields: Any) -> None:
         payload = {"status": status, **{k: v for k, v in fields.items() if v is not None}}
@@ -41,12 +39,6 @@ class TracePersister:
             db.add(TraceEvent(turn_id=self.turn_id, seq=self.seq, type=type, payload=payload))
             await db.commit()
         self.seq += 1
-
-
-def spawn(turn_id: uuid.UUID, session_id: uuid.UUID, fault: str | None, reply_to: uuid.UUID | None) -> None:
-    task = asyncio.create_task(run_turn(turn_id, session_id, fault, reply_to))
-    _running.add(task)
-    task.add_done_callback(_running.discard)
 
 
 async def _build_context(turn: Turn, reply_to: uuid.UUID | None) -> QuestionContext:
@@ -66,12 +58,26 @@ async def run_turn(
     turn_id: uuid.UUID, session_id: uuid.UUID, fault: str | None, reply_to: uuid.UUID | None
 ) -> None:
     settings = get_settings()
-    emit = TracePersister(turn_id)
     started = time.monotonic()
     outcome: Outcome
     async with get_sessionmaker()() as db:
         turn = await db.get(Turn, turn_id)
-    assert turn is not None
+        if turn is None or turn.status != "running":
+            return  # a duplicate delivery of a finished turn: one final answer only
+        next_seq = (
+            await db.execute(
+                select(func.coalesce(func.max(TraceEvent.seq), -1)).where(TraceEvent.turn_id == turn_id)
+            )
+        ).scalar_one() + 1
+    emit = TracePersister(turn_id, next_seq)
+    if next_seq > 0:
+        # The first attempt was cut short (crash or restart). Say so, then run again from the question.
+        await emit(
+            "turn_resumed",
+            "info",
+            state="PLAN",
+            summary="The earlier attempt was interrupted, so this turn is starting over.",
+        )
     try:
         async with get_sessionmaker()() as db:
             exhausted = await limits.budget_exhausted(db)
@@ -153,8 +159,10 @@ async def _finish(
     )
     answer = outcome.answer
     async with get_sessionmaker()() as db:
-        row = await db.get(Turn, turn.id)
+        row = await db.get(Turn, turn.id, with_for_update=True)
         assert row is not None
+        if row.status != "running":
+            return  # another delivery finished this turn first; keep its answer
         row.status = "failed" if outcome.stop_reason == "error" else "completed"
         row.stop_reason, row.answer, row.clarification = outcome.stop_reason, answer, outcome.clarification
         row.totals, row.model, row.prompt_version = (
@@ -217,3 +225,30 @@ async def load_events(turn_id: uuid.UUID, after: int) -> list[TraceEvent]:
             .order_by(TraceEvent.seq)
         )
         return list(rows.scalars())
+
+
+async def mark_interrupted(turn_id: uuid.UUID) -> None:
+    """The turn's job ran out of attempts after repeated crashes: end it with an honest failed answer."""
+    async with get_sessionmaker()() as db:
+        row = await db.get(Turn, turn_id, with_for_update=True)
+        if row is None or row.status != "running":
+            return
+        next_seq = (
+            await db.execute(
+                select(func.coalesce(func.max(TraceEvent.seq), -1)).where(TraceEvent.turn_id == turn_id)
+            )
+        ).scalar_one() + 1
+        answer = _error_answer()
+        answer["summary"] = (
+            "This question was interrupted more than once and could not be finished. Please ask it again."
+        )
+        row.status, row.stop_reason, row.answer, row.finished_at = "failed", "error", answer, utcnow()
+        db.add(
+            TraceEvent(
+                turn_id=turn_id,
+                seq=next_seq,
+                type="turn_completed",
+                payload={"status": "info", "summary": "Finished: interrupted.", "stop_reason": "error"},
+            )
+        )
+        await db.commit()

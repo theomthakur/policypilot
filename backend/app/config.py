@@ -17,6 +17,17 @@ class Settings(BaseSettings):
     demo_passcode: str = ""
     session_cookie_secure: bool = False
 
+    # Durable jobs (docs/adr/0005): turns and ingestion run from a PostgreSQL job table.
+    worker_embedded: bool = (
+        True  # False when a separate worker process (python -m app.jobs.worker) runs the jobs
+    )
+    worker_concurrency: int = 4
+    worker_poll_interval_s: float = 0.25
+    job_lease_seconds: float = 90.0
+    job_heartbeat_seconds: float = 20.0
+    job_max_attempts: int = 3
+    run_migrations_on_start: bool = True  # False when a deployment runs migrations as a separate Job
+
     # Authentication (docs/authentication.md). "off" keeps the shared-passcode demo gate only.
     # "oidc" requires an OpenID Connect sign-in; "test" is a fake provider, refused in production.
     auth_mode: Literal["off", "oidc", "test"] = "off"

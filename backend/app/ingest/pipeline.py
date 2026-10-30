@@ -126,6 +126,20 @@ async def ingest_document(document_id: uuid.UUID, run_id: uuid.UUID, path: Path)
             logger.exception("ingestion failed", extra={"fields": {"document_id": str(document_id)}})
 
 
+async def mark_ingest_interrupted(document_id: uuid.UUID, run_id: uuid.UUID) -> None:
+    """Ingestion's job ran out of attempts: the document is failed, never half-searchable."""
+    async with get_sessionmaker()() as db:
+        document = await db.get(Document, document_id)
+        run = await db.get(IngestionRun, run_id)
+        if document is None or run is None or document.status == "ready":
+            return
+        await db.execute(delete(Chunk).where(Chunk.document_id == document_id))
+        message = "Processing was interrupted. Please upload the file again."
+        document.status, document.error = "failed", message
+        run.status, run.stage, run.error, run.finished_at = "failed", "failed", message, datetime.now(UTC)
+        await db.commit()
+
+
 def _corpus_files(corpus_dir: Path) -> list[Path]:
     return sorted(corpus_dir.glob("*.pdf")) if corpus_dir.is_dir() else []
 

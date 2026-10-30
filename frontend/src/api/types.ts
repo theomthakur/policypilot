@@ -209,3 +209,10 @@ export interface RunConfiguration {
     upload_max_pages: number
   }
 }
+
+export interface AuthState {
+  mode: 'off' | 'oidc' | 'test'
+  authenticated: boolean
+  user: { id: string; email: string | null; name: string | null } | null
+  latest_session_id: string | null
+}

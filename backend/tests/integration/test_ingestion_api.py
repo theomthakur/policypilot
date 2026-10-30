@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -17,7 +18,14 @@ def _upload(client: TestClient, path: Path, name: str = "policy.pdf") -> dict:
     with path.open("rb") as fh:
         response = client.post("/api/v1/documents", files={"file": (name, fh, "application/pdf")})
     assert response.status_code in (200, 201), response.text
-    return response.json()
+    body = response.json()
+    deadline = time.monotonic() + 20  # ingestion is a background job now: wait for it to finish
+    while time.monotonic() < deadline:
+        status = client.get(f"/api/v1/ingestion/{body['ingestion_run']['id']}").json()["status"]
+        if status in ("succeeded", "failed"):
+            break
+        time.sleep(0.1)
+    return body  # type: ignore[no-any-return]
 
 
 def test_upload_ingests_pages_and_page_bounded_chunks(

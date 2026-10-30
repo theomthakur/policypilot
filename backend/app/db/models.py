@@ -270,3 +270,29 @@ class EvaluationCase(Base):
     metrics: Mapped[dict[str, Any]] = mapped_column(nullable=False)
     passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class Job(Base):
+    """Durable unit of work (a turn or an ingestion). Claimed with a lease and a fencing counter, so a worker
+    that stalls or dies loses the job, and its late result can never overwrite the replacement's."""
+
+    __tablename__ = "jobs"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # "turn" | "ingest"
+    payload: Mapped[dict[str, Any]] = mapped_column(default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
+    # queued -> running -> succeeded | failed ; a lost lease sends running back to queued, or to failed when
+    # attempts are used up ("interrupted").
+    session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    fence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    locked_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = created_at_col()
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (Index("ix_jobs_claim", "status", "lease_until", "created_at"),)

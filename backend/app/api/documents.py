@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Response, UploadFile
+from fastapi import APIRouter, Response, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import or_, select
@@ -15,7 +15,7 @@ from app.api.deps import Authenticated, CurrentSession, DbSession, Passcode
 from app.api.errors import ApiError
 from app.config import get_settings
 from app.db.models import Document, DocumentPage, IngestionRun
-from app.ingest.pipeline import ingest_document
+from app.jobs import queue
 from app.state import ingest_progress
 from app.state.corpus import get_corpus_version
 
@@ -114,7 +114,6 @@ async def list_documents(db: DbSession, session_id: CurrentSession) -> dict[str,
 @router.post("/documents", status_code=201, dependencies=[Passcode])
 async def upload_document(
     file: UploadFile,
-    background: BackgroundTasks,
     response: Response,
     db: DbSession,
     session_id: CurrentSession,
@@ -170,8 +169,15 @@ async def upload_document(
     await db.flush()
     run = IngestionRun(document_id=document.id)
     db.add(run)
+    await db.flush()
+    await queue.enqueue(
+        db,
+        "ingest",
+        {"document_id": str(document.id), "run_id": str(run.id), "path": str(target)},
+        session_id,
+        settings.job_max_attempts,
+    )
     await db.commit()
-    background.add_task(ingest_document, document.id, run.id, target)
     return {
         "document": DocumentOut.of(document),
         "ingestion_run": IngestionRunOut.of(run),
