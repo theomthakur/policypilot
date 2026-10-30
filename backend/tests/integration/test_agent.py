@@ -198,6 +198,7 @@ def test_ambiguous_question_asks_for_clarification(make_pdf: Callable[..., Path]
     _load(make_pdf, tmp_path)
     model = ScriptedModel(
         [
+            respond(("search_documents", {"query": "renew account"})),
             respond(
                 ("ask_clarification", {"question": "Which account type?", "options": ["Student", "Faculty"]})
             ),
@@ -525,3 +526,19 @@ def test_a_follow_up_search_is_recorded_as_a_revision_without_using_the_weak_bud
         "uncovered_sub_question",
     ]
     assert outcome.totals.query_revisions == 2 and outcome.stop_reason == "answered"
+
+
+def test_clarification_before_any_search_is_rejected(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("ask_clarification", {"question": "Which one?", "options": ["A", "B"]})),
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q")
+    assert "Search first" in next(m["content"] for m in model.calls[1] if m["role"] == "tool")
+    assert outcome.stop_reason == "answered" and not events.of("clarification_requested")

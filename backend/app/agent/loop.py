@@ -242,6 +242,14 @@ class AgentRun:
                     summary="Plan: " + "; ".join(map(str, call.arguments.get("sub_questions", [])))[:260],
                 )
             elif call.name == "ask_clarification":
+                if self.totals.tool_calls == 0:
+                    self._tool_message(
+                        messages,
+                        call,
+                        "Search first. Ask for clarification only when the results show the answer "
+                        "depends on a detail the user has not given.",
+                    )
+                    continue
                 return await self._clarify(call)
             elif call.name == "final_answer":
                 if self.totals.tool_calls == 0:

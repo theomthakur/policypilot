@@ -104,6 +104,7 @@ def test_clarification_reply_continues_the_same_question(
 
     model = ScriptedModel(
         [
+            respond(("search_documents", {"query": "network bandwidth"})),
             respond(("ask_clarification", {"question": "Which network?", "options": ["Guest", "Staff"]})),
             respond(("search_documents", {"query": "guest network bandwidth limit mbps"})),
             _answer_step("Guest", 1, QUOTE_MBPS),
@@ -117,7 +118,7 @@ def test_clarification_reply_continues_the_same_question(
         assert bad.status_code == 400
         second = _wait(client, _send(client, "Guest", reply_to_clarification=first["id"]).json()["turn_id"])
         assert second["stop_reason"] == "answered"
-        opening = next(m["content"] for m in model.calls[1] if m["role"] == "user")
+        opening = next(m["content"] for m in model.calls[2] if m["role"] == "user")
         assert "How fast is it?" in opening and "Which network?" in opening and "Guest" in opening
         again = _send(client, "Guest", reply_to_clarification=first["id"])
         assert again.status_code == 400  # a clarification can be answered only once
