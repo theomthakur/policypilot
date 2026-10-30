@@ -18,7 +18,6 @@ import { PdfViewer, type ViewerTarget } from './components/PdfViewer'
 import { PasscodeDialog } from './components/PasscodeDialog'
 import { newId } from './api/ids'
 import { systemTheme, usePreference } from './hooks/usePreference'
-import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
 import { ArchitecturePage } from './components/ArchitecturePage'
 import { PresentationPage } from './components/PresentationPage'
@@ -258,10 +257,11 @@ export function App() {
         >
           <div className="launch-brand">
             <div className="launch-logo" aria-hidden="true">
-              <AnimatedMark className="launch-mark" speed={1.1} />
+              <PolicyPilotMark className="launch-mark" />
             </div>
             <div className="launch-wordmark">PolicyPilot</div>
-            <p>Evidence-grounded policy intelligence</p>
+            <p>Preparing your evidence workspace</p>
+            <span className="launch-progress" />
           </div>
         </div>
       )}
