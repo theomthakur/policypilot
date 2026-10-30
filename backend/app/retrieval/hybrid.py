@@ -42,6 +42,7 @@ class Hit:
     effective_date: str | None = None
     version: str | None = None
     doc_family: str | None = None
+    supersedes: tuple[str, ...] = ()  # documented statements, e.g. "states that it supersedes ..."
     related: bool = False  # added because it belongs to the same policy family as a top hit
 
 
@@ -51,6 +52,11 @@ class SearchResult:
     weak: bool
     top_score: float | None
     off_topic: bool = False
+
+
+def _statements(raw: object) -> tuple[str, ...]:
+    items = raw if isinstance(raw, list) else []
+    return tuple(str(i.get("statement", "")) for i in items if isinstance(i, dict) and i.get("statement"))
 
 
 def _or_query(query: str) -> str:
@@ -70,7 +76,7 @@ _VECTOR_SQL = text(
     f"""
     SELECT c.id, c.document_id, d.title, c.page_number, c.section, c.text,
            1 - (c.embedding <=> CAST(:q AS vector)) AS cosine,
-           d.authority, d.effective_date, d.version, d.doc_family
+           d.authority, d.effective_date, d.version, d.doc_family, d.supersedes
     FROM chunks c JOIN documents d ON d.id = c.document_id
     WHERE {_VISIBLE}
     ORDER BY c.embedding <=> CAST(:q AS vector)
@@ -82,7 +88,7 @@ _TEXT_SQL = text(
     f"""
     SELECT c.id, c.document_id, d.title, c.page_number, c.section, c.text,
            ts_rank_cd(c.tsv, to_tsquery('english', :tsq)) AS rank,
-           d.authority, d.effective_date, d.version, d.doc_family
+           d.authority, d.effective_date, d.version, d.doc_family, d.supersedes
     FROM chunks c JOIN documents d ON d.id = c.document_id
     WHERE {_VISIBLE} AND c.tsv @@ to_tsquery('english', :tsq)
     ORDER BY rank DESC
@@ -96,7 +102,7 @@ _SIBLING_SQL = text(
     SELECT DISTINCT ON (c.document_id)
            c.id, c.document_id, d.title, c.page_number, c.section, c.text,
            1 - (c.embedding <=> CAST(:q AS vector)) AS cosine,
-           d.authority, d.effective_date, d.version, d.doc_family
+           d.authority, d.effective_date, d.version, d.doc_family, d.supersedes
     FROM chunks c JOIN documents d ON d.id = c.document_id
     WHERE d.status = 'ready' AND d.session_id IS NULL AND d.authority = 'institutional'
       AND d.doc_family = ANY(:families) AND c.document_id <> ALL(:have)
@@ -131,6 +137,7 @@ async def _family_siblings(
             effective_date=r[8],
             version=r[9],
             doc_family=r[10],
+            supersedes=_statements(r[11]),
             related=True,
         )
         for r in rows
@@ -175,6 +182,10 @@ async def hybrid_search(
         rows.setdefault(row[0], row)
         trank[row[0]] = rank
 
+    if settings.reference_score_weight != 1.0:
+        for cid, found in rows.items():
+            if found[7] == "reference":
+                scores[cid] *= settings.reference_score_weight
     ordered = sorted(scores, key=lambda cid: scores[cid], reverse=True)[:top_k]
     hits = [
         Hit(
@@ -192,6 +203,7 @@ async def hybrid_search(
             effective_date=rows[cid][8],  # type: ignore[arg-type]
             version=rows[cid][9],  # type: ignore[arg-type]
             doc_family=rows[cid][10],  # type: ignore[arg-type]
+            supersedes=_statements(rows[cid][11]),
         )
         for cid in ordered
     ]

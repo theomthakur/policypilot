@@ -108,6 +108,8 @@ def _model_view(
             hit["evidence_id"] = state.evidence_key(uuid.UUID(hit["document_id"]), hit["title"], hit["page"])
             hit["already_cited"] = (hit["document_id"], hit["page"]) in cited
             hit.pop("chunk_id", None)
+            if not hit.get("supersedes"):
+                hit.pop("supersedes", None)
             hit.pop("vector_rank", None)
             hit.pop("text_rank", None)
         body.pop("corpus_version", None)
@@ -814,6 +816,37 @@ class AgentRun:
                 notices.append(extra)
         return answer
 
+    async def _uncited_superseding(self, answer: dict[str, Any]) -> str | None:
+        """When this turn's evidence holds a document that states it supersedes one the answer relies on, but
+        the answer never cites it, send the model back once to account for it (documented metadata only)."""
+        cited = {uuid.UUID(c["document_id"]) for c in answer["citations"]}
+        seen = {item.document_id for item in self.state.ledger.values()}
+        if not cited or not (seen - cited):
+            return None
+        async with get_sessionmaker()() as db:
+            newer = (
+                (await db.execute(select(Document).where(Document.id.in_(list(seen - cited)))))
+                .scalars()
+                .all()
+            )
+            older = {
+                d.filename: d
+                for d in (await db.execute(select(Document).where(Document.id.in_(list(cited))))).scalars()
+            }
+        for doc in newer:
+            for relation in doc.supersedes or []:
+                target = older.get(relation.get("filename", ""))
+                if target is not None:
+                    pages = sorted({i.page for i in self.state.ledger.values() if i.document_id == doc.id})
+                    return (
+                        f"{doc.title} (effective {doc.effective_date}) {relation.get('statement', '')}, "
+                        f"and your answer relies on {target.title} (effective {target.effective_date}). "
+                        f"Its pages {pages} are in your evidence. Account for it: cite both documents, say "
+                        "what "
+                        "each says, add a `conflict` notice, and name what the newer document changes."
+                    )
+        return None
+
     async def _supersession_notice(self, answer: dict[str, Any]) -> dict[str, Any] | None:
         """A conflict notice when the answer cites a document and one it documents itself as superseding.
         Only relations stated in verified document metadata are used, never guessed ones."""
@@ -876,6 +909,12 @@ class AgentRun:
                 messages, call, "Citation check failed:\n- " + "\n- ".join(verified.failures[:5])
             )
             return None
+        if not self.state.conflict_repair_used:
+            missing = await self._uncited_superseding(verified.answer)
+            if missing and self._limit_hit() is None:
+                self.state.conflict_repair_used = True
+                self._tool_message(messages, call, missing)
+                return None
         answer = await self._normalize(verified.answer)
         if partial_reason and answer["claims"]:
             answer["stop_reason"], answer["partial"] = partial_reason, True

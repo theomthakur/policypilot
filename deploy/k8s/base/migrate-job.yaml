@@ -1,0 +1,38 @@
+# Schema migrations run once per release, here, instead of on every API start. Migrations are expand-and-contract,
+# so the previous release keeps working while this runs and after a rollback of the application image.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: policypilot-migrate
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: migrate}
+    spec:
+      serviceAccountName: policypilot
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: migrate
+          image: policypilot-backend
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef: {name: policypilot-config}
+            - secretRef: {name: policypilot-secrets}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}

@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: policypilot
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - redis.yaml
+  - migrate-job.yaml
+  - seed-job.yaml
+  - api.yaml
+  - worker.yaml
+  - frontend.yaml
+  - networkpolicy.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: policypilot
+    includeSelectors: false
+images:
+  - name: policypilot-backend
+    newTag: local
+  - name: policypilot-frontend
+    newTag: local
+  - name: policypilot-corpus
+    newTag: local

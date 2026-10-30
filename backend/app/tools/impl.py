@@ -130,6 +130,7 @@ def _result_to_data(result: SearchResult, version: int, cached: bool) -> dict[st
                 "effective_date": h.effective_date,
                 "version": h.version,
                 "related_version": h.related,
+                "supersedes": list(h.supersedes),
             }
             for h in result.hits
         ],

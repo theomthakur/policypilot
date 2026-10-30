@@ -71,6 +71,7 @@ class RunState:
     weak_revisions: int = 0
     planned: bool = False
     repair_used: bool = False
+    conflict_repair_used: bool = False
     nudges: int = 0
 
     def evidence_key(self, document_id: uuid.UUID, title: str, page: int) -> str:

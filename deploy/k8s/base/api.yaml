@@ -1,0 +1,102 @@
+# The API. It accepts questions and uploads and records them as durable jobs; the worker Deployment runs them.
+# One replica: uploads sit on a ReadWriteOnce volume shared only with the worker on the same node. Scaling the
+# API out needs shared object storage first (docs/kubernetes.md, "What this does not do").
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels: {app.kubernetes.io/name: api}
+spec:
+  selector: {app.kubernetes.io/name: api}
+  ports:
+    - {name: http, port: 8000, targetPort: 8000}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # the ReadWriteOnce uploads volume cannot be attached to an old and a new pod at once
+  selector:
+    matchLabels: {app.kubernetes.io/name: api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: api}
+    spec:
+      serviceAccountName: policypilot
+      terminationGracePeriodSeconds: 40
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: corpus
+          image: policypilot-corpus
+          command: ["sh", "-c", "cp -r /corpus/. /data/corpus/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: corpus, mountPath: /data/corpus}
+        - name: wait-schema
+          image: policypilot-backend
+          command: ["python", "-m", "app.cli", "wait-schema"]
+          envFrom:
+            - configMapRef: {name: policypilot-config}
+            - secretRef: {name: policypilot-secrets}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      containers:
+        - name: api
+          image: policypilot-backend
+          ports: [{containerPort: 8000, name: http}]
+          env:
+            - {name: WORKER_EMBEDDED, value: "false"}
+          envFrom:
+            - configMapRef: {name: policypilot-config}
+            - secretRef: {name: policypilot-secrets}
+          startupProbe:
+            httpGet: {path: /api/v1/health/live, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: {path: /api/v1/health/live, port: http}
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet: {path: /api/v1/health/ready, port: http}
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 250m, memory: 768Mi}
+            limits: {memory: 1536Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: uploads, mountPath: /data/uploads}
+            - {name: corpus, mountPath: /data/corpus}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: uploads
+          persistentVolumeClaim: {claimName: uploads}
+        - {name: corpus, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}

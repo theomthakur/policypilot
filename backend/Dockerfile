@@ -29,7 +29,9 @@ COPY --from=models /models /models
 COPY app ./app
 COPY alembic.ini start.sh ./
 COPY migrations ./migrations
-RUN mkdir -p /data/uploads && chown -R app:app /data /models
+# Group 0 gets the owner's rights so an arbitrary user ID (OpenShift) can still write /data.
+RUN mkdir -p /data/uploads && chown -R app:app /data /models \
+    && chgrp -R 0 /data /models && chmod -R g=u /data /models
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \

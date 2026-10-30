@@ -1,0 +1,23 @@
+# Non-secret settings only. Secrets (database password, model key, signing key) live in the Secret
+# `policypilot-secrets`, created at deploy time by scripts/k8s_up.sh and never committed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: policypilot-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: INFO
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: policypilot
+  POSTGRES_USER: policypilot
+  REDIS_URL: redis://redis:6379/0
+  UPLOAD_DIR: /data/uploads
+  CORPUS_DIR: /data/corpus/pdfs
+  REFERENCE_DIR: /data/corpus/reference
+  CORPUS_AUTOLOAD: "false"
+  RUN_MIGRATIONS_ON_START: "false"
+  LLM_PROVIDER: openai_compatible
+  LLM_BASE_URL: https://openrouter.ai/api/v1
+  LLM_MODEL: openai/gpt-4o-mini
+  AUTH_MODE: oidc

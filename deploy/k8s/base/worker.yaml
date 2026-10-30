@@ -1,0 +1,80 @@
+# Runs the durable jobs (agent turns and document ingestion). It claims work from PostgreSQL with a lease, so
+# killing this pod mid-job hands the job to the next worker once the lease runs out (docs/adr/0005).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {app.kubernetes.io/name: worker}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: worker}
+    spec:
+      serviceAccountName: policypilot
+      terminationGracePeriodSeconds: 40   # longer than the 20 s drain, so running jobs finish or are handed back
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: {type: RuntimeDefault}
+      affinity:
+        podAffinity:   # uploads are on a ReadWriteOnce volume: stay on the API's node
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: {app.kubernetes.io/name: api}
+      initContainers:
+        - name: corpus
+          image: policypilot-corpus
+          command: ["sh", "-c", "cp -r /corpus/. /data/corpus/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: corpus, mountPath: /data/corpus}
+        - name: wait-schema
+          image: policypilot-backend
+          command: ["python", "-m", "app.cli", "wait-schema"]
+          envFrom:
+            - configMapRef: {name: policypilot-config}
+            - secretRef: {name: policypilot-secrets}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      containers:
+        - name: worker
+          image: policypilot-backend
+          command: ["python", "-m", "app.jobs.worker"]
+          envFrom:
+            - configMapRef: {name: policypilot-config}
+            - secretRef: {name: policypilot-secrets}
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import socket; socket.create_connection(('postgres', 5432), 3)"]
+            periodSeconds: 30
+            failureThreshold: 4
+          resources:
+            requests: {cpu: 250m, memory: 768Mi}
+            limits: {memory: 1536Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: uploads, mountPath: /data/uploads}
+            - {name: corpus, mountPath: /data/corpus}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: uploads
+          persistentVolumeClaim: {claimName: uploads}
+        - {name: corpus, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}

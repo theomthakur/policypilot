@@ -460,6 +460,40 @@ def test_citing_a_document_and_the_one_it_supersedes_adds_a_conflict_notice(
     assert "states that it supersedes" in notices[0]["text"]
 
 
+def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _metadata_corpus(make_pdf, tmp_path)
+
+    def only_old(messages: list[dict[str, Any]]) -> Any:
+        old = _evidence_id(messages, "Password Policy", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Yes, every 90 days.",
+                    "claims": [{"text": "Every 90 days.", "evidence_ids": [old], "quote": QUOTE_OLD}],
+                },
+            )
+        )
+
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "passwords must not expire prohibited"})),
+            only_old,
+            _two_claim_step(),
+        ]
+    )
+    outcome, _ = _run(model, "Do passwords expire?")
+    sent_back = [m for m in model.calls[-1] if m["role"] == "tool" and "effective 2025-01-15" in m["content"]]
+    assert sent_back and "conflict" in sent_back[0]["content"]
+    assert len(outcome.answer["citations"]) == 2
+    assert [n["kind"] for n in outcome.answer["notices"]] == ["conflict"]
+
+
 def test_no_conflict_notice_without_a_documented_relation(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

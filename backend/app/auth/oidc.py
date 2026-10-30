@@ -70,6 +70,8 @@ def _client(settings: Settings, **kwargs: Any) -> AsyncOAuth2Client:
         client_id=settings.oidc_client_id,
         client_secret=settings.oidc_client_secret or None,
         scope="openid email profile",
+        # A public client (no secret) authenticates the code exchange with PKCE alone.
+        token_endpoint_auth_method="client_secret_basic" if settings.oidc_client_secret else "none",
         redirect_uri=redirect_uri(settings),
         code_challenge_method="S256",
         timeout=10.0,
