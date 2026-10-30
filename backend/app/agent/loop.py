@@ -970,7 +970,10 @@ class AgentRun:
             text = await self.page_text(doc.id, item.page)
             for sentence in _sentences(text or ""):
                 lowered = sentence.lower()
-                score = len(wanted & _stems(sentence)) + 3 * sum(t in lowered for t in terms)
+                hits = sum(t in lowered for t in terms)
+                if terms and not hits:
+                    continue  # the sentence must touch the superseded provision itself
+                score = len(wanted & _stems(sentence)) + 3 * hits
                 if score and (best is None or score > best[0]):
                     literal = locate_quote(sentence, text or "")
                     if literal:
