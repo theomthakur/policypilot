@@ -3911,3 +3911,69 @@ th {
   --t-bg-fff: #f6f0fc;
   --line: #d7cae8;
 }
+
+/* ===== Experiment: ChatGPT-style system font and squarer corners. Colours are unchanged. ===== */
+:root {
+  --font-sans: ui-sans-serif, -apple-system, system-ui, 'Segoe UI', Helvetica,
+    'Apple Color Emoji', Arial, sans-serif;
+  --sq-lg: 8px;
+  --sq-md: 6px;
+  --sq-sm: 4px;
+}
+.panel,
+.pane-page,
+.composer,
+.deck-slide,
+.fd-lane,
+.slide-card,
+.hld-intro article,
+.answer-bubble,
+.message-user .message-content > p,
+.citation-drawer,
+.drop-zone,
+.answer-notice,
+.mode-hint {
+  border-radius: var(--sq-lg);
+}
+.fd-node,
+.document-card,
+.sidebar-new,
+.sidebar-nav button,
+.sidebar-link,
+.history-item,
+.history-open,
+.suggestions button,
+.followups button,
+.citation-chip,
+.secondary-button,
+.page-back,
+.primary-nav button,
+.mode-toggle,
+.mode-toggle button,
+.tool-button,
+.sidebar-toggle,
+.sidebar-logo,
+.doc-view,
+.pdf-mark,
+.event-card,
+.source-pills span,
+.copy-button,
+.send-button,
+.icon-button,
+.account-button,
+.assistant-avatar,
+.user-avatar,
+.history-delete,
+.switch {
+  border-radius: var(--sq-md);
+}
+.tab-count,
+.folder-count,
+.fd-badge,
+.health-pill {
+  border-radius: var(--sq-sm);
+}
+.fd-lane {
+  border-top-left-radius: var(--sq-sm);
+  border-bottom-left-radius: var(--sq-sm);
+}
