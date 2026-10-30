@@ -162,7 +162,7 @@ scripts/verify_clean_checkout.sh   # clone the commit and re-run lint, types, ev
 scripts/k8s_up.sh    # Kubernetes on a local kind cluster, with sign-in; then scripts/k8s_smoke.sh and scripts/k8s_recovery.sh
 ```
 
-Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services (CI does this and fails if any test is skipped). Full run: 130 backend tests, none skipped.
+Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services (CI does this and fails if any test is skipped). Full run: 137 backend tests, none skipped.
 
 Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (23 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
 

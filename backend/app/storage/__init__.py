@@ -77,11 +77,15 @@ class S3Storage:
 
 
 @lru_cache
+def _s3(bucket: str, endpoint: str, region: str, access_key: str, secret_key: str) -> S3Storage:
+    return S3Storage(bucket, endpoint, region, access_key, secret_key)
+
+
 def get_storage() -> Storage:
     s = get_settings()
     if s.storage_backend == "s3":
-        return S3Storage(s.s3_bucket, s.s3_endpoint, s.s3_region, s.s3_access_key, s.s3_secret_key)
-    return LocalStorage(s.upload_dir)
+        return _s3(s.s3_bucket, s.s3_endpoint, s.s3_region, s.s3_access_key, s.s3_secret_key)
+    return LocalStorage(s.upload_dir)  # cheap, and always follows the current UPLOAD_DIR
 
 
 async def put(key: str, data: bytes) -> None:

@@ -49,7 +49,6 @@ def test_upload_is_stored_in_the_bucket_ingested_from_it_and_served_from_it(
     monkeypatch: pytest.MonkeyPatch, bucket: str, make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.main import create_app
-    from app.storage import get_storage
     from tests.integration.conftest import clear_caches, new_session
 
     for key, value in {
@@ -62,7 +61,6 @@ def test_upload_is_stored_in_the_bucket_ingested_from_it_and_served_from_it(
     }.items():
         monkeypatch.setenv(key, value)
     clear_caches()
-    get_storage.cache_clear()
     pdf = make_pdf(POLICY_PAGES)
     with TestClient(create_app()) as client:
         new_session(client)
@@ -83,4 +81,3 @@ def test_upload_is_stored_in_the_bucket_ingested_from_it_and_served_from_it(
         assert file.status_code == 200 and file.content.startswith(b"%PDF-")
         assert file.content == pdf.read_bytes()
         assert not (tmp_path / "no-local-disk-is-used").exists()  # nothing was written to a local volume
-    get_storage.cache_clear()
