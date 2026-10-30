@@ -70,13 +70,16 @@ def _args_hash(name: str, args: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps([name, args], sort_keys=True, default=str).encode()).hexdigest()
 
 
-def _model_view(name: str, result: ToolResult, state: RunState) -> str:
+def _model_view(
+    name: str, result: ToolResult, state: RunState, cited: frozenset[tuple[str, int]] = frozenset()
+) -> str:
     """The text the model sees: result data with evidence IDs added, flagged as untrusted content."""
     data = json.loads(result.model_dump_json())
     body = data.get("data") or {}
     if name == "search_documents":
         for hit in body.get("hits", []):
             hit["evidence_id"] = state.evidence_key(uuid.UUID(hit["document_id"]), hit["title"], hit["page"])
+            hit["already_cited"] = (hit["document_id"], hit["page"]) in cited
             hit.pop("chunk_id", None)
             hit.pop("vector_rank", None)
             hit.pop("text_rank", None)
@@ -131,6 +134,7 @@ class AgentRun:
         self.totals = Totals(model=model.name)
         self.state = RunState()
         self.question_words = 0
+        self.cited: frozenset[tuple[str, int]] = frozenset()
         self.started = time.monotonic()
 
     # ---- helpers -------------------------------------------------------------------------------
@@ -196,14 +200,37 @@ class AgentRun:
         no_evidence = not self.state.ledger
         if self.state.tool_failures and no_evidence:
             reason = "tool_failure"
-        pages = sorted({(e.title, e.page) for e in self.state.ledger.values()})
-        found = "; ".join(f"{t} p.{p}" for t, p in pages[:6]) or "none"
+        by_title: dict[str, list[int]] = {}
+        for item in self.state.ledger.values():
+            by_title.setdefault(item.title, []).append(item.page)
+        found = "; ".join(
+            f"{title} (page{'s' if len(pgs) > 1 else ''} {', '.join(map(str, sorted(set(pgs))))})"
+            for title, pgs in list(by_title.items())[:4]
+        )
+        why = {
+            "limit_time": "ran out of time",
+            "limit_tokens": "used up the reading budget",
+            "limit_tool_calls": "used up the allowed searches",
+            "limit_steps": "used up the allowed steps",
+        }.get(reason, "hit a limit")
+        if reason == "tool_failure" and not self.state.ledger:
+            text = (
+                "I ran into a problem looking through the documents and could not find "
+                "anything yet. Please try again."
+            )
+        elif found:
+            text = (
+                f"I looked through the documents but {why} before I could pull together a clear "
+                f"answer. The closest material was in {found}. Try asking about one specific part "
+                "and I will go straight to it."
+            )
+        else:
+            text = (
+                f"I {why} before finding anything that answers this. "
+                "Try rephrasing, or ask about one specific part."
+            )
         answer = {
-            "summary": (
-                "I could not finish within the configured limits. "
-                + ("A tool failed and I found no evidence. " if reason == "tool_failure" else "")
-                + f"Pages found so far: {found}."
-            ),
+            "summary": text,
             "claims": [],
             "citations": [],
             "notices": [{"kind": "partial", "text": "The answer is incomplete.", "citation_indexes": []}],
@@ -216,6 +243,7 @@ class AgentRun:
     # ---- main loop -----------------------------------------------------------------------------
     async def run(self, ctx: QuestionContext) -> Outcome:
         self.question_words = len(ctx.question.split())
+        self.cited = ctx.cited
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": prompts.load("system")},
@@ -450,7 +478,11 @@ class AgentRun:
                 "no_hits" if result.status != "ok" or not data.get("hits") else "low_score"
             )
         messages.append(
-            {"role": "tool", "tool_call_id": call.id, "content": _model_view(call.name, result, st)}
+            {
+                "role": "tool",
+                "tool_call_id": call.id,
+                "content": _model_view(call.name, result, st, self.cited),
+            }
         )
         return None
 

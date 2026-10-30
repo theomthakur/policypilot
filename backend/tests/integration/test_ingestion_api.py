@@ -141,3 +141,22 @@ def test_corpus_autoload_is_idempotent_and_bumps_the_version(
         listing = c.get("/api/v1/documents").json()
     assert listing["corpus_version"] >= 1
     assert listing["items"][0]["source"] == "corpus"
+
+
+def test_original_pdf_is_served_inline_to_the_session_that_may_see_it(
+    client: TestClient, make_pdf: Callable[..., Path]
+) -> None:
+    assert client.post("/api/v1/sessions").status_code == 201
+    path = make_pdf(POLICY_PAGES)
+    body = _upload(client, path)
+    document_id = body["document"]["id"]
+
+    response = client.get(f"/api/v1/documents/{document_id}/file")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-disposition"].startswith("inline")
+    assert response.content == path.read_bytes()
+
+    client.cookies.clear()
+    assert client.post("/api/v1/sessions").status_code == 201  # a different session
+    assert client.get(f"/api/v1/documents/{document_id}/file").status_code == 404

@@ -40,6 +40,13 @@ def check_quote(quote: str, page_text: str) -> str:
     return "failed"
 
 
+def strip_evidence_ids(text: str) -> str:
+    """Evidence IDs (E3) are bookkeeping for the verifier; people read citations as chips, not as codes."""
+    text = re.sub(r"\s*[\(\[]\s*E\d+(?:\s*[,;]\s*E\d+)*\s*[\)\]]", "", text)
+    text = re.sub(r",\s*E\d+(?:\s*,\s*E\d+)*(?=\s*[)\].;])", "", text)
+    return re.sub(r"[ \t]{2,}", " ", text).strip()
+
+
 def locate_quote(quote: str, page_text: str) -> str | None:
     """The exact span of the page that matches `quote` under the verifier's normalization.
 
@@ -197,7 +204,7 @@ async def verify_answer(
         return out
 
     notices = [
-        {"kind": n.kind, "text": n.text, "citation_indexes": indexes_for(n.evidence_ids)}
+        {"kind": n.kind, "text": strip_evidence_ids(n.text), "citation_indexes": indexes_for(n.evidence_ids)}
         for n in draft.notices
     ]
     if unverified:
@@ -211,7 +218,7 @@ async def verify_answer(
     no_support = not claims
     stop_reason = "insufficient_evidence" if no_support else "answered"
     answer = {
-        "summary": draft.summary,
+        "summary": strip_evidence_ids(draft.summary),
         "claims": claims,
         "citations": citations,
         "notices": notices,

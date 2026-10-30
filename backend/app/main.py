@@ -20,14 +20,21 @@ API_PREFIX = "/api/v1"
 logger = logging.getLogger("policypilot")
 
 
+async def _load_all(corpus_dir: Path, reference_dir: str) -> int:
+    from app.ingest.pipeline import ensure_corpus_loaded
+
+    loaded = await ensure_corpus_loaded(corpus_dir)
+    if reference_dir:
+        loaded += await ensure_corpus_loaded(Path(reference_dir), source="reference")
+    return loaded
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     background: asyncio.Task[int] | None = None
     if settings.corpus_autoload:
-        from app.ingest.pipeline import ensure_corpus_loaded
-
-        background = asyncio.create_task(ensure_corpus_loaded(Path(settings.corpus_dir)))
+        background = asyncio.create_task(_load_all(Path(settings.corpus_dir), settings.reference_dir))
     yield
     if background is not None and not background.done():
         background.cancel()

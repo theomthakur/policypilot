@@ -110,3 +110,13 @@ def test_nearly_exact_quotes_snap_to_the_literal_page_sentence() -> None:
     assert span is not None and span in page and "written approval" in span
     assert nearest_span("Completely unrelated sentence about parking permits today", page) is None
     assert nearest_span("too short", page) is None
+
+
+def test_evidence_ids_are_removed_from_the_text_people_read() -> None:
+    from app.agent.verifier import strip_evidence_ids
+
+    assert strip_evidence_ids("MFA is required (E2). Details (Remote Work Standard, p. 2, E4).") == (
+        "MFA is required. Details (Remote Work Standard, p. 2)."
+    )
+    assert strip_evidence_ids("Both apply [E1, E3] to VPN.") == "Both apply to VPN."
+    assert strip_evidence_ids("Version E2E is unaffected") == "Version E2E is unaffected"

@@ -6,6 +6,7 @@ partial chunks visible (status stays `failed` with the error recorded).
 
 import asyncio
 import hashlib
+import json
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -66,8 +67,8 @@ async def ingest_document(document_id: uuid.UUID, run_id: uuid.UUID, path: Path)
             await _progress(db, run, "parsing")
             parsed = await asyncio.to_thread(parse_pdf, path, settings.upload_max_pages)
             run.page_count = document.page_count = len(parsed.pages)
-            if document.source == "corpus" or document.title == document.filename:
-                document.title = parsed.title
+            if document.source in ("corpus", "reference") or document.title == document.filename:
+                document.title = _sidecar_title(path) or parsed.title
 
             await _progress(db, run, "chunking")
             chunks = chunk_pages(parsed.pages, settings.chunk_tokens, settings.chunk_overlap_tokens)
@@ -129,8 +130,17 @@ def _corpus_files(corpus_dir: Path) -> list[Path]:
     return sorted(corpus_dir.glob("*.pdf")) if corpus_dir.is_dir() else []
 
 
-async def ensure_corpus_loaded(corpus_dir: Path) -> int:
-    """Ingest bundled corpus PDFs not stored yet (matched by SHA-256). Returns how many were ingested."""
+def _sidecar_title(path: Path) -> str | None:
+    """Optional display title from a titles.json next to the PDFs (real documents have messy metadata)."""
+    sidecar = path.parent / "titles.json"
+    try:
+        return str(json.loads(sidecar.read_text()).get(path.name)) if sidecar.is_file() else None
+    except (OSError, ValueError):
+        return None
+
+
+async def ensure_corpus_loaded(corpus_dir: Path, source: str = "corpus") -> int:
+    """Ingest bundled PDFs not stored yet (matched by SHA-256). Returns how many were ingested."""
     queued = 0
     for path in await asyncio.to_thread(_corpus_files, corpus_dir):
         digest = await asyncio.to_thread(sha256_file, path)
@@ -148,7 +158,7 @@ async def ensure_corpus_loaded(corpus_dir: Path) -> int:
                     filename=path.name,
                     storage_name=path.name,  # corpus files live in CORPUS_DIR
                     sha256=digest,
-                    source="corpus",
+                    source=source,
                     status="queued",
                 )
                 db.add(existing)

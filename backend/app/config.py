@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     upload_max_pages: int = 100
     upload_dir: str = "/data/uploads"
     corpus_dir: str = "/app/corpus/pdfs"
+    reference_dir: str = ""  # optional folder of real public documents, loaded as source "reference"
     corpus_autoload: bool = True
 
     # Public safety

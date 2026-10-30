@@ -114,6 +114,21 @@ paths:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /documents/{document_id}/file:
+    get:
+      tags: [documents]
+      summary: The original PDF, served inline for the viewer. Visible only for corpus documents and the session's own uploads.
+      operationId: getDocumentFile
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: The PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /documents/{document_id}/pages/{page}:
     get:
       tags: [documents]

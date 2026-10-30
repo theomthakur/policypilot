@@ -17,6 +17,7 @@ class QuestionContext:
     history: list[tuple[str, str]] = field(default_factory=list)  # (question, answer summary)
     clarification: tuple[str, str] | None = None  # (clarifying question asked, user's reply)
     original_question: str | None = None
+    cited: frozenset[tuple[str, int]] = frozenset()  # (document_id, page) used in recent answers
 
 
 @dataclass

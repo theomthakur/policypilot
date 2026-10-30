@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Response, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 
@@ -29,7 +30,7 @@ class DocumentOut(BaseModel):
     filename: str
     page_count: int
     status: Literal["queued", "processing", "ready", "failed"]
-    source: Literal["corpus", "upload"]
+    source: Literal["corpus", "reference", "upload"]
     sha256: str
     error: str | None
     created_at: str
@@ -181,6 +182,30 @@ async def upload_document(
 @router.get("/documents/{document_id}")
 async def get_document(document_id: uuid.UUID, db: DbSession, session_id: CurrentSession) -> DocumentOut:
     return DocumentOut.of(await _visible_document(db, document_id, session_id))
+
+
+@router.get("/documents/{document_id}/file")
+async def get_document_file(
+    document_id: uuid.UUID, db: DbSession, session_id: CurrentSession
+) -> FileResponse:
+    """The original PDF, for the in-app viewer (inline, so a browser opens it instead of downloading)."""
+    doc = await _visible_document(db, document_id, session_id)
+    settings = get_settings()
+    base = Path(
+        {"corpus": settings.corpus_dir, "reference": settings.reference_dir, "upload": settings.upload_dir}[
+            doc.source
+        ]
+    )
+    path = base / doc.storage_name
+
+    def usable() -> bool:  # file-system checks run off the event loop
+        return path.is_file() and path.parent.resolve() == base.resolve()
+
+    if not await asyncio.to_thread(usable):
+        raise ApiError(404, "NOT_FOUND", "The original file is not available.")
+    return FileResponse(
+        path, media_type="application/pdf", filename=doc.filename, content_disposition_type="inline"
+    )
 
 
 @router.get("/documents/{document_id}/pages/{page}")

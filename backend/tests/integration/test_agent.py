@@ -612,3 +612,45 @@ def test_chat_reply_is_rejected_for_a_real_policy_question(
     outcome, _ = _run(model, "What is the bandwidth limit for guests on wifi?")
     assert "not small talk" in next(m["content"] for m in model.calls[1] if m["role"] == "tool")
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
+
+
+def test_pages_cited_in_the_previous_answer_are_flagged_for_follow_ups(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    import asyncio
+
+    from sqlalchemy import select
+
+    from app.agent.loop import AgentRun
+    from app.agent.pages import PageCache
+    from app.agent.state import QuestionContext
+    from app.config import get_settings
+    from app.db.models import Document
+    from app.db.session import get_sessionmaker
+    from app.llm.client import ScriptedModel, respond
+    from app.tools.impl import FaultInjector, ToolContext
+
+    _load(make_pdf, tmp_path)
+
+    async def guest_id() -> str:
+        async with get_sessionmaker()() as db:
+            rows = (await db.execute(select(Document.id, Document.title))).all()
+        return str(next(i for i, t in rows if "Guest" in t))
+
+    doc = asyncio.run(guest_id())
+    clear_caches()
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    settings = get_settings()
+    ctx = QuestionContext("what else?", [("q", "a")], cited=frozenset({(doc, 1)}))
+    asyncio.run(
+        AgentRun(
+            settings, model, ToolContext(settings, None, FaultInjector(None, False)), Collector(), PageCache()
+        ).run(ctx)
+    )
+    seen = next(m["content"] for m in model.calls[1] if m["role"] == "tool")
+    assert '"already_cited": true' in seen and '"already_cited": false' in seen

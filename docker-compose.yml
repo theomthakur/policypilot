@@ -41,9 +41,11 @@ services:
       REDIS_URL: redis://redis:6379/0
       UPLOAD_DIR: /data/uploads
       CORPUS_DIR: /app/corpus/pdfs
+      REFERENCE_DIR: /app/corpus/reference
     volumes:
       - uploads:/data/uploads
       - ./corpus/pdfs:/app/corpus/pdfs:ro
+      - ./corpus/reference:/app/corpus/reference:ro
     depends_on:
       postgres:
         condition: service_healthy

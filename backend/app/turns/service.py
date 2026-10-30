@@ -52,8 +52,9 @@ def spawn(turn_id: uuid.UUID, session_id: uuid.UUID, fault: str | None, reply_to
 async def _build_context(turn: Turn, reply_to: uuid.UUID | None) -> QuestionContext:
     async with get_sessionmaker()() as db:
         state = await session_state.load(db, turn.session_id) or session_state.empty()
-    history = [(q, a) for q, a in state["history"]]
-    ctx = QuestionContext(turn.question, history)
+    history = [(h[0], h[1]) for h in state["history"]]
+    cited = frozenset((str(d), int(pg)) for h in state["history"][-2:] if len(h) > 2 for d, pg in h[2])
+    ctx = QuestionContext(turn.question, history, cited=cited)
     pending = state.get("pending_clarification")
     if reply_to is not None and pending and pending.get("turn_id") == str(reply_to):
         ctx.clarification = (pending["question"], turn.question)
@@ -202,7 +203,8 @@ async def _finish(
             if answer:
                 sources = sorted({f"{c['title']} p.{c['page']}" for c in answer.get("citations", [])})
                 note = f" [Sources: {'; '.join(sources)}]" if sources else ""
-                state["history"].append([turn.question, str(answer["summary"])[:450] + note])
+                pages = sorted({(c["document_id"], c["page"]) for c in answer.get("citations", [])})
+                state["history"].append([turn.question, str(answer["summary"])[:450] + note, pages])
         await session_state.save(db, turn.session_id, state)
     await limits.add_spend(cost)
 
