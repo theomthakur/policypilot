@@ -64,7 +64,7 @@ Status as of 30 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [~] Manual citation check: done for the last run by the assistant that built the system, not by a person (`docs/evaluation.md`: 21 of 21 claims have their numbers and terms on the cited page, and a read-through found them supported). Please spot-check about 20 cited pages yourself.
 
 **J. Engineering quality**
-- [x] Clear module layout, ADRs, 157 backend tests and 23 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
+- [x] Clear module layout, ADRs, 173 backend tests and 23 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [x] Tests pass locally and in GitHub Actions.
 
 ## 3. Required test cases (three repeats, r15 to r17, agent vs baseline)

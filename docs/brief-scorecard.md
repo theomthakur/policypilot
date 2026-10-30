@@ -43,7 +43,7 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | **G. Persistence and Redis**: database, real Redis use, keys, expiry, outage behavior | DONE | 8 | Postgres plus Redis (cache, hot state, budget counters), outage script and saved output | Redis key and expiry table should be one page in the runbook |
 | **H. Containerization and DevOps**: Dockerfiles, Compose, health checks, volumes, secrets, CI, smoke test, persistence, outage, update and rollback | DONE | 8 | Compose, CI (ruff, mypy, pytest, builds; green on the latest finished runs), `docs/runbook.md`, kind and Calico verification | No public deploy |
 | **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7 | `eval/run.py`, `eval/cases.yaml` (11 cases), `docs/evaluation.md`; latest run agent 9 of 11, fresh set 9 of 9, older held-out 6 of 10; baseline 4 of 9, 5 of 7, 5 of 9 | Single runs; several disclosed label corrections; held-out sets no longer blind |
-| **J. Engineering quality**: practices, organization, documentation | DONE | 9 | 157 backend tests, 23 frontend tests, typed config, ADRs, requirements traceability | Some docs are stale (see "What is still needed") |
+| **J. Engineering quality**: practices, organization, documentation | DONE | 9 | 173 backend tests, 23 frontend tests, typed config, ADRs, requirements traceability | Some docs are stale (see "What is still needed") |
 
 ## 4. Required demonstration and test cases
 
