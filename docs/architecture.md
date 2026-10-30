@@ -105,7 +105,7 @@ Key choices:
 - The embedding model and dimension are versioned. Changing the model requires re-embedding.
 - The current small corpus does not justify a separate vector database.
 
-Production hardening beyond the take-home would move ingestion from an in-process task to a durable queue and worker with leases and restart recovery.
+Ingestion is a durable job (a row in the PostgreSQL `jobs` table, created in the same transaction as the document). A worker claims it with a lease and a fencing counter and retries it if the lease runs out; a job that keeps crashing ends as an interrupted failure and never leaves a half-searchable document ([ADR 0010](adr/0010-durable-postgres-jobs.md)). Uploaded PDFs are still on a local volume; moving them to object storage is the step that would allow more than one node.
 
 ## 5. Query and agent path
 

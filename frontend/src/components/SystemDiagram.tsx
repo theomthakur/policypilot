@@ -54,7 +54,7 @@ const layers: Layer[] = [
         logos: ['fastapi', 'pydantic'],
         name: 'FastAPI + Pydantic',
         detail:
-          'Passcode, rate limit, budget cap, session ownership, SSE stream.',
+          'Sign-in, rate limit, budget cap, ownership checks, SSE stream.',
       },
     ],
   },
@@ -124,14 +124,15 @@ const patterns = [
   ['Audit log', 'Every action is a stored, replayable trace event.'],
   ['Versioned', 'corpus_version keys the cache; prompt_version is recorded.'],
   ['Bounded loop', 'Explicit limits; duplicate calls blocked; retries once.'],
+  ['Durable jobs', 'Questions and uploads are stored jobs a new worker can resume.'],
 ]
 
 const productionLane = [
-  ['Queue workers', 'Ingest off the request path, with retries'],
-  ['Object storage', 'PDFs in S3-compatible storage, not a volume'],
+  ['Object storage', 'PDFs in S3-compatible storage, so workers can scale out'],
+  ['Managed database', 'Replication and point-in-time backups'],
   ['Dedicated vector tier', 'Past a few hundred thousand chunks'],
   ['Reranker', 'Only if it wins on evaluation data'],
-  ['SSO and tenants', 'Replace the demo passcode'],
+  ['University SSO and roles', 'Sign-in works with any OpenID provider; roles are not built'],
   ['Tracing and alerts', 'OpenTelemetry, cost and error dashboards'],
 ]
 

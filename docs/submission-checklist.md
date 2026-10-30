@@ -55,35 +55,35 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [x] Smoke test passes and asserts the expected fact and cited page: `docs/deployment-evidence/smoke-test.txt`.
 - [~] CI workflow exists (tests including integration, contract drift, image builds, secret scan) but has **not run on GitHub yet**; it triggers on pull requests and on `main`.
 - [ ] Production images are not published; the production Compose file expects immutable images.
-- [~] Update and rollback instructions are written (`docs/runbook.md`) but no update/rollback drill has been run.
+- [~] Update and rollback instructions are written (`docs/runbook.md`). A bad-image rollout and rollback was drilled on the Kubernetes path (`docs/deployment-evidence/2026-10-30/kind-drills.txt`); the Compose production path (VM, Caddy) has not been drilled.
 
 **I. Evaluation**
 - [x] Repeatable evaluation script with 11 cases, expected behavior and expected sources (`eval/run.py`, `eval/cases.yaml`).
 - [x] Actual results and a failure analysis (`docs/evaluation.md`), compared with a single-pass retrieve-once baseline on the same corpus and model, with traces committed and exclusions explained (CASE-4 and CASE-8 are not applicable to the baseline).
 - [x] The write-up says where iteration helps and where it only adds cost; the agent does not win every case.
-- [ ] Manual citation check (opening each cited page and judging the claim) is not done; the log in `docs/evaluation.md` is empty. Automatic check: every shown citation is literal text on its page (14 of 14).
+- [~] Manual citation check: done for the last run by the assistant that built the system, not by a person (`docs/evaluation.md`: 21 of 21 claims have their numbers and terms on the cited page, and a read-through found them supported). Please spot-check about 20 cited pages yourself.
 
 **J. Engineering quality**
 - [x] Clear module layout, ADRs, 76 backend tests and 15 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [~] Tests pass locally; they have not yet run in GitHub Actions.
 
-## 3. Required test cases (final run r10, agent vs baseline)
+## 3. Required test cases (three repeats, r15 to r17, agent vs baseline)
 
 Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/run-2026-10-29-gpt-4o-mini-r10/`.
 
 - [x] 1 Simple lookup: pass, pass
 - [x] 2 Multi-document A: pass, pass
-- [x] 3 Multi-document B: pass for the agent, fail for the baseline (unstable between runs)
-- [ ] 4 Ambiguous question: **fail** (answers for every account type instead of asking); baseline not applicable
-- [ ] 5 Insufficient evidence: **fail** for the agent on the strict wording check (it did say the documents do not cover it; the baseline passed this time and failed in the previous run)
-- [ ] 6 Conflicting sources: **fail** for both (finds the 2023 policy, never the 2025 one that replaces it; borderline, a hand test answered correctly)
+- [x] 3 Multi-document B: agent 3 of 3, baseline 0 of 3 (it cites one document)
+- [ ] 4 Ambiguous question: **fail** in 3 of 3 repeats (r15 to r17). The structured ambiguity check asks in some runs (r13, r14 asked, then answered) but not reliably; held-out HELD-4 also 0 of 2. Baseline not applicable.
+- [x] 5 Insufficient evidence: **pass** in 3 of 3 repeats (explicit abstention, `missing_evidence` notice, no citations); the old strict wording check is kept as `legacy_checks`.
+- [ ] 6 Conflicting sources: **1 of 3** repeats. Retrieval now finds both the 2023 policy and the 2025 standard and a conflict notice is generated from their metadata; the model still sometimes answers mainly from the older one. Baseline 0 of 3.
 - [x] 7 Prompt injection: pass, pass
 - [x] 8 Tool failure or timeout: pass; baseline not applicable
-- [ ] 9 Adaptive re-retrieval (extra): **fail** for both (everyday wording does not match the policy's terms)
+- [ ] 9 Adaptive re-retrieval (extra): **fail** 0 of 3 (the answer cites the data-classification page but not the cloud-services page); held-out HELD-9, a similar vocabulary mismatch, passed 2 of 2 for the agent.
 - [x] 10 One document, many parts (extra): pass, pass
-- [ ] 11 Follow-up question (extra): **fail** for both (the agent ran out of searches; the baseline cannot resolve "her")
+- [~] 11 Follow-up question (extra): agent **2 of 3**, baseline 0 of 3 (the failed run searched the NIST incident document and ran out of searches).
 
-Result: agent 6 of 11, baseline 5 of 9 (agent 5 of the same 9). Agent citation support 14 of 14, baseline 9 of 9. Average correctness is higher for the agent in both runs on this library (0.84 to 0.87 against 0.65 to 0.68); pass counts are within noise. The agent uses about eleven times the tokens. Prompts were tuned on these same cases and runs vary by about one case, so treat it as a development measurement.
+Result over the three repeats: agent 24 of 33 case-runs, baseline 15 of 27. Held-out set (10 new questions, two runs): agent 12 of 20, baseline 10 of 18. Details, the manual citation review and the limits are in `docs/evaluation.md`.
 
 ## 4. Technology
 
@@ -96,15 +96,16 @@ Result: agent 6 of 11, baseline 5 of 9 (agent 5 of the same 9). Agent citation s
 - [x] Reproducibility notes: corpus source, model and embedding IDs, prompts, tool schemas, environment template, evaluation command, expected cost (`docs/reproducibility.md`).
 - [x] System design and architecture diagram with components, agent states, tool calls, decision points, retrieval loop and stopping conditions (`docs/architecture.md`, `docs/system-design.md`, the in-app System design page).
 - [x] Agent and baseline evaluation results and failure analysis (`docs/evaluation.md`).
-- [ ] Short recorded demo or walkthrough: you record it. A script and saved traces are in `docs/demo.md`. It must show a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. **Caveat:** with the real model, the clarification does not trigger reliably (CASE-4). Show it with a question where it does, or say so openly.
+- [ ] Short recorded demo or walkthrough: you record it. A script and saved traces are in `docs/demo.md`. It must show a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. **Caveat:** with the real model the clarification does not trigger reliably (CASE-4 passed 0 of 3 repeats). Show it with a question where it does ("How do I renew my account?" asked and was answered in runs r13 and r14), or say so openly.
 - [x] Short summary of achievements, unfinished work and improvements (`docs/summary.md`).
 - [~] Deployment runbook and evidence: runbook, Dockerfiles, Compose and CI are done; local evidence is saved (smoke test, restart persistence, Redis outage, health output).
 - [ ] Still missing: a public HTTPS URL, immutable release tag and image digests, a public end-to-end check, an update and rollback drill.
 
 ## 6. Optional enhancements (not required)
 
-- [x] Authentication: a demo passcode with per-session isolation. [x] Advanced retrieval: hybrid search, measured against alternatives.
-- [ ] Infrastructure as code, Kubernetes: not attempted.
+- [x] Authentication: OpenID Connect sign-in with per-user ownership (tested against Keycloak, [`docs/authentication.md`](authentication.md)); the demo passcode remains as a cost gate. [x] Advanced retrieval: hybrid search measured against alternatives, plus document-family discovery.
+- [~] Infrastructure as code, Kubernetes: manifests and scripts for a local `kind` cluster, deployed and drilled ([`docs/kubernetes.md`](kubernetes.md), evidence in `docs/deployment-evidence/2026-10-30/`); single node, no autoscaler, NetworkPolicy and OpenShift not demonstrated.
+- [x] Durable job queue and worker with crash recovery ([ADR 0010](adr/0010-durable-postgres-jobs.md)).
 
 ## What only you can do
 
@@ -116,9 +117,9 @@ Result: agent 6 of 11, baseline 5 of 9 (agent 5 of the same 9). Agent citation s
 
 ## Could be improved (ranked by value)
 
-1. **Clarification and supersession in the agent.** Replace prompt rules with a structured field the code acts on, and compare document dates for conflicts. Targets CASE-4 and CASE-6.
+1. **Clarification and supersession in the agent.** A structured, quote-backed assessment and a metadata-driven conflict repair now exist but are not reliable (CASE-4 0 of 3, CASE-6 1 of 3). Needs a stronger judge or fresh training questions.
 2. **Vocabulary bridging for retrieval.** Query expansion from the documents' own terms. Targets CASE-9.
-3. **A held-out question set**, so the evaluation is not tuned on itself.
+3. **A larger held-out set.** Ten questions and two runs now exist (12 of 20 for the agent); more would tighten the estimate.
 4. **Cost of the agent.** It spends about eight times the tokens of the baseline; trimming tool results and reusing reads would cut that.
 5. **Answer style.** Answers are long; shorter, scannable answers would read better.
-6. **Production scale.** Background ingestion, object storage, single sign-on, tracing and cost dashboards.
+6. **Production scale.** Object storage, university single sign-on, replicated database, tracing and cost dashboards. (Background jobs and sign-in now exist.)

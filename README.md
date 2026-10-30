@@ -10,9 +10,10 @@ It is a full-stack agentic retrieval-augmented generation (RAG) application: Rea
 
 This is working software that runs locally with one command. What is and is not finished:
 
-- **Done and verified:** ingestion, hybrid retrieval, the agent and baseline, citation verification, the web app, session isolation, Redis fallback, the evaluation suite, Docker Compose, a CI workflow, and local drills (smoke test, restart persistence, Redis outage) whose output is saved in [`docs/deployment-evidence/`](docs/deployment-evidence/).
-- **Not done yet:** a public deployment, a recorded demo, the manual review of every cited page, and merging to `main` (the work is on the `integration/full-stack` branch). The CI workflow is written but has not yet run on GitHub.
-- **Known weak spots:** asking a clarifying question when it should, noticing that a newer policy replaced an older one, and bridging everyday wording to a policy's own terms. They are measured and explained in [`docs/evaluation.md`](docs/evaluation.md).
+- **Done and verified:** ingestion, hybrid retrieval, the agent and baseline, citation verification, the web app, sign-in (OpenID Connect, tested against Keycloak with two users), per-user ownership, durable jobs that survive a crashed worker, Redis fallback, the evaluation suite with a held-out set, Docker Compose, a Kubernetes deployment drilled on a local `kind` cluster, a CI workflow, and saved evidence in [`docs/deployment-evidence/`](docs/deployment-evidence/).
+- **Not done:** a public deployment, a recorded demo, a run of CI on GitHub, and merging to `main` (the work is on `integration/full-stack`). Those need you.
+- **Known weak spots:** the agent does not reliably ask a clarifying question when it should (0 of 3 repeats on the required ambiguity case) or state that a newer policy replaced an older one (1 of 3). On 10 held-out questions it passed 12 of 20 runs against 10 of 18 for the one-pass baseline. Details and the manual citation review are in [`docs/evaluation.md`](docs/evaluation.md).
+- **Not built or not demonstrated:** object-storage for uploads (so no scaling beyond one node), database replication, enforced NetworkPolicies, an OpenShift deployment (the overlay is only rendered), a university identity provider, roles and single logout.
 
 The checklist of what the brief asks for and where each item stands is in [`docs/submission-checklist.md`](docs/submission-checklist.md).
 
@@ -30,7 +31,9 @@ The checklist of what the brief asks for and where each item stands is in [`docs
 
 **Safety and operations**
 - Limits on steps, tool calls, time and tokens, with one bounded retry and a useful partial answer instead of a hang.
-- A demo passcode, a per-client rate limit, a daily spend cap, and strict session isolation: one browser session can never read another's turns, event streams or uploads.
+- A demo passcode, a per-client rate limit, a daily spend cap, and strict isolation: a conversation is never readable by another browser or, with sign-in on, another user (turns, event streams, uploads, PDFs).
+- Optional real sign-in ([`docs/authentication.md`](docs/authentication.md)): OpenID Connect with PKCE, revocable server-side sessions, and a production mode that refuses to start without it.
+- Questions and uploads are stored as durable jobs: a crashed or restarted worker hands them to the next one, and the trace says so.
 - Redis holds sessions, the search cache, ingest progress, rate limits and the daily budget. If Redis is down the app reports `degraded` and keeps working from PostgreSQL.
 
 **The app**
@@ -126,6 +129,8 @@ Everything is an environment variable; [`.env.example`](.env.example) lists them
 | `AGENT_MAX_STEPS`, `AGENT_MAX_TOOL_CALLS`, `AGENT_TURN_TIMEOUT_S`, `AGENT_MAX_TOKENS_PER_TURN` | Agent limits | 8, 6, 60 s, 25,000 |
 | `CHUNK_TOKENS`, `CHUNK_OVERLAP_TOKENS` | Chunk size (re-ingest after changing) | 200, 30 |
 | `REFERENCE_DIR` | Folder of real reference PDFs to load | `/app/corpus/reference` in Compose |
+| `AUTH_MODE`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `AUTH_SECRET_KEY` | Sign-in: `off` (default), `oidc` (required in production), `test` (tests only) | `off` |
+| `WORKER_EMBEDDED`, `RUN_MIGRATIONS_ON_START` | Run jobs inside the API (default) or in a separate worker; run migrations on start or as a separate step | true, true |
 | `FAULT_INJECTION_ENABLED` | Allows test-only fault injection (needed by one evaluation case) | false |
 
 The running configuration, without secrets, is readable at `GET /api/v1/config` and shown on the System design page.
@@ -151,11 +156,13 @@ make corpus          # regenerate the synthetic PDFs and manifest deterministica
 make smoke           # upload-to-cited-answer smoke test against the running stack
 make redis-outage    # stop Redis, show 'degraded', prove a turn still completes
 make persistence     # restart everything and check documents and sessions survive
+scripts/verify_clean_checkout.sh   # clone the commit and re-run lint, types, every test, the frontend and manifest checks
+scripts/k8s_up.sh    # Kubernetes on a local kind cluster, with sign-in; then scripts/k8s_smoke.sh and scripts/k8s_recovery.sh
 ```
 
-Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services (CI does this and fails if any test is skipped). Full run: 82 backend tests.
+Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services (CI does this and fails if any test is skipped). Full run: 129 backend tests, none skipped.
 
-Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (16 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
+Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (23 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
 
 API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 
@@ -167,26 +174,26 @@ API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 POLICYPILOT_BASE_URL=http://localhost:8080/api/v1 python eval/run.py --output-dir eval/results/my-run
 ```
 
-Reference run (`eval/results/run-2026-10-29-gpt-4o-mini-r10/`, `openai/gpt-4o-mini`, 14-document library):
+Reference runs (`openai/gpt-4o-mini`, prompt v9, 14-document library), three repeats of the 11 tuned cases (r15 to r17) and two runs of 10 held-out questions:
 
-- The agent passed 6 of 11 cases and the baseline 5 of the 9 it applies to, on deterministic checks.
-- Every citation shown was literally on its page (14 of 14 and 9 of 9).
-- The agent's average correctness is higher (0.84 against 0.68), but pass counts are within noise, and the agent uses about eleven times the tokens and takes about three times as long. On direct lookups the baseline is as good and much cheaper.
-- Prompts were tuned against these same cases, and runs vary by about one case, so this is a development measurement, not a held-out test. The manual page review is not done.
+- Tuned cases: the agent passed **24 of 33** case-runs, the baseline **15 of 27**. Six of the eight required scenarios pass every time; the ambiguity case passes 0 of 3 and the conflict case 1 of 3.
+- Held-out questions, never used for tuning: the agent **12 of 20**, the baseline **10 of 18**. This is the figure to trust for generalization.
+- The agent costs about ten times the tokens of the baseline and takes about three and a half times as long; it is better on cross-document, follow-up and vocabulary-mismatch questions and no better on direct lookups.
+- A manual citation review of the last run found every number and term in every claim on its cited page; it was done by the assistant that built the system, so please spot-check, and the verifier does not check every sentence of an answer's prose.
 
-The method, all ten runs and what changed between them (including an experiment that made things much worse), and the failure analysis are in [`docs/evaluation.md`](docs/evaluation.md).
+The method, every run (r1 to r17, including experiments that made things worse), the held-out results and the failure analysis are in [`docs/evaluation.md`](docs/evaluation.md).
 
 ## Deployment
 
-Production uses the same Compose definition plus `compose.prod.yaml`, immutable image tags and Caddy for automatic HTTPS. It is meant to sit behind a demo passcode, the rate limit, the daily budget cap and a spend-capped provider key. Exact deploy, verify, update and rollback steps, backups and the scaling approach are in [`docs/runbook.md`](docs/runbook.md). No public deployment exists yet.
+Production uses the same Compose definition plus `compose.prod.yaml`, immutable image tags and Caddy for automatic HTTPS. It is meant to sit behind a demo passcode, the rate limit, the daily budget cap and a spend-capped provider key. Exact deploy, verify, update and rollback steps, backups and the scaling approach are in [`docs/runbook.md`](docs/runbook.md). No public deployment exists yet. A second path, [Kubernetes on a local kind cluster](docs/kubernetes.md), was deployed and drilled (single node; see its list of what it does not do).
 
 ## Limitations
 
 - English, text-based PDFs only (no scanned pages or OCR).
-- The agent is unreliable at asking a clarifying question and at spotting a replaced policy; both are open (see Evaluation).
+- The agent is unreliable at asking a clarifying question and at stating that a newer policy replaced an older one; both are open (see Evaluation).
 - Similarity scores cannot tell "on topic but unanswerable" from "answerable", so the model judges sufficiency from the text it reads.
-- The evaluation is small and was tuned on; there is no held-out set and no load testing.
-- Sessions are anonymous browser cookies behind a shared demo passcode, not user accounts.
+- The evaluation is small. The tuned cases were tuned on; the held-out set has only 10 questions and two runs. There is no load testing.
+- With `AUTH_MODE=off` (the Compose default) sessions are anonymous browser cookies behind an optional shared passcode. Real sign-in exists and is tested against Keycloak only.
 
 More in [`docs/security-and-limitations.md`](docs/security-and-limitations.md).
 
@@ -197,6 +204,7 @@ More in [`docs/security-and-limitations.md`](docs/security-and-limitations.md).
 - [Requirements and traceability](docs/requirements.md)
 - [Evaluation: method, results, run history, failure analysis](docs/evaluation.md)
 - [Reproducibility: corpus, models, prompts, cost](docs/reproducibility.md)
+- [Authentication](docs/authentication.md) and [Kubernetes](docs/kubernetes.md)
 - [Runbook, demo walkthrough and deployment evidence](docs/runbook.md), [demo](docs/demo.md), [evidence](docs/deployment-evidence/)
 - [Presentation plan](docs/presentation.md) and [slide-by-slide plan](docs/presentation-slides.md)
 - [End-to-end completeness audit](docs/completeness-audit.md)

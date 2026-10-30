@@ -8,26 +8,30 @@ PolicyPilot is a full-stack agentic RAG application over 14 PDFs: ten synthetic 
 - **Retrieval:** page-bounded 200-token chunks, vector plus full-text search fused with reciprocal rank fusion. These settings were chosen by a benchmark on the evaluation cases' expected pages (`eval/retrieval_bench.py`, ADR 0005); a reranker, a larger embedding model and a heading prefix were tested and not adopted.
 - **Agent:** a hand-written bounded state machine with four read-only tools, step, tool, time and token limits, one retry, duplicate-call blocking, partial answers on limits, and untrusted treatment of retrieved text. Greetings, thanks and questions about the assistant get a direct reply, and a question nothing in the library is about is answered in code after one search.
 - **Trust:** a claim is shown only if its quote is literal text on the cited page (provenance, location, then the exact span stored as the citation).
-- **Operations:** passcode, rate limit, daily budget cap, per-session isolation (a session can never read another's turns or uploads), Redis-down fallback to PostgreSQL, readiness reporting, structured logs.
-- **Evaluation:** an 11-case suite run against the live API for the agent and a retrieve-once baseline; raw results are committed (`eval/results/run-2026-10-29-gpt-4o-mini-r10/`).
-- **Interface:** workspace with documents, conversation and a readable execution trace; a developer mode with metrics; light and dark themes; an architecture page and a plain-language presentation.
+- **Operations:** optional OpenID Connect sign-in with per-user ownership of conversations and uploads, passcode, rate limit, daily budget cap, Redis-down fallback to PostgreSQL, readiness reporting, structured logs, and **durable jobs** (questions and uploads survive a crashed worker; shown by killing a worker mid-question on a real cluster).
+- **Agent additions (30 Oct):** a quote-backed check that asks a clarifying question only when parallel kinds of a noun the user used are described in one document; document authority, version, effective date and documented supersession reaching retrieval and a conflict notice; follow-up search scoped to earlier sources; honest counters for logical calls, attempts, retries, blocked calls and model requests.
+- **Evaluation:** an 11-case tuned suite (three repeats) plus a 10-question held-out set, run against the live API for the agent and a retrieve-once baseline; raw results are committed (`eval/results/`).
+- **Deployment:** Docker Compose (required) and a Kubernetes path deployed and drilled on a local `kind` cluster (pod deletes, bad image with rollback, backup and restore, a crashed worker), with Keycloak sign-in through an ingress.
+- **Interface:** workspace with a collapsible knowledge base and agent activity, a time-of-day greeting, a readable execution trace, a developer mode with metrics, sign-in screen and account menu, light and dark themes, an architecture page and a plain-language presentation.
 
 ## Results in one paragraph
 
-On the reference run (the final 14-document library) the agent passed 6 of 11 cases and the single-pass baseline 5 of the 9 cases it applies to, on deterministic checks; the agent's average correctness is higher in both runs on this library (0.84 to 0.87 against 0.65 to 0.68), but the number of cases passed is within noise (6 of 11 both times against 4 and then 5 of 9). Citation support is complete for both because unsupported citations are never shown. The agent uses about eleven times the tokens and takes three times as long, and on direct lookups the baseline is as good and far cheaper. Runs vary by about one case. Details, the run history and the failure analysis are in `docs/evaluation.md`. The prompts were tuned against the same 11 cases, so this is a development measurement, not a held-out test.
+On three repeats of the 11 tuned cases the agent passed 24 of 33 case-runs and the one-pass baseline 15 of 27; six of the eight required scenarios pass every time (simple lookup, two multi-document cases, missing evidence, prompt injection, tool failure). On 10 held-out questions the agent passed 12 of 20 and the baseline 10 of 18, which is the better estimate of how it generalizes. The agent costs about ten times the tokens and takes about three and a half times as long; it earns it on cross-document, follow-up and vocabulary-mismatch questions and not on direct lookups. Every number and term in the claims of the last run was found on its cited page (a manual review by the assistant; please spot-check).
 
 ## Unfinished
 
-- **Five agent cases still fail** in the reference run: recognising that a newer policy replaced an older one (CASE-6), asking a clarifying question instead of answering for every variant (CASE-4), bridging everyday wording to a policy's own terms (CASE-9), wording a missing-evidence answer the way the strict check expects (CASE-5), and a follow-up that ran out of searches (CASE-11).
-- **Manual citation review** (opening each cited page and judging whether it supports the claim) has not been done; the log in `docs/evaluation.md` is empty.
-- **No public deployment, recorded demo or update and rollback drill** yet. The local drills (smoke test, restart persistence, Redis outage) pass and their output is saved under `docs/deployment-evidence/`.
-- **CI has been configured but not yet run on GitHub**, and the work is still on the `integration/full-stack` branch, not `main`.
-- No held-out evaluation set, no load testing, and the weak-evidence flag is only a hint (similarity scores cannot separate answerable from unanswerable questions here).
+- **Two required behaviors are unreliable:** asking a clarifying question instead of answering for every variant (CASE-4 passed 0 of 3; held-out HELD-4 0 of 2) and stating that a newer policy replaced an older one (CASE-6 1 of 3; HELD-7 0 of 2). The ambiguity check also asks needlessly on some specific questions (HELD-2). Vocabulary bridging (CASE-9) still fails on its tuned case; the evidence-driven re-search that would address it was not built.
+- **The verifier checks each claim, not every sentence of the prose.** Extra sentences were true in the cases I checked by hand, but nothing enforces it.
+- **No public deployment, no recorded demo, no CI run on GitHub, and the work is still on `integration/full-stack`, not `main`.** Those are yours to do.
+- **Kubernetes limits:** single node, one replica of the API and worker (uploads are on a local volume; no object-storage adapter), one PostgreSQL pod (no replication), no autoscaler, NetworkPolicies written but not shown to be enforced (kindnet made connections unreliable), and the OpenShift overlay was only rendered.
+- **Sign-in** was tested against Keycloak only. There are no roles, no single logout, and rate limits are per client address.
+- Small evaluation, one model, no load testing.
 
 ## With more time
 
-1. Merge through pull requests, run CI, tag a release, publish images, deploy behind HTTPS with a capped key, and record the demo from the deployed release.
-2. Write a held-out set of new questions, do the manual citation review, and re-run both systems.
-3. Give the agent a structured way to flag "the answer depends on who is asking" (a plan field the code acts on) and a supersession check that compares document dates, then measure both against CASE-4 and CASE-6.
-4. Query expansion from the documents' own vocabulary for the weak-wording case, then re-benchmark.
-5. Move ingestion to queue workers and uploads to object storage; add SSO in place of the demo passcode; add tracing and cost dashboards.
+1. Merge through pull requests, run CI on GitHub, tag a release, deploy behind HTTPS with a capped key and a real identity provider, and record the demo from the deployed release.
+2. Make clarification dependable: a stronger model for the one-off ambiguity check, or a few-shot set drawn from held-out data, then measure on fresh questions (the current check is evidence-backed but misses and over-asks).
+3. Evidence-driven re-retrieval and query expansion from the documents' own vocabulary (CASE-9), measured on the held-out set.
+4. Verify every sentence of an answer, not only its claims.
+5. An S3-compatible storage adapter (MinIO locally) so the worker and API can scale across nodes, then a load test and an autoscaler; managed PostgreSQL with replication; a CNI that enforces NetworkPolicy; try the OpenShift overlay.
+6. Roles, single logout and per-user rate limits; tracing and cost dashboards.

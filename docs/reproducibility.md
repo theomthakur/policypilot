@@ -36,12 +36,13 @@ Prompts and their version identifiers live with the backend agent implementation
 Defaults from `.env.example`:
 
 - Page-bounded chunks: 200 tokens with a 30-token overlap (chosen by `eval/retrieval_bench.py`; see ADR 0005).
-- Overlap: 50 tokens.
 - Candidate count: 20 per retrieval method.
 - Returned results: 6 by default.
 - Reciprocal Rank Fusion constant: 60.
 - Weak-result threshold: 0.02.
-
+- Reference documents (NIST) are ranked at 0.9 of an institutional passage's fused score (`REFERENCE_SCORE_WEIGHT`); measured on 23 gold pages, recall@5 rose by one page (0.739 to 0.783), which is within noise, so treat the weight as a stated preference, not a proven gain.
+- Documents carry authority, version, effective date, family and documented supersession from `metadata.json` sidecars beside the PDFs; search adds the best passage of other versions in the same policy family.
+- Agent prompt: version v9 (`backend/app/agent/prompts/`). One extra model call after the first search of a new question assesses whether a missing detail changes the answer (`AGENT_ASSESS_AMBIGUITY`, on by default).
 Every evaluation result must record effective configuration, corpus manifest hash, model, prompt version, and token counts.
 
 ## Environment
@@ -55,6 +56,8 @@ Set at minimum:
 - A non-default `POSTGRES_PASSWORD`.
 - `LLM_API_KEY` for real-model runs, or `LLM_PROVIDER=fake` for smoke/CI.
 - `DEMO_PASSCODE`, `SESSION_COOKIE_SECURE=true`, and `PUBLIC_ORIGIN=https://...` in production.
+- For sign-in: `AUTH_MODE=oidc`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `AUTH_SECRET_KEY` (32+ characters) and `AUTH_COOKIE_SECURE=true` (see [authentication](authentication.md)); production refuses to start without them.
+- For a separate worker or a Kubernetes deployment: `WORKER_EMBEDDED=false`, `RUN_MIGRATIONS_ON_START=false`, and the `python -m app.cli seed` Job (see [kubernetes](kubernetes.md)).
 
 `.env` files are ignored. Do not commit keys, passcodes, database passwords, or provider responses containing secrets.
 

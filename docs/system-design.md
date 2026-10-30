@@ -27,8 +27,8 @@ The take-home topology uses one VM and Docker Compose because it is easy to repr
 - General web search.
 - Write-capable or external-action tools.
 - Multi-agent coordination.
-- Enterprise identity or document-level authorization.
-- Kubernetes or multi-region high availability in the submitted build.
+- Roles, tenants, or document-level sharing between users (sign-in and per-user ownership exist; see [authentication](authentication.md)).
+- Database replication, multi-node scaling or multi-region high availability (a single-node Kubernetes deployment was drilled; see [kubernetes](kubernetes.md)).
 
 ## High-level architecture
 

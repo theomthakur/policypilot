@@ -266,8 +266,8 @@ const slides: Slide[] = [
     body: (
       <div className="slide-cards">
         <Card title="Safe to share">
-          A passcode, request limits, a daily spending cap, and each visitor
-          sees only their own work.
+          Sign-in, request limits, a daily spending cap, and each person sees
+          only their own work.
         </Card>
         <Card title="Not solved yet">
           Spotting that a newer policy replaced an old one, and asking the right

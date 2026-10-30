@@ -100,6 +100,16 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 | REQ-J2 | Tests, linting and type checks | CI required checks | partial |
 | REQ-J3 | Documentation | Every file in the documentation set exists | partial |
 
+### I. Added 30 Oct 2026 (beyond the brief's required scope)
+| ID | Requirement | Acceptance test | Status |
+|---|---|---|---|
+| REQ-I1 | Real sign-in (OpenID Connect) with revocable server-side sessions | `tests/integration/test_auth.py`; Keycloak browser run in the deployment evidence | done (not tried against a university provider) |
+| REQ-I2 | Every conversation, upload and trace belongs to one user | two-user isolation test and browser run | done |
+| REQ-I3 | Accepted questions and uploads survive process restarts | `tests/integration/test_jobs.py`; worker SIGKILL drill | done |
+| REQ-I4 | Document authority, version, effective date and documented supersession reach retrieval and the conflict notice | `tests/integration/test_p1_agent.py` | done |
+| REQ-I5 | A held-out evaluation set, reported separately from the tuned cases | `eval/heldout.yaml`, `docs/evaluation.md` | done |
+| REQ-I6 | A second, tested deployment path on Kubernetes | `scripts/k8s_*.sh`, `docs/deployment-evidence/2026-10-30/` | partial (single node, single replicas; NetworkPolicy and OpenShift not demonstrated) |
+
 ## Evaluation cases
 
 | ID | Case | Observable pass criterion | Status |

@@ -1,5 +1,79 @@
 # Evaluation
 
+## Update, 30 October 2026 (runs r11 to r17 and the held-out set)
+
+This section supersedes the headline numbers further down. The older sections (run r10, its failure analysis and citation log) are kept as the record of that run.
+
+**What changed since r10.** Prompt v9; a structured ambiguity check after the first search; code that normalizes abstentions; document metadata (authority, version, effective date, documented supersession) with policy-family discovery and a conflict repair; follow-up search scoped to earlier sources; a 0.9 ranking weight for NIST reference material; truthful counters. Code and tests: see `docs/remaining-execution-plan.md` (handoff log). Same model (`openai/gpt-4o-mini`, temperature 0, seed 42), same 14-document library.
+
+### Tuned cases, three repeats (r15, r16, r17; `eval/results/run-2026-10-30-gpt-4o-mini-r1{5,6,7}/`)
+
+| Case | Category | Agent passed | Baseline passed | What fails |
+|---|---|---:|---:|---|
+| CASE-1 | simple lookup | 3/3 | 3/3 | |
+| CASE-2 | multi-document | 3/3 | 3/3 | |
+| CASE-3 | multi-document | 3/3 | 0/3 | baseline cites one document only |
+| CASE-4 | ambiguity | **0/3** | n/a | see below |
+| CASE-5 | missing evidence | 3/3 | 3/3 | |
+| CASE-6 | conflict | **1/3** | 0/3 | see below |
+| CASE-7 | injection | 3/3 | 3/3 | |
+| CASE-8 | tool failure | 3/3 | n/a | |
+| CASE-9 | adaptive retrieval | **0/3** | 0/3 | the cloud-services page is never cited |
+| CASE-10 | one document, three parts | 3/3 | 3/3 | |
+| CASE-11 | follow-up | 2/3 | 0/3 | one run searched the NIST incident document and ran out of searches |
+
+Totals: agent **24 of 33** case-runs, baseline **15 of 27** (the baseline does not apply to CASE-4 and CASE-8). Median per case: agent 10.5 s, about 19,900 tokens, 4 tool calls, mean cost $0.0039; baseline 3.0 s, about 2,100 tokens, 1 tool call, $0.0004. The agent costs roughly ten times the tokens and takes about three and a half times as long, and it wins on cross-document and follow-up questions the one-pass baseline cannot do. Of the eight required scenarios, six pass in every repeat (1, 2, 3, 5, 7, 8) and two do not (4 and 6).
+
+- **CASE-4 (ambiguity) fails every time, for a different reason than before.** The ambiguity check does fire and asks a question in some runs (r13 and r14 asked and then answered after the reply), but in r15 to r17 the check either judged the question answerable or the reply was answered without the six-month term the check requires. With real `gpt-4o-mini` this behavior is not reliable: a prompt-only check over-asked on almost everything (r11: 14 failures), and the quote-backed, head-noun-constrained version that stopped over-asking on the tuned cases misses this one.
+- **CASE-6 (conflict).** When the answer cites both documents it carries a conflict notice generated from the documents' own supersession metadata. In two of three repeats the model still answered mainly from the 2023 policy, or exhausted its token budget (`limit_tokens` in r17) before stating the supersession in the words the check wants.
+- **CASE-5 now passes**, using the broader abstention check (below).
+- **Run-to-run variation is real** (CASE-6 and CASE-11 changed between identical runs), so one run proves little. Treat these as rates over three, not as guarantees.
+
+### Held-out set (10 new questions, written before they were run; `eval/heldout.yaml`; runs h1 and h2)
+
+Not used to tune anything. Two runs each:
+
+| Case | Category | Agent | Baseline |
+|---|---|---:|---:|
+| HELD-1 | lookup | 2/2 | 2/2 |
+| HELD-2 | lookup | 0/2 | 0/2 |
+| HELD-3 | multi-document | 2/2 | 2/2 |
+| HELD-4 | ambiguity | 0/2 | n/a |
+| HELD-5 | missing evidence | 2/2 | 2/2 |
+| HELD-6 | missing evidence | 1/2 | 2/2 |
+| HELD-7 | conflict | 0/2 | 0/2 |
+| HELD-8 | follow-up | 1/2 | 0/2 |
+| HELD-9 | vocabulary mismatch | 2/2 | 0/2 |
+| HELD-10 | lookup | 2/2 | 2/2 |
+
+Agent **12 of 20**, baseline **10 of 18**. This is the number to quote for generalization, and it is lower than the tuned-case rate (60% against 73% for the agent). The failures are informative: HELD-2 and HELD-7 are specific questions where the agent still asked a clarifying question or missed the right document; HELD-4 is a genuinely ambiguous question that the agent did not ask about; HELD-6 once cited something while abstaining. On vocabulary mismatch (HELD-9, "temporary working disk" for scratch storage) the agent found the right page in both runs and the baseline in neither.
+
+### Corrected abstention check (CASE-5, HELD-5, HELD-6)
+
+The old check required a narrow phrase and failed r10's CASE-5 on wording even though the answer abstained. The new check keeps the structural requirements (stop reason `insufficient_evidence`, a `missing_evidence` notice, no citations, no invented amount) and uses a broad wording pattern. The old pattern is still computed and stored as `legacy_checks` in every result file but no longer decides pass or fail. Both agent and baseline are scored the same way. r10's CASE-5 failure is left as it was.
+
+### Manual citation review (run r17, agent)
+
+Done by the assistant that built the system, not by a human reviewer: **please spot-check.** For every claim in every answer I read the claim against the quote shown and then mechanically checked that every number and key term in the claim appears on the cited page (pdftotext of the source PDF).
+
+- 21 of 21 claims on cited pages pass the mechanical check (no figure or term in a claim is absent from its cited page).
+- Read by eye, the claims are supported, with two soft spots: CASE-4's "a faculty or staff sponsor" is supported by the page but not by the single quote shown; CASE-6's headline answer ("Yes, users are required to change passwords every 90 days") states the older rule first and the 2025 prohibition second, which is correct and cited but easy to misread.
+- **What the verifier does not check:** it verifies each *claim's* quote against its page. Extra sentences in the answer's summary are not individually verified. In r17 the extra sentences I spot-checked (24-hour guest sessions, local copies of irreplaceable data, the 24/7 hotline, two consecutive renewal terms) were all in the documents, but that is luck of review, not a guarantee.
+- The citation list shows one quote per page (the first claim's); a second claim on the same page is verified against its own quote but that quote is not displayed.
+
+### Accessibility and keyboard checks
+
+`scripts/e2e/a11y.mjs`: axe (WCAG 2.0/2.1 A and AA) found **0 violations** on the workspace, system design and presentation pages, in light and dark mode. A Tab walk found 38 stops, all named and on screen. The question box has no ring of its own; its container highlights on focus. The sign-in screen was not scanned with axe, and screen-reader behavior was not tested by hand.
+
+### Counters
+
+The totals now separate **logical tool calls** (the budget), **attempts** (retries and scope fallbacks included), **blocked calls**, **model requests** (the ambiguity check and repairs included) and tokens across all of them. The evaluator's `max_tool_calls` check still uses logical calls. Token and cost figures are provider-reported where the provider returns usage; a request that times out reports none, so cost is a slight underestimate on failed turns.
+
+### Limits of this evaluation
+
+Small (11 + 10 questions), one model, one corpus the team wrote, deterministic checks that cannot prove semantic correctness, and the tuned set was tuned on. Three repeats show variance but not a confidence interval.
+
+
 ## Status
 
 The 11 frozen cases were run against the integrated stack with a real model (`openai/gpt-4o-mini` through OpenRouter, temperature 0, seed 42). The reference run is `eval/results/run-2026-10-29-gpt-4o-mini-r10/`, made with the final code (prompt v8) on the final 14-document library: the ten synthetic policies in their final layout plus four real NIST documents. Results are deterministic-check results only; the manual page review below is **not done yet**.

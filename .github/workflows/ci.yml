@@ -25,6 +25,7 @@ jobs:
       - run: python corpus/generate.py
       - run: git diff --exit-code -- corpus
       - run: python eval/run.py --validate-only
+      - run: python eval/run.py --cases eval/heldout.yaml --validate-only
 
   backend:
     runs-on: ubuntu-24.04
@@ -123,6 +124,26 @@ jobs:
           tags: policypilot-frontend:ci
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+      - uses: docker/build-push-action@v6
+        with:
+          context: corpus
+          file: corpus/Dockerfile
+          push: false
+          tags: policypilot-corpus:ci
+
+  kubernetes-manifests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render every overlay (rendering is not deployment evidence; see docs/kubernetes.md)
+        run: |
+          for overlay in kind openshift; do
+            kubectl kustomize deploy/k8s/overlays/$overlay > /tmp/$overlay.yaml
+            echo "$overlay: $(grep -c '^kind:' /tmp/$overlay.yaml) objects"
+          done
+      - name: No secret values in the manifests
+        run: "! grep -rEi 'kind: Secret$' deploy/k8s"
+      - run: bash -n scripts/k8s_up.sh scripts/k8s_smoke.sh scripts/k8s_recovery.sh
 
   compose-smoke:
     runs-on: ubuntu-24.04
