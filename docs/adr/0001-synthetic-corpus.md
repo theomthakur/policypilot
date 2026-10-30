@@ -16,3 +16,7 @@ Use a synthetic corpus of 10 policy documents from a fictional organization, "No
 - Every evaluation case has a planted, checkable answer at a known page.
 - The domain matches a university IT setting without imitating any real institution.
 - Users can still upload their own PDFs; the synthetic corpus is the default demo set.
+
+## Addendum (29 Oct 2026): a reference library
+
+After the first evaluation, four real public documents were added next to the synthetic ones, so the system is also tested on pages it was not written for (real layout and vocabulary): NIST SP 800-61r3, NIST CSF 2.0, NIST SP 800-46r2 and FIPS 199. They are U.S. government publications, not subject to copyright in the United States, included unmodified with sources in `corpus/reference/SOURCES.md`. They are loaded as source `reference`, shown in the app as "public reference", and are outside the frozen evaluation anchors. The synthetic corpus is also regenerated with a more realistic layout, which moved some page numbers; `eval/cases.yaml` follows them.

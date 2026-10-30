@@ -13,7 +13,7 @@ git diff --exit-code -- corpus
 
 `corpus/manifest.json` records every title, version, effective date, PDF filename, page count, SHA-256 digest, evaluation case, and expected anchor page. ReportLab's invariant mode removes volatile PDF metadata. The generator verifies that every planted anchor can be extracted from its generated page.
 
-The generated set contains 10 text-based PDFs and 74 pages. Every page says: “Synthetic document for a take-home assignment. Not an official NYU policy.”
+The generated set contains 10 text-based PDFs and 85 pages (banner, real tables, headers and page numbers). Four real public NIST documents (146 pages) sit next to it in `corpus/reference/` as a reference library; sources and licensing notes are in `corpus/reference/SOURCES.md`. Every page says: “Synthetic document for a take-home assignment. Not an official NYU policy.”
 
 ## Models and prompts
 

@@ -1,0 +1,78 @@
+[
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 0,
+    "ts": "2026-10-30T01:17:37.986022+00:00",
+    "type": "turn_started",
+    "state": "PLAN",
+    "status": "info",
+    "summary": "Baseline: retrieve once, generate once."
+  },
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 1,
+    "ts": "2026-10-30T01:17:37.987411+00:00",
+    "type": "tool_call",
+    "tool": "search_documents",
+    "input": {
+      "query": "Where may I keep highly sensitive clinical study files in an internet-hosted file repository?",
+      "top_k": 5
+    },
+    "state": "ACT",
+    "status": "ok",
+    "attempt": 1,
+    "summary": "Calling search_documents."
+  },
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 2,
+    "ts": "2026-10-30T01:17:38.011346+00:00",
+    "type": "tool_result",
+    "tool": "search_documents",
+    "state": "OBSERVE",
+    "status": "ok",
+    "attempt": 1,
+    "summary": "5 hits: Approved Cloud Services Registry p.2, Data Classification and Handling Standard p.3, NIST SP 800-46r2: Telework, Remote Access and BYOD Security p.37, NIST SP 800-46r2: Telework, Remote Access and BYOD Security p.46",
+    "duration_ms": 24
+  },
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 3,
+    "ts": "2026-10-30T01:17:39.611674+00:00",
+    "type": "evaluate",
+    "state": "EVALUATE",
+    "status": "info",
+    "tokens": "[REDACTED]",
+    "summary": "Model produced the answer.",
+    "duration_ms": 1596
+  },
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 4,
+    "ts": "2026-10-30T01:17:39.616285+00:00",
+    "type": "verify",
+    "state": "VERIFY",
+    "status": "ok",
+    "summary": "All citations verified."
+  },
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 5,
+    "ts": "2026-10-30T01:17:39.618620+00:00",
+    "type": "answer",
+    "state": "EMIT",
+    "status": "ok",
+    "summary": "The documents do not contain specific guidance on where to keep highly sensitive clinical study files in an internet-hosted file repository. They discuss data classification and handling but do not provide explicit recommendations for Level 4 material, which includes sensitive clinical data.",
+    "stop_reason": "insufficient_evidence"
+  },
+  {
+    "turn_id": "688f84cf-56ec-41f5-b358-27ee1ece1a9a",
+    "seq": 6,
+    "ts": "2026-10-30T01:17:39.620288+00:00",
+    "type": "turn_completed",
+    "status": "info",
+    "summary": "Finished: insufficient_evidence.",
+    "duration_ms": 1638,
+    "stop_reason": "insufficient_evidence"
+  }
+]

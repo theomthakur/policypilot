@@ -79,7 +79,8 @@ const slides: Slide[] = [
     body: (
       <div className="slide-cards">
         <Card title="It reads">
-          Ten policy PDFs are split into small pieces and indexed, so the right
+          Fourteen policy PDFs (ten written for this project, four real public
+          NIST documents) are split into small pieces and indexed, so the right
           passage can be found fast.
         </Card>
         <Card title="It decides what to do next">
@@ -102,7 +103,7 @@ const slides: Slide[] = [
           ['Understand', 'It breaks the question into what it needs to find.'],
           [
             'Search',
-            'It looks through all ten documents for the best matching passages.',
+            'It looks through every document for the best matching passages.',
           ],
           [
             'Judge',

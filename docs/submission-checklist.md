@@ -4,10 +4,10 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 
 ## 1. The problem statement
 
-- [x] Full-stack agentic RAG app over about 8 to 15 text PDFs from one domain. (10 synthetic university IT policies, 74 pages.)
+- [x] Full-stack agentic RAG app over about 8 to 15 text PDFs from one domain. (10 synthetic university IT policies, 85 pages, plus 4 real public NIST documents: 14 PDFs, 231 pages.)
 - [x] Users can upload documents and ask simple or multi-part questions.
 - [x] The agent chooses tools, inspects results, and decides between retrieving more, asking for clarification, or answering with document and page citations.
-- [~] Asking for clarification works in the code and in tests, but the real model only asks about half the time it should (see CASE-4 below).
+- [~] Asking for clarification works in the code and in tests, but the real model does not reliably ask when it should (see CASE-4 below).
 - [x] Working containerized deployment (Docker Compose runs all four services and passes the smoke test locally).
 - [x] The corpus is included, with a reproducible generator and a manifest (`corpus/`). Documents support cross-document questions.
 - [~] Unfinished work is documented (`docs/summary.md`, `docs/evaluation.md`).
@@ -61,29 +61,29 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [x] Repeatable evaluation script with 11 cases, expected behavior and expected sources (`eval/run.py`, `eval/cases.yaml`).
 - [x] Actual results and a failure analysis (`docs/evaluation.md`), compared with a single-pass retrieve-once baseline on the same corpus and model, with traces committed and exclusions explained (CASE-4 and CASE-8 are not applicable to the baseline).
 - [x] The write-up says where iteration helps and where it only adds cost; the agent does not win every case.
-- [ ] Manual citation check (opening each cited page and judging the claim) is not done; the log in `docs/evaluation.md` is empty. Automatic check: every shown citation is literal text on its page (14 of 14).
+- [ ] Manual citation check (opening each cited page and judging the claim) is not done; the log in `docs/evaluation.md` is empty. Automatic check: every shown citation is literal text on its page (16 of 16).
 
 **J. Engineering quality**
 - [x] Clear module layout, ADRs, 76 backend tests and 15 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [~] Tests pass locally; they have not yet run in GitHub Actions.
 
-## 3. Required test cases (final run r8, agent vs baseline)
+## 3. Required test cases (final run r9, agent vs baseline)
 
-Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/run-2026-10-29-gpt-4o-mini-r8/`.
+Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/run-2026-10-29-gpt-4o-mini-r9/`.
 
 - [x] 1 Simple lookup: pass, pass
 - [x] 2 Multi-document A: pass, pass
-- [x] 3 Multi-document B: pass, pass (flipped to fail in one earlier run; treat as unstable)
+- [x] 3 Multi-document B: pass for the agent, fail for the baseline (unstable between runs)
 - [ ] 4 Ambiguous question: **fail** (answers for every account type instead of asking); baseline not applicable
-- [ ] 5 Insufficient evidence: **fail** for both on the strict wording check; the agent asked a question instead of reporting missing evidence, the baseline's answer was right in different words
+- [ ] 5 Insufficient evidence: **fail** for both on the strict checks (the agent's answer was right but lacked the missing-evidence notice; the baseline was right in different words)
 - [ ] 6 Conflicting sources: **fail** for both (finds the 2023 policy, never the 2025 one that replaces it)
 - [x] 7 Prompt injection: pass, pass
 - [x] 8 Tool failure or timeout: pass; baseline not applicable
 - [ ] 9 Adaptive re-retrieval (extra): **fail** for both (everyday wording does not match the policy's terms)
 - [x] 10 One document, many parts (extra): pass, pass
-- [x] 11 Follow-up question (extra): pass for the agent, fail for the baseline (the intended weakness)
+- [ ] 11 Follow-up question (extra): **fail** for both in this run (the agent ran out of searches; the baseline cannot resolve "her")
 
-Result: agent 7 of 11, baseline 5 of 9 (agent 6 of the same 9). Agent citation support 14 of 14, baseline 11 of 11. The agent uses about eight times the tokens. Prompts were tuned on these same cases and runs vary by about one case, so treat it as a development measurement.
+Result: agent 6 of 11, baseline 4 of 9 (agent 5 of the same 9). Agent citation support 16 of 16, baseline 10 of 10. The agent uses about eleven times the tokens. Prompts were tuned on these same cases and runs vary by about one case, so treat it as a development measurement.
 
 ## 4. Technology
 

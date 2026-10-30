@@ -2,7 +2,7 @@
 
 Real public policy and guidance documents, added next to the synthetic Northfield policies so the system is tested on documents that were not written for it: real layout (multi-column pages, tables, figures, numbered requirements) and real vocabulary.
 
-All four are publications of the U.S. National Institute of Standards and Technology (NIST). Works of the U.S. federal government are not subject to copyright in the United States. They are included unmodified and are not official guidance of any university.
+All four are publications of the U.S. National Institute of Standards and Technology (NIST). Works of the U.S. federal government are not subject to copyright in the United States. They are included unmodified, with credit to NIST as the source, and are not official guidance of any university. Check NIST's own copyright and licensing statement if you redistribute them outside the United States.
 
 | File | Document | Source |
 |---|---|---|
