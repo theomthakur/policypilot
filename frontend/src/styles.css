@@ -1,6 +1,5 @@
 :root {
   font-family:
-    'Inter Variable',
     'Avenir Next',
     Avenir,
     ui-sans-serif,
@@ -2488,4 +2487,21 @@ time {
 }
 .copy-button.is-copied {
   color: var(--ok, #1c7a43);
+}
+
+/* PolicyPilot's replies sit in a soft chat bubble, like the user's messages do */
+.message-assistant .message-content {
+  flex: 0 1 auto;
+  max-width: min(100%, 860px);
+  padding: 14px 20px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px 18px 18px 18px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(63, 28, 87, 0.05);
+}
+.message-assistant .message-author {
+  margin-bottom: 4px;
+}
+.working-message .message-content {
+  padding-bottom: 12px;
 }
