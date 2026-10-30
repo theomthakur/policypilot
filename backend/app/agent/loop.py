@@ -17,7 +17,7 @@ from sqlalchemy import select
 
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
-from app.agent.verifier import PageText, check_quote, sanitize_final_answer, verify_answer
+from app.agent.verifier import PageText, check_quote, locate_quote, sanitize_final_answer, verify_answer
 from app.config import Settings
 from app.db.models import Document
 from app.db.session import get_sessionmaker
@@ -93,6 +93,34 @@ def _stems(text: str) -> set[str]:
     return {w.rstrip("s") for w in re.findall(r"[a-z]{3,}", text.lower())}
 
 
+def _rules_differ(quotes: list[str]) -> bool:
+    """True when the quoted rules disagree on a number, or on most of their wording."""
+    numbers = [set(re.findall(r"\d+(?:[.,]\d+)?", q)) for q in quotes]
+    if any(n != numbers[0] for n in numbers[1:]):
+        return True
+    words = [_stems(q) for q in quotes]
+    first = words[0]
+    return any(len(first & w) / max(1, len(first | w)) < 0.55 for w in words[1:])
+
+
+_HISTORICAL = re.compile(
+    r"\b(previous|previously|former|formerly|earlier|old|older|original|used to|as of|back in|"
+    r"history|historical)\b",
+    re.I,
+)
+
+
+def _is_historical(question: str, older_effective: str | None) -> bool:
+    """A question about what an earlier document said, not about the rule in force now."""
+    year = (older_effective or "")[:4]
+    return bool(_HISTORICAL.search(question)) or (bool(year) and year in question)
+
+
+def _sentences(text: str) -> list[str]:
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9(])|\n\s*\n", text)
+    return [" ".join(p.split()) for p in parts if len(p.split()) >= 5]
+
+
 def _args_hash(name: str, args: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps([name, args], sort_keys=True, default=str).encode()).hexdigest()
 
@@ -151,6 +179,7 @@ class AgentRun:
         emit: Emitter,
         page_text: PageText,
         include_outline: bool = True,
+        assess_model: ChatModel | None = None,
     ) -> None:
         self.settings, self.model, self.tools, self.emit, self.page_text = (
             settings,
@@ -159,6 +188,7 @@ class AgentRun:
             emit,
             page_text,
         )
+        self.assess_model = assess_model
         self.specs = openai_tool_specs(include_outline)
         self.totals = Totals(model=model.name)
         self.state = RunState()
@@ -167,6 +197,7 @@ class AgentRun:
         self.cited: frozenset[tuple[str, int]] = frozenset()
         self.ctx: QuestionContext | None = None
         self.assessed = False
+        self._pairs: list[tuple[Document, Document, dict[str, Any]]] | None = None
         self.started = time.monotonic()
 
     # ---- helpers -------------------------------------------------------------------------------
@@ -174,7 +205,12 @@ class AgentRun:
         return self.settings.agent_turn_timeout_s - (time.monotonic() - self.started)
 
     def _tokens_used(self) -> int:
-        return self.totals.prompt_tokens + self.totals.completion_tokens
+        return (
+            self.totals.prompt_tokens
+            + self.totals.completion_tokens
+            + self.totals.assess_prompt_tokens
+            + self.totals.assess_completion_tokens
+        )
 
     async def _model_call(
         self, messages: list[dict[str, Any]], force_tool: str | None = None
@@ -646,14 +682,9 @@ class AgentRun:
     ) -> tuple[list[str], bool]:
         """Variants that are real, parallel cases. Returns (labels to offer, user already named one)."""
         question_words = _content_words(self.question)
-        # The variants must be kinds of a noun the user used without saying which kind ("my account"): that
-        # noun has to be in the question and in every label ("Student account", "Guest account").
-        head = _stems(verdict.head_noun) & _stems(self.question)
-        per_document: dict[str, dict[str, str]] = {}
+        per_document: dict[str, dict[str, tuple[str, str]]] = {}
         named = False
         for item in verdict.interpretations:
-            if not head or not head & _stems(item.label):
-                continue
             label_words = _content_words(item.label)
             if label_words & question_words:
                 named = True  # the user already said which case applies
@@ -665,11 +696,16 @@ class AgentRun:
                 if label_words and not label_words & _content_words(excerpt):
                     break  # the label is not even about this passage
                 per_document.setdefault(str(hit["document_id"]), {}).setdefault(
-                    item.label.strip().lower(), item.label.strip()
+                    item.label.strip().lower(), (item.label.strip(), item.quote)
                 )
                 break
         best = max(per_document.values(), key=len, default={})
-        return list(best.values())[:5], named
+        variants = list(best.values())[:5]
+        # Code, not the model, checks that the quoted rules really differ (a figure, or most of the wording).
+        # Two passages worded alike are one rule, however many labels they carry.
+        if len(variants) >= 2 and not _rules_differ([quote for _, quote in variants]):
+            return [], named
+        return [label for label, _ in variants], named
 
     async def _assess(self, result: ToolResult) -> Outcome | None:
         """One structured check after the first search: does the answer depend on a detail the user left out?
@@ -687,13 +723,15 @@ class AgentRun:
             {"role": "user", "content": f"Question: {self.question}\n\nSearch results:\n{evidence}"},
         ]
         try:
+            judge = self.assess_model or self.model
             response = await asyncio.wait_for(
-                self.model.complete(messages, [ASSESS_TOOL_SPEC], "assess_question"),
+                judge.complete(messages, [ASSESS_TOOL_SPEC], "assess_question"),
                 timeout=max(1.0, self._time_left()),
             )
             self.totals.model_requests += 1
-            self.totals.prompt_tokens += response.prompt_tokens
-            self.totals.completion_tokens += response.completion_tokens
+            self.totals.assess_prompt_tokens += response.prompt_tokens
+            self.totals.assess_completion_tokens += response.completion_tokens
+            self.totals.assess_model = judge.name
             call = next((c for c in response.tool_calls if c.name == "assess_question"), None)
             verdict = AssessQuestionInput.model_validate(call.arguments) if call else None
         except Exception as exc:  # an unavailable check must never block an answer
@@ -706,7 +744,14 @@ class AgentRun:
         options, named_by_user = self._backed_variants(verdict, hits)
         if named_by_user:
             options = []
-        ask = not verdict.answerable and len(options) >= 2 and bool(verdict.clarification_question.strip())
+        ask = (
+            not verdict.answerable
+            and verdict.answers_differ
+            and not (verdict.value_in_question or "").strip()
+            and not (verdict.default_reading or "").strip()
+            and len(options) >= 2
+            and bool(verdict.clarification_question.strip())
+        )
         await self.emit(
             "assessment",
             "info",
@@ -722,6 +767,9 @@ class AgentRun:
                 "candidates": options,
                 "proposed": len(verdict.interpretations),
                 "supported": len(options),
+                "answers_differ": verdict.answers_differ,
+                "value_in_question": verdict.value_in_question,
+                "default_reading": verdict.default_reading,
             },
             tokens={"prompt": response.prompt_tokens, "completion": response.completion_tokens},
         )
@@ -847,6 +895,118 @@ class AgentRun:
                     )
         return None
 
+    async def _supersession_pairs(self) -> list[tuple[Document, Document, dict[str, Any]]]:
+        """(newer, older, relation) for every documented supersession among the shared documents."""
+        if self._pairs is not None:
+            return self._pairs
+        async with get_sessionmaker()() as db:
+            docs = (await db.execute(select(Document).where(Document.session_id.is_(None)))).scalars().all()
+        by_name = {d.filename: d for d in docs}
+        self._pairs = [
+            (doc, by_name[rel["filename"]], rel)
+            for doc in docs
+            for rel in (doc.supersedes or [])
+            if rel.get("filename") in by_name
+        ]
+        return self._pairs
+
+    async def _best_sentence(self, doc: Document, terms: list[str]) -> tuple[int, str] | None:
+        """The sentence, on the pages of `doc` read this turn, that best answers the question (literal)."""
+        wanted = _stems(self.question) | {t for term in terms for t in _stems(term)}
+        best: tuple[float, int, str] | None = None
+        for item in self.state.ledger.values():
+            if item.document_id != doc.id:
+                continue
+            text = await self.page_text(doc.id, item.page)
+            for sentence in _sentences(text or ""):
+                lowered = sentence.lower()
+                score = len(wanted & _stems(sentence)) + 3 * sum(t in lowered for t in terms)
+                if score and (best is None or score > best[0]):
+                    literal = locate_quote(sentence, text or "")
+                    if literal:
+                        best = (score, item.page, literal)
+        return (best[1], best[2]) if best else None
+
+    async def _conflict_template(self) -> dict[str, Any] | None:
+        """When this turn read a document and the one it documents itself as superseding, and the question is
+        about the superseded provision in force today, the answer is built from the two literal passages
+        instead of trusting the model to weigh them. Scope and exceptions come from document metadata."""
+        seen = {item.document_id for item in self.state.ledger.values()}
+        question = self.question.lower()
+        for newer, older, rel in await self._supersession_pairs():
+            terms, exceptions = rel.get("scope_terms") or [], rel.get("exception_terms") or []
+            if newer.id not in seen or older.id not in seen or not terms:
+                continue
+            if not any(t in question for t in terms) or any(t in question for t in exceptions):
+                continue
+            if _is_historical(self.question, older.effective_date):
+                continue
+            new = await self._best_sentence(newer, terms)
+            old = await self._best_sentence(older, terms)
+            if new is None or old is None:
+                continue
+            (new_page, new_text), (old_page, old_text) = new, old
+            statement = str(rel.get("statement", "states that it supersedes the earlier document")).rstrip(
+                "."
+            )
+            summary = (
+                f"The current rule is in the newer document. {newer.title} "
+                f"(effective {newer.effective_date}) states: \u201c{new_text}\u201d "
+                f"The earlier {older.title} (effective {older.effective_date}) "
+                f"said: \u201c{old_text}\u201d The newer document {statement}."
+            )
+            return {
+                "summary": summary[:1500],
+                "claims": [
+                    {
+                        "text": f"Current rule ({newer.title}, effective {newer.effective_date}): {new_text}"[
+                            :600
+                        ],
+                        "citation_indexes": [1],
+                    },
+                    {
+                        "text": f"Earlier rule ({older.title}, effective {older.effective_date}): {old_text}"[
+                            :600
+                        ],
+                        "citation_indexes": [2],
+                    },
+                ],
+                "citations": [
+                    {
+                        "index": 1,
+                        "document_id": str(newer.id),
+                        "title": newer.title,
+                        "page": new_page,
+                        "quote": new_text,
+                        "verified": True,
+                        "check": "exact_quote",
+                    },
+                    {
+                        "index": 2,
+                        "document_id": str(older.id),
+                        "title": older.title,
+                        "page": old_page,
+                        "quote": old_text,
+                        "verified": True,
+                        "check": "exact_quote",
+                    },
+                ],
+                "notices": [
+                    {
+                        "kind": "conflict",
+                        "text": (
+                            f"{newer.title} (effective {newer.effective_date}) {statement}; "
+                            f"{older.title} was effective {older.effective_date}."
+                        )[:500],
+                        "citation_indexes": [1, 2],
+                    }
+                ],
+                "unverified_claims": [],
+                "stop_reason": "answered",
+                "partial": False,
+            }
+        return None
+
     async def _supersession_notice(self, answer: dict[str, Any]) -> dict[str, Any] | None:
         """A conflict notice when the answer cites a document and one it documents itself as superseding.
         Only relations stated in verified document metadata are used, never guessed ones."""
@@ -915,7 +1075,15 @@ class AgentRun:
                 self.state.conflict_repair_used = True
                 self._tool_message(messages, call, missing)
                 return None
-        answer = await self._normalize(verified.answer)
+        templated = await self._conflict_template()
+        if templated is not None:
+            await self.emit(
+                "evaluate",
+                "info",
+                state="EVALUATE",
+                summary="Two documents disagree and one replaces the other: answering from both passages.",
+            )
+        answer = templated or await self._normalize(verified.answer)
         if partial_reason and answer["claims"]:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(

@@ -90,8 +90,13 @@ class AssessQuestionInput(_Strict):
     when every interpretation is backed by a quote that really appears in a different search result."""
 
     already_stated: list[str] = Field(default_factory=list, max_length=8)
-    head_noun: str = Field(default="", max_length=40)
     answerable: bool
+    # The judgments the code gates on. All three must point to "ask" for a clarifying question to be asked.
+    value_in_question: str | None = Field(
+        default=None, max_length=80
+    )  # a value the question states or implies
+    default_reading: str | None = Field(default=None, max_length=80)  # an obvious default value, if any
+    answers_differ: bool = False  # the quoted rules give different steps, limits or numbers per value
     missing_slot: str = Field(default="", max_length=120)
     interpretations: list[Interpretation] = Field(default_factory=list, max_length=5)
     clarification_question: str = Field(default="", max_length=300)
@@ -132,11 +137,19 @@ ASSESS_TOOL_SPEC: dict[str, Any] = {
                     "items": {"type": "string"},
                     "description": "Details of the user's situation that the question already gives.",
                 },
-                "head_noun": {
-                    "type": "string",
-                    "description": "The noun in the question that has several kinds (such as account).",
-                },
                 "answerable": {"type": "boolean"},
+                "value_in_question": {
+                    "type": ["string", "null"],
+                    "description": "A facet value the question states or clearly implies, else null.",
+                },
+                "default_reading": {
+                    "type": ["string", "null"],
+                    "description": "The value a reader would obviously assume when none is given, else null.",
+                },
+                "answers_differ": {
+                    "type": "boolean",
+                    "description": "True only if the quoted passages give different steps or numbers.",
+                },
                 "missing_slot": {"type": "string"},
                 "interpretations": {
                     "type": "array",

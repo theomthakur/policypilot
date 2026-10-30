@@ -91,7 +91,7 @@ def _load_renewal(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
 
 def _renewal_assessment(**overrides: Any) -> Any:
     fields: dict[str, Any] = {
-        "head_noun": "account",
+        "answers_differ": True,
         "missing_slot": "account type",
         "interpretations": [
             {"label": "Student account", "quote": "Student accounts renew automatically each term"},
@@ -168,13 +168,15 @@ def test_a_case_the_user_already_named_is_never_asked_about(
     assert not events.of("clarification_requested") and outcome.stop_reason != "clarification_needed"
 
 
-def test_variants_of_a_noun_the_user_never_used_are_not_asked_about(
-    make_pdf: Callable[..., Path], tmp_path: Path
-) -> None:
+def test_the_three_judgments_must_all_point_to_asking(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 
     _load_renewal(make_pdf, tmp_path)
-    for overrides in ({"head_noun": "membership"}, {"head_noun": ""}):
+    for overrides in (
+        {"answers_differ": False},
+        {"value_in_question": "students"},
+        {"default_reading": "all accounts"},
+    ):
         model = ScriptedModel(
             [
                 respond(("search_documents", {"query": "renew account"})),
@@ -182,14 +184,11 @@ def test_variants_of_a_noun_the_user_never_used_are_not_asked_about(
                 respond(("final_answer", {"summary": "The documents do not contain this."})),
             ]
         )
-        outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+        outcome, _ = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
         assert outcome.stop_reason != "clarification_needed", overrides
-        assert events.of("assessment")[0]["assessment"]["supported"] == 0
 
 
-def test_labels_that_do_not_name_a_kind_of_that_noun_are_dropped(
-    make_pdf: Callable[..., Path], tmp_path: Path
-) -> None:
+def test_quotes_worded_alike_are_one_rule_not_two(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 
     _load_renewal(make_pdf, tmp_path)
@@ -198,10 +197,10 @@ def test_labels_that_do_not_name_a_kind_of_that_noun_are_dropped(
             respond(("search_documents", {"query": "renew account"})),
             _renewal_assessment(
                 interpretations=[
-                    {"label": "Students", "quote": "Student accounts renew automatically each term"},
+                    {"label": "Student account", "quote": "Student accounts renew automatically each term"},
                     {
-                        "label": "Sponsored guests",
-                        "quote": "Sponsored guest accounts renew only when the sponsor",
+                        "label": "Sponsored guest account",
+                        "quote": "Student accounts renew automatically each term",
                     },
                 ]
             ),
@@ -390,6 +389,8 @@ def _metadata_corpus(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
                             "filename": "04-password-2023.pdf",
                             "scope": "partial",
                             "statement": "states that it supersedes the password expiration provisions",
+                            "scope_terms": ["expire", "expiration", "change their password"],
+                            "exception_terms": ["service account"],
                         }
                     ],
                 },
@@ -598,3 +599,45 @@ def test_the_turn_deadline_caps_a_slow_tool_and_stops_retries(
     assert time.monotonic() - began < 5  # the 30 s tool timeout did not outlive the 1 s turn
     assert outcome.totals.retries == 0 and outcome.totals.tool_attempts == 1
     assert outcome.answer["partial"] is True and uuid.UUID(int=0)  # ended with an honest partial answer
+
+
+def _template_run(question: str) -> tuple[Any, Collector]:
+    from app.llm.client import ScriptedModel, respond
+
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "passwords expire change prohibited"})),
+            _two_claim_step(),
+        ]
+    )
+    return _run(model, question)
+
+
+def test_current_rule_questions_are_answered_from_both_passages_by_code(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    _metadata_corpus(make_pdf, tmp_path)
+    outcome, events = _template_run(
+        "Do users have to change their password on a schedule, or does it expire?"
+    )
+    answer = outcome.answer
+    assert [c["page"] for c in answer["citations"]] == [1, 1] and len(answer["citations"]) == 2
+    assert "expire on a schedule" in answer["summary"] and "90 days" in answer["summary"]
+    assert [n["kind"] for n in answer["notices"]] == ["conflict"] and answer["stop_reason"] == "answered"
+    assert any("answering from both passages" in e.get("summary", "") for e in events.of("evaluate"))
+
+
+def test_a_historical_question_is_not_overridden(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    _metadata_corpus(make_pdf, tmp_path)
+    outcome, events = _template_run("Did the 2023 policy say passwords expire?")
+    assert not any("answering from both passages" in e.get("summary", "") for e in events.of("evaluate"))
+    assert outcome.answer["summary"].startswith("The 2023 policy rotates")  # the model's own answer stands
+
+
+def test_a_provision_the_document_excepts_is_not_overridden(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    _metadata_corpus(make_pdf, tmp_path)
+    outcome, events = _template_run("Do service account passwords expire?")
+    assert not any("answering from both passages" in e.get("summary", "") for e in events.of("evaluate"))
+    assert outcome.answer["summary"].startswith("The 2023 policy rotates")

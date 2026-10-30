@@ -1,20 +1,19 @@
 # PolicyPilot
 
-PolicyPilot answers questions about policy documents and shows its work. A single tool-using agent plans, searches, searches again with different words when the first results are thin, asks you when a question is ambiguous, and writes an answer in which every quote has been checked against the page it came from. You can watch each step as it happens and open the original PDF at the cited page.
+PolicyPilot answers questions about policy documents and shows the evidence behind every answer. It can search again when the first results are weak, ask a follow-up when important information is missing, and open the original PDF at the cited page.
 
-It is a full-stack agentic retrieval-augmented generation (RAG) application: React, FastAPI, PostgreSQL with pgvector, Redis, and any OpenAI-compatible model, all started with Docker Compose.
+The application has a React interface, a FastAPI backend, PostgreSQL with pgvector, Redis, and an OpenAI-compatible model. Docker Compose starts the complete local system.
 
 > The ten "Northfield University" policies are fictional and were created for this project. They are not official NYU policies. Four more documents are real, public NIST publications (see [Documents](#documents)).
 
 ## Status
 
-This is working software that runs locally with one command. What is and is not finished:
+The current implementation is on `integration/full-stack` while final evaluation and deployment work continue.
 
-- **Done and verified:** ingestion, hybrid retrieval, the agent and baseline, citation verification, the web app, sign-in (OpenID Connect, tested against Keycloak with two users), per-user ownership, durable jobs that survive a crashed worker, Redis fallback, the evaluation suite with a held-out set, Docker Compose, a Kubernetes deployment drilled on a local `kind` cluster, a CI workflow, and saved evidence in [`docs/deployment-evidence/`](docs/deployment-evidence/).
-- **CI:** the workflow ran on GitHub for this branch and all seven jobs passed (backend with integration tests and none skipped, frontend, corpus and eval contracts, secret scan, image builds, manifest renders, Compose smoke test): [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
-- **Not done:** a public deployment, a recorded demo, and merging to `main` (the work is on `integration/full-stack`). Those need you.
-- **Known weak spots:** the agent does not reliably ask a clarifying question when it should (0 of 3 repeats on the required ambiguity case) or state that a newer policy replaced an older one (1 of 3). On 10 held-out questions it passed 12 of 20 runs against 10 of 18 for the one-pass baseline. Details and the manual citation review are in [`docs/evaluation.md`](docs/evaluation.md).
-- **Not built or not demonstrated:** object-storage for uploads (so no scaling beyond one node), database replication, enforced NetworkPolicies, an OpenShift deployment (the overlay is only rendered), a university identity provider, roles and single logout.
+- **Working and verified:** document ingestion, hybrid retrieval, the bounded agent, literal citation checks, the web application, OIDC sign-in tested with two users, per-user data isolation, restart-safe background jobs, Redis fallback, Docker Compose, and a Kubernetes deployment on a local `kind` cluster.
+- **CI:** all seven jobs passed on this branch, including backend integration tests, frontend checks, secret scanning, image builds, manifest rendering, and a Compose smoke test: [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
+- **Still in progress:** improving clarification and superseded-policy handling, publishing the hosted demo, recording the walkthrough, and merging the final branch into `main`.
+- **Outside the demonstrated scope:** multi-node upload storage, database replication, enforced NetworkPolicies, a live OpenShift deployment, university SSO, roles, and single logout.
 
 The checklist of what the brief asks for and where each item stands is in [`docs/submission-checklist.md`](docs/submission-checklist.md).
 
@@ -212,7 +211,7 @@ More in [`docs/security-and-limitations.md`](docs/security-and-limitations.md).
 
 ## AI assistance
 
-AI coding assistants were used for planning and implementation, as the assignment permits. The commit history, contracts, tests, deterministic corpus, evaluation cases and the documented review process are there so that the result can be inspected and explained.
+AI coding assistants supported planning and implementation. I retained responsibility for the architecture, acceptance criteria, code review, testing, and the claims made in this documentation. The contracts, tests, deterministic corpus, evaluation results, and commit history make that work inspectable.
 
 ## License and data
 

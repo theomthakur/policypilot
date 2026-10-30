@@ -90,8 +90,13 @@ class Settings(BaseSettings):
     agent_max_tool_retries: int = 1
     agent_tool_timeout_s: float = 8.0
     agent_turn_timeout_s: float = 60.0
-    agent_max_tokens_per_turn: int = 25_000
+    agent_max_tokens_per_turn: int = 30_000
     agent_max_pages_per_read: int = 3
+    agent_assess_model: str = (
+        "openai/gpt-4o"  # a stronger model for the one judgment call; empty = same model
+    )
+    agent_assess_price_input_per_million: float = 2.50  # approximate list prices, for the cost estimate
+    agent_assess_price_output_per_million: float = 10.00
     agent_assess_ambiguity: bool = True  # one structured check after the first search of a new question
 
     # Uploads

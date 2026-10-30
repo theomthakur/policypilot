@@ -19,7 +19,7 @@ from app.agent.state import Outcome, QuestionContext, Totals
 from app.config import Settings, get_settings
 from app.db.models import Citation, Evidence, TraceEvent, Turn, utcnow
 from app.db.session import get_sessionmaker
-from app.llm.client import estimate_cost, get_model
+from app.llm.client import estimate_cost, get_assess_model, get_model
 from app.state import limits, session_state
 from app.tools.impl import FaultInjector, ToolContext
 
@@ -113,7 +113,7 @@ async def _execute(
     pages = PageCache()
     if turn.mode == "baseline":
         return await run_baseline(settings, model, tools, emit, pages, ctx)
-    return await AgentRun(settings, model, tools, emit, pages).run(ctx)
+    return await AgentRun(settings, model, tools, emit, pages, assess_model=get_assess_model()).run(ctx)
 
 
 def _budget_answer() -> dict[str, Any]:
@@ -145,6 +145,17 @@ async def _finish(
 ) -> None:
     totals = outcome.totals.as_dict()
     cost = estimate_cost(settings, totals["prompt_tokens"], totals["completion_tokens"])
+    a_in, a_out = totals["assess_prompt_tokens"], totals["assess_completion_tokens"]
+    if totals["assess_model"] and totals["assess_model"] != settings.llm_model:
+        cost += (
+            a_in / 1e6 * settings.agent_assess_price_input_per_million
+            + a_out / 1e6 * settings.agent_assess_price_output_per_million
+        )
+    else:
+        cost += estimate_cost(settings, a_in, a_out)
+    # The headline token counts include every model call, the ambiguity judgment too.
+    totals["prompt_tokens"] += a_in
+    totals["completion_tokens"] += a_out
     totals |= {
         "latency_ms": latency_ms,
         "estimated_cost_usd": round(cost, 6),

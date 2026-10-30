@@ -31,6 +31,9 @@ class Totals:
     retries: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    assess_prompt_tokens: int = 0  # the ambiguity judgment, priced separately (it may use a stronger model)
+    assess_completion_tokens: int = 0
+    assess_model: str = ""
     model: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -44,6 +47,9 @@ class Totals:
             "retries": self.retries,
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
+            "assess_prompt_tokens": self.assess_prompt_tokens,
+            "assess_completion_tokens": self.assess_completion_tokens,
+            "assess_model": self.assess_model,
             "model": self.model,
         }
 

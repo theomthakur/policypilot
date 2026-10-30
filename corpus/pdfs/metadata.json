@@ -1,19 +1,89 @@
 {
-  "01-acceptable-use-and-guest-network.pdf": {"authority": "institutional", "version": "3.2", "effective_date": "2026-09-01", "doc_family": "network-acceptable-use"},
-  "02-data-classification-standard.pdf": {"authority": "institutional", "version": "2.1", "effective_date": "2026-01-15", "doc_family": "data-classification"},
-  "03-generative-ai-guidance.pdf": {"authority": "institutional", "version": "1.0", "effective_date": "2026-03-01", "doc_family": "generative-ai"},
-  "04-password-policy-2023.pdf": {"authority": "institutional", "version": "4.0", "effective_date": "2023-08-01", "doc_family": "identity-credentials"},
-  "05-identity-mfa-standard-2025.pdf": {
-    "authority": "institutional", "version": "1.0", "effective_date": "2025-01-15", "doc_family": "identity-credentials",
-    "supersedes": [{
-      "filename": "04-password-policy-2023.pdf",
-      "scope": "partial",
-      "statement": "states that it supersedes select provisions of NUOIT Policy 2023-IAM-01, including Section 4.1 password expiration; Sections 5.0 and 6.0 remain in effect."
-    }]
+  "01-acceptable-use-and-guest-network.pdf": {
+    "authority": "institutional",
+    "version": "3.2",
+    "effective_date": "2026-09-01",
+    "doc_family": "network-acceptable-use"
   },
-  "06-incident-response-plan.pdf": {"authority": "institutional", "version": "5.0", "effective_date": "2026-07-01", "doc_family": "incident-response"},
-  "07-remote-work-security.pdf": {"authority": "institutional", "version": "2.0", "effective_date": "2026-02-01", "doc_family": "remote-work"},
-  "08-account-lifecycle.pdf": {"authority": "institutional", "version": "3.0", "effective_date": "2025-09-01", "doc_family": "account-lifecycle"},
-  "09-research-computing-governance.pdf": {"authority": "institutional", "version": "2.0", "effective_date": "2026-06-01", "doc_family": "research-computing"},
-  "10-approved-cloud-services.pdf": {"authority": "institutional", "version": "2.4", "effective_date": "2026-05-01", "doc_family": "cloud-services"}
+  "02-data-classification-standard.pdf": {
+    "authority": "institutional",
+    "version": "2.1",
+    "effective_date": "2026-01-15",
+    "doc_family": "data-classification"
+  },
+  "03-generative-ai-guidance.pdf": {
+    "authority": "institutional",
+    "version": "1.0",
+    "effective_date": "2026-03-01",
+    "doc_family": "generative-ai"
+  },
+  "04-password-policy-2023.pdf": {
+    "authority": "institutional",
+    "version": "4.0",
+    "effective_date": "2023-08-01",
+    "doc_family": "identity-credentials"
+  },
+  "05-identity-mfa-standard-2025.pdf": {
+    "authority": "institutional",
+    "version": "1.0",
+    "effective_date": "2025-01-15",
+    "doc_family": "identity-credentials",
+    "supersedes": [
+      {
+        "filename": "04-password-policy-2023.pdf",
+        "scope": "partial",
+        "statement": "states that it supersedes select provisions of NUOIT Policy 2023-IAM-01, including Section 4.1 password expiration; Sections 5.0 and 6.0 remain in effect.",
+        "scope_terms": [
+          "expir",
+          "rotat",
+          "periodic",
+          "90 day",
+          "90-day",
+          "change their password",
+          "change password",
+          "changed on a",
+          "fixed schedule",
+          "change interval"
+        ],
+        "exception_terms": [
+          "service account",
+          "privileged",
+          "shared account",
+          "transmission",
+          "transmit",
+          "admin"
+        ]
+      }
+    ]
+  },
+  "06-incident-response-plan.pdf": {
+    "authority": "institutional",
+    "version": "5.0",
+    "effective_date": "2026-07-01",
+    "doc_family": "incident-response"
+  },
+  "07-remote-work-security.pdf": {
+    "authority": "institutional",
+    "version": "2.0",
+    "effective_date": "2026-02-01",
+    "doc_family": "remote-work"
+  },
+  "08-account-lifecycle.pdf": {
+    "authority": "institutional",
+    "version": "3.0",
+    "effective_date": "2025-09-01",
+    "doc_family": "account-lifecycle"
+  },
+  "09-research-computing-governance.pdf": {
+    "authority": "institutional",
+    "version": "2.0",
+    "effective_date": "2026-06-01",
+    "doc_family": "research-computing"
+  },
+  "10-approved-cloud-services.pdf": {
+    "authority": "institutional",
+    "version": "2.4",
+    "effective_date": "2026-05-01",
+    "doc_family": "cloud-services"
+  }
 }

@@ -141,6 +141,17 @@ def get_model() -> ChatModel:
     return OpenAICompatibleModel(settings)
 
 
+@lru_cache
+def get_assess_model() -> ChatModel | None:
+    """The stronger model used only for the ambiguity judgment, or None to reuse the main model."""
+    settings = get_settings()
+    if settings.llm_provider != "openai_compatible":
+        return None
+    if not settings.agent_assess_model or settings.agent_assess_model == settings.llm_model:
+        return None
+    return OpenAICompatibleModel(settings.model_copy(update={"llm_model": settings.agent_assess_model}))
+
+
 def estimate_cost(settings: Settings, prompt_tokens: int, completion_tokens: int) -> float:
     return round(
         prompt_tokens / 1e6 * settings.llm_price_input_per_million
