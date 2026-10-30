@@ -27,7 +27,6 @@ import { useTurnStream } from './hooks/useTurnStream'
 
 const SESSION_KEY = 'policypilot_session_id'
 type MobilePanel = 'documents' | 'conversation' | 'trace'
-type SidebarTab = 'documents' | 'activity'
 function describeRun(
   mode: 'agent' | 'baseline',
   searches: number,
@@ -46,6 +45,41 @@ function viewFromHash(): AppView {
   return hash === 'architecture' || hash === 'presentation' ? hash : 'workspace'
 }
 
+function CollapseBar({
+  side,
+  label,
+  count,
+  open,
+  onToggle,
+}: {
+  side: 'left' | 'right'
+  label: string
+  count?: number
+  open: boolean
+  onToggle: () => void
+}) {
+  // The arrow points the way the panel will move: toward its own edge to hide, away to show.
+  const arrow = (side === 'left') === open ? '‹' : '›'
+  return (
+    <button
+      type="button"
+      className={`collapse-bar${open ? '' : ' is-collapsed'}`}
+      aria-expanded={open}
+      aria-label={`${open ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+      title={`${open ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+      onClick={onToggle}
+    >
+      <span className="collapse-arrow" aria-hidden="true">
+        {arrow}
+      </span>
+      <span className="collapse-label">
+        {label}
+        {count ? <em>{count}</em> : null}
+      </span>
+    </button>
+  )
+}
+
 export function App() {
   const queryClient = useQueryClient()
   const [launching, setLaunching] = useState(true)
@@ -58,8 +92,8 @@ export function App() {
   const [citation, setCitation] = useState<Citation | null>(null)
   const [viewer, setViewer] = useState<ViewerTarget | null>(null)
   // Panels always start visible: hiding one is a temporary choice and is never remembered.
-  const [showSidebar, setShowSidebar] = useState(true)
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('documents')
+  const [showDocuments, setShowDocuments] = useState(true)
+  const [showTrace, setShowTrace] = useState(true)
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
   const [appView, setAppView] = useState<AppView>(viewFromHash)
@@ -367,8 +401,8 @@ export function App() {
                   type="button"
                   onClick={() => {
                     setMobilePanel(panel)
-                    if (panel === 'documents') setSidebarTab('documents')
-                    if (panel === 'trace') setSidebarTab('activity')
+                    if (panel === 'documents') setShowDocuments(true)
+                    if (panel === 'trace') setShowTrace(true)
                   }}
                 >
                   {panel}
@@ -380,7 +414,27 @@ export function App() {
             )}
           </nav>
 
-          <main className={`workspace${showSidebar ? '' : ' no-sidebar'}`}>
+          <main
+            className={`workspace${showDocuments ? '' : ' no-documents'}${showTrace ? '' : ' no-trace'}`}
+          >
+            <aside
+              className={`workspace-pane pane-documents ${mobilePanel === 'documents' ? 'mobile-active' : ''}`}
+              aria-label="Knowledge base"
+            >
+              <CollapseBar
+                side="left"
+                label="Knowledge base"
+                open={showDocuments}
+                onToggle={() => setShowDocuments(!showDocuments)}
+              />
+              <div className="pane-body" hidden={!showDocuments}>
+                <DocumentsPanel
+                  onView={(document) =>
+                    setViewer({ id: document.id, title: document.title })
+                  }
+                />
+              </div>
+            </aside>
             <div
               className={`workspace-pane pane-conversation ${mobilePanel === 'conversation' ? 'mobile-active' : ''}`}
             >
@@ -394,44 +448,20 @@ export function App() {
                 onModeChange={setMode}
                 onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}
-                showSidebar={showSidebar}
-                onToggleSidebar={() => setShowSidebar(!showSidebar)}
               />
             </div>
             <aside
-              className={`workspace-pane pane-sidebar ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
-              aria-label="Knowledge base and agent activity"
+              className={`workspace-pane pane-trace ${mobilePanel === 'trace' ? 'mobile-active' : ''}`}
+              aria-label="Agent activity"
             >
-              <div className="sidebar-tabs" role="tablist">
-                {(
-                  [
-                    ['documents', 'Knowledge base'],
-                    ['activity', 'Agent activity'],
-                  ] as const
-                ).map(([tab, label]) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    role="tab"
-                    aria-selected={sidebarTab === tab}
-                    className={sidebarTab === tab ? 'active' : ''}
-                    onClick={() => setSidebarTab(tab)}
-                  >
-                    {label}
-                    {tab === 'activity' && turn.events.length > 0 && (
-                      <span>{turn.events.length}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="sidebar-body" hidden={sidebarTab !== 'documents'}>
-                <DocumentsPanel
-                  onView={(document) =>
-                    setViewer({ id: document.id, title: document.title })
-                  }
-                />
-              </div>
-              <div className="sidebar-body" hidden={sidebarTab !== 'activity'}>
+              <CollapseBar
+                side="right"
+                label="Agent activity"
+                count={turn.events.length}
+                open={showTrace}
+                onToggle={() => setShowTrace(!showTrace)}
+              />
+              <div className="pane-body" hidden={!showTrace}>
                 <TracePanel
                   events={turn.events}
                   totals={turn.totals}

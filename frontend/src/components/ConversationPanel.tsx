@@ -25,8 +25,6 @@ interface ConversationPanelProps {
   onModeChange: (mode: 'agent' | 'baseline') => void
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
-  showSidebar: boolean
-  onToggleSidebar: () => void
 }
 
 const examples = [
@@ -171,8 +169,6 @@ export function ConversationPanel({
   onModeChange,
   onSend,
   onCitationOpen,
-  showSidebar,
-  onToggleSidebar,
 }: ConversationPanelProps) {
   const [content, setContent] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
@@ -211,14 +207,6 @@ export function ConversationPanel({
           <p className="eyebrow">Grounded policy assistant</p>
           <h2 id="conversation-title">Conversation</h2>
         </div>
-        <button
-          type="button"
-          className={`sidebar-toggle${showSidebar ? ' on' : ''}`}
-          aria-pressed={showSidebar}
-          onClick={onToggleSidebar}
-        >
-          {showSidebar ? 'Hide sidebar' : 'Show sidebar'}
-        </button>
         <div
           className={`mode-toggle${developer ? '' : ' is-hidden'}`}
           aria-label="Answer mode"
