@@ -22,7 +22,7 @@ On three repeats of the 11 tuned cases the agent passed 24 of 33 case-runs and t
 
 - **Two required behaviors are unreliable:** asking a clarifying question instead of answering for every variant (CASE-4 passed 0 of 3; held-out HELD-4 0 of 2) and stating that a newer policy replaced an older one (CASE-6 1 of 3; HELD-7 0 of 2). The ambiguity check also asks needlessly on some specific questions (HELD-2). Vocabulary bridging (CASE-9) still fails on its tuned case; the evidence-driven re-search that would address it was not built.
 - **The verifier checks each claim, not every sentence of the prose.** Extra sentences were true in the cases I checked by hand, but nothing enforces it.
-- **No public deployment, no recorded demo, no CI run on GitHub, and the work is still on `integration/full-stack`, not `main`.** Those are yours to do.
+- **No public deployment, no recorded demo, and the work is still on `integration/full-stack`, not `main`.** Those are yours to do. CI has run on GitHub for this branch and passed all seven jobs ([run](https://github.com/theomthakur/policypilot/actions/runs/41068139547)).
 - **Kubernetes limits:** single node, one replica of the API and worker (uploads are on a local volume; no object-storage adapter), one PostgreSQL pod (no replication), no autoscaler, NetworkPolicies written but not shown to be enforced (kindnet made connections unreliable), and the OpenShift overlay was only rendered.
 - **Sign-in** was tested against Keycloak only. There are no roles, no single logout, and rate limits are per client address.
 - Small evaluation, one model, no load testing.

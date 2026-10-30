@@ -53,7 +53,7 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 **H. Containerization and DevOps**
 - [x] Dockerfiles, Compose, environment template without secrets, health checks (readiness-based), named volumes.
 - [x] Smoke test passes and asserts the expected fact and cited page: `docs/deployment-evidence/smoke-test.txt`.
-- [~] CI workflow exists (tests including integration, contract drift, image builds, secret scan) but has **not run on GitHub yet**; it triggers on pull requests and on `main`.
+- [x] CI workflow (tests including integration, contract drift, image builds, secret scan, manifest renders, Compose smoke test) **passed on GitHub** for this branch ([run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547)). It has not run on `main`: CI triggers on pull requests and `main`, and on this branch.
 - [ ] Production images are not published; the production Compose file expects immutable images.
 - [~] Update and rollback instructions are written (`docs/runbook.md`). A bad-image rollout and rollback was drilled on the Kubernetes path (`docs/deployment-evidence/2026-10-30/kind-drills.txt`); the Compose production path (VM, Caddy) has not been drilled.
 
@@ -65,7 +65,7 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 
 **J. Engineering quality**
 - [x] Clear module layout, ADRs, 76 backend tests and 15 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
-- [~] Tests pass locally; they have not yet run in GitHub Actions.
+- [x] Tests pass locally and in GitHub Actions.
 
 ## 3. Required test cases (three repeats, r15 to r17, agent vs baseline)
 

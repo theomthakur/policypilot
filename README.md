@@ -11,7 +11,8 @@ It is a full-stack agentic retrieval-augmented generation (RAG) application: Rea
 This is working software that runs locally with one command. What is and is not finished:
 
 - **Done and verified:** ingestion, hybrid retrieval, the agent and baseline, citation verification, the web app, sign-in (OpenID Connect, tested against Keycloak with two users), per-user ownership, durable jobs that survive a crashed worker, Redis fallback, the evaluation suite with a held-out set, Docker Compose, a Kubernetes deployment drilled on a local `kind` cluster, a CI workflow, and saved evidence in [`docs/deployment-evidence/`](docs/deployment-evidence/).
-- **Not done:** a public deployment, a recorded demo, a run of CI on GitHub, and merging to `main` (the work is on `integration/full-stack`). Those need you.
+- **CI:** the workflow ran on GitHub for this branch and all seven jobs passed (backend with integration tests and none skipped, frontend, corpus and eval contracts, secret scan, image builds, manifest renders, Compose smoke test): [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
+- **Not done:** a public deployment, a recorded demo, and merging to `main` (the work is on `integration/full-stack`). Those need you.
 - **Known weak spots:** the agent does not reliably ask a clarifying question when it should (0 of 3 repeats on the required ambiguity case) or state that a newer policy replaced an older one (1 of 3). On 10 held-out questions it passed 12 of 20 runs against 10 of 18 for the one-pass baseline. Details and the manual citation review are in [`docs/evaluation.md`](docs/evaluation.md).
 - **Not built or not demonstrated:** object-storage for uploads (so no scaling beyond one node), database replication, enforced NetworkPolicies, an OpenShift deployment (the overlay is only rendered), a university identity provider, roles and single logout.
 
