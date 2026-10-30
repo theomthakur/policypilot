@@ -1015,3 +1015,11 @@ def test_the_page_behind_the_chosen_option_is_read_before_the_model_starts(
     assert events.of("tool_call")[0]["tool"] == "read_document_pages"
     assert outcome.totals.tool_calls == 1 and outcome.totals.model_requests == 1  # no search was needed
     assert outcome.stop_reason == "answered"
+
+
+def test_judge_listing_more_than_five_readings_is_still_assessed() -> None:
+    from app.tools.contracts import AssessQuestionInput
+
+    readings = [{"label": f"Option {i}", "quote": f"Rule number {i} applies."} for i in range(7)]
+    parsed = AssessQuestionInput.model_validate({"answerable": False, "interpretations": readings})
+    assert len(parsed.interpretations) == 7

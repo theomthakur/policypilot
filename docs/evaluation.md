@@ -30,6 +30,23 @@ One tuned run after the bug fix (`run-2026-10-30-gpt-4o-mini-r19`): agent **9 of
 
 **A deployment trap found here.** The application's own daily budget cap (`DAILY_BUDGET_USD`, default 1.00) stops all answers once reached, with a "budget used up" message; heavy evaluation hits it. For evaluation days raise it (the local `.env` is set to 8.00) or clear the Redis key `budget:<date>`. Two earlier sets of runs failed instantly for this reason and were deleted.
 
+### Latest measurements (30 Oct evening, after the last two code changes; `r23-tuned`, `r24-tuned`, `r24-heldout2`, `r24-heldout`)
+
+Two changes since the numbers below: the judge's answer is no longer thrown away when it lists more than five readings (it was, and the check was silently skipped), and the exact-words search the judge sees always runs and returns 10 results instead of 6. One run each, same model, new key:
+
+| Set | Before the two changes (`r23-tuned`) | After (`r24-*`) | Baseline after |
+|---|---:|---:|---:|
+| 11 tuned cases | agent 8 of 11 | **agent 9 of 11** | 4 of 9 |
+| 9 fresh cases (`heldout2.yaml`) | not run | **agent 9 of 9** | 5 of 7 |
+| 10 held-out cases (`heldout.yaml`) | not run | **agent 5 of 10** | 5 of 9 |
+
+What this shows, and what it does not:
+
+- On the fresh set both ambiguous questions (HELD-15, HELD-16) passed for the first time and no specific question triggered a needless clarification. That set was used for diagnosis earlier, so it is not blind and is one run.
+- On the tuned set CASE-4 (ask which account to renew) still fails: the clarification is not asked. CASE-11 failed in both runs by reaching the six-call limit while still giving a correct, cited answer. CASE-9 passed in r24 and failed in r23, so it is run-to-run variation.
+- The older held-out set scored 5 of 10 in this single run (12 of 20 earlier). HELD-4 (ambiguous) is still not asked about; HELD-8, HELD-9 and HELD-2 failed. One run per set cannot separate a regression from noise, so treat these as indicative, not as a measured improvement.
+- A judge probe on 15 questions asked on 3 of 6 ambiguous ones and on none of 9 specific ones.
+
 ### Final measurements (prompt v10, 31 Oct; `heldout2-v10b-g`, `-h`, `run-2026-10-31-gpt-4o-mini-r22`)
 
 After the outside review (judge also sees the exact-words search, grounded defaults, failed quotes repaired from page text, a figure check on claims, common words out of the keyword search, the CASE-9 label corrected to page 2, and clarification decided from the judge's structured fields instead of its own "answerable" flag):

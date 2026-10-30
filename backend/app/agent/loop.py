@@ -744,7 +744,7 @@ class AgentRun:
         against the search budget and is visible in the trace."""
         query = " ".join(self.question.split())[:300]
         first = self.state.last_query or ""
-        if len(query) < 3 or not (_tokens(query) - _tokens(first)):
+        if len(query) < 3 or query == first:
             return []
         digest = _args_hash("search_documents", {"query": query})
         if digest in self.state.seen_calls or self.totals.tool_calls >= self.settings.agent_max_tool_calls:
@@ -764,7 +764,10 @@ class AgentRun:
         )
         began = time.monotonic()
         result = await run_tool(
-            self.tools, "search_documents", {"query": query}, max_seconds=max(0.5, self._time_left())
+            self.tools,
+            "search_documents",
+            {"query": query, "top_k": 10},
+            max_seconds=max(0.5, self._time_left()),
         )
         await self.emit(
             "tool_result",

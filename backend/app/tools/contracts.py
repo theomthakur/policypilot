@@ -102,7 +102,7 @@ class AssessQuestionInput(_Strict):
     answers_differ: bool = False  # the quoted rules give different steps, limits or numbers per value
     missing_slot: str = Field(default="", max_length=120)
     facet: str = Field(default="", max_length=120)  # the same thing under the name the prompt uses
-    interpretations: list[Interpretation] = Field(default_factory=list, max_length=5)
+    interpretations: list[Interpretation] = Field(default_factory=list)
     clarification_question: str = Field(default="", max_length=300)
 
     @field_validator("missing_slot", "facet", "clarification_question", mode="before")
