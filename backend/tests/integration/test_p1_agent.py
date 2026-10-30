@@ -389,7 +389,8 @@ def _metadata_corpus(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
                             "filename": "04-password-2023.pdf",
                             "scope": "partial",
                             "statement": "states that it supersedes the password expiration provisions",
-                            "scope_terms": ["expire", "expiration", "change their password", "90 days", "rotation"],
+                            "scope_terms": ["expire", "expiration", "change their password"]
+                            + ["90 days", "rotation"],
                             "exception_terms": ["service account"],
                         }
                     ],
