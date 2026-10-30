@@ -3688,3 +3688,23 @@ th {
   background: var(--violet-soft);
   box-shadow: none;
 }
+
+/* Page links sit with the other navigation at the top, so nothing moves when the list below changes */
+.sidebar-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 8px;
+  border-top: 1px solid var(--line);
+}
+.sidebar-pages .sidebar-link {
+  font-size: 14px;
+  color: var(--muted);
+}
+.sidebar-footer {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.pane-sidebar.is-collapsed .sidebar-pages {
+  align-items: stretch;
+}

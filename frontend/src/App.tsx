@@ -619,6 +619,26 @@ export function App() {
         <IconPlus />
         <span className="nav-label">New session</span>
       </button>
+      <div className="sidebar-pages">
+        <button
+          type="button"
+          className="sidebar-link"
+          title="System design"
+          onClick={() => navigateTo('architecture')}
+        >
+          <IconDiagram />
+          <span className="nav-label">System design</span>
+        </button>
+        <button
+          type="button"
+          className="sidebar-link"
+          title="Presentation"
+          onClick={() => navigateTo('presentation')}
+        >
+          <IconSlides />
+          <span className="nav-label">Presentation</span>
+        </button>
+      </div>
       <div className="sidebar-nav" role="tablist">
         {(
           [
@@ -679,24 +699,6 @@ export function App() {
         )}
       </div>
       <div className="sidebar-footer">
-        <button
-          type="button"
-          className="sidebar-link"
-          title="System design"
-          onClick={() => navigateTo('architecture')}
-        >
-          <IconDiagram />
-          <span className="nav-label">System design</span>
-        </button>
-        <button
-          type="button"
-          className="sidebar-link"
-          title="Presentation"
-          onClick={() => navigateTo('presentation')}
-        >
-          <IconSlides />
-          <span className="nav-label">Presentation</span>
-        </button>
         <div className="sidebar-tools">
           <button
             type="button"
