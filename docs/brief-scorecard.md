@@ -79,7 +79,7 @@ Not passing in the latest run and stated openly in `docs/evaluation.md`: CASE-6 
 |---|---|---:|---|---|
 | GitHub repository with setup instructions | DONE | 9 | github.com/theomthakur/policypilot, `README.md`, tags `v0.2.0-rc1` to `rc4` | Merge `integration/full-stack` to `main` (author) |
 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, evaluation command, expected cost | DONE | 9 | `docs/reproducibility.md`, `.env.example`, `backend/app/agent/prompts/`, `contracts/tools.schema.json` | None |
-| Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | DONE | 9 | The System design page (one flow from upload to answer, with where Compose, Kubernetes and OpenShift fit) and `docs/system-design.md` | `docs/system-design.md` text still describes 29 Oct |
+| Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | DONE | 9 | The System design page (one flow from upload to answer, with where Compose, Kubernetes and OpenShift fit) and `docs/system-design.md` | `docs/system-design.md` text is longer than the page and not re-read since 29 Oct |
 | Agent and baseline evaluation results and failure analysis | DONE | 8 | `docs/evaluation.md`, saved traces | Pass rate and single-run noise |
 | Short recorded demo or reproducible walkthrough (multi-document question, re-retrieval, clarification, failed tool call, saved traces) | **OPEN** | 4 | Walkthrough script `docs/demo.md` is ready; no recording made | **Record the demo** (author) |
 | Short summary of achievements, unfinished work, improvements | DONE | 9 | `docs/summary.md` | None |
@@ -102,22 +102,30 @@ Not passing in the latest run and stated openly in `docs/evaluation.md`: CASE-6 
 | Advanced retrieval | DONE | 8 | Hybrid ranking, policy-family discovery, supersession metadata, measured against alternatives | Section names missing on institutional chunks |
 | Infrastructure as code, Kubernetes, OpenShift | DONE | 8 | Kustomize base, overlays, network policies, S3 storage; verified on kind with Calico; OpenShift overlay is render-only | OpenShift not run on a real cluster |
 
+## Decisions
+
+- **No public deployment.** The brief asks for a working Docker Compose deployment with runbook and evidence, which exists (Compose, CI, health output, smoke test, persistence and Redis-outage scripts). A public URL is not required, so it is not planned.
+- **OpenShift on hold.** The overlay is written and rendered but not run on a cluster; the System design page says so.
+
 ## What is still needed, in order
 
 **Author only**
-1. Record the demo from `docs/demo.md` (lowest-scoring required item).
+1. Record the demo from `docs/demo.md` (the only required item still missing).
 2. Spot-check about 20 citations by hand and note it in `docs/evaluation.md`.
 3. Merge `integration/full-stack` to `main` and open the PR.
 4. Rehearse the walkthrough and one live code change.
 5. Submit by 11 AM on Sunday 1 Nov.
 
 **Mine, still open**
-1. Update `docs/system-design.md`, `docs/requirements.md` and `docs/submission-checklist.md` for the final state (they still describe 29 Oct). The System design page and the 5-slide Presentation are already updated.
-2. Run `scripts/verify_clean_checkout.sh` on the final commit and confirm CI is green on it.
-3. Put the coding-agent transcripts inside the repo before submission (Claude Code prunes its own logs).
-4. Restore the daily budget cap to 1.00 (temporarily 1.85 for UI testing).
-5. Tag the final release.
+1. Quick mode shows "Found nothing" in the activity panel even when it found a passage (display bug, Developer mode only).
+2. A full evaluation run on the final commit, to replace the numbers in the canonical block at the top of `docs/evaluation.md` (needs about $0.35 of model credit).
+3. Run `scripts/verify_clean_checkout.sh` on the final commit and confirm CI is green on it.
+4. Put the coding-agent transcripts inside the repo.
+5. Restore the daily budget cap to 1.00 (temporarily 1.85) and tag the final release.
 
-**Known weak spots, not planned before the deadline**
-- CASE-6 and CASE-9 are unstable between runs; CASE-11 reaches the call limit with a correct answer; HELD-2, 7, 8 and 9 fail.
-- Held-out sets are no longer blind, and every set is one run.
+**Decision for the author**
+- Whether to try a gentle "you have enough, answer now" nudge for CASE-11 (reaches the six-call limit with a correct answer).
+
+**Known weak spots, not planned**
+- CASE-6 and CASE-9 are unstable between runs; HELD-2, 7, 8 and 9 fail; no set is blind and every set is one run.
+- A deterministic clarification layer, answer prose built only from verified claims, and a repair path for adaptive search are future work.
