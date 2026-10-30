@@ -3674,3 +3674,17 @@ th {
 .welcome-row h3 {
   text-align: center;
 }
+
+/* Agent / Quick switch: visible outline in light and dark */
+.mode-toggle {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.mode-toggle button {
+  border: 1px solid transparent;
+}
+.mode-toggle button.active {
+  border-color: var(--violet-text);
+  background: var(--violet-soft);
+  box-shadow: none;
+}
