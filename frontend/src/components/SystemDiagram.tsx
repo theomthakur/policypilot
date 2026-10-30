@@ -144,7 +144,7 @@ function RulesAsData() {
   const c = config.data
   return (
     <section className="hld-rules" aria-labelledby="hld-rules-title">
-      <h3 id="hld-rules-title">Rules are data, not code</h3>
+      <h2 id="hld-rules-title">Rules are data, not code</h2>
       <p>
         Read live from this deployment and changed with environment variables.
       </p>
@@ -213,7 +213,7 @@ export function SystemDiagram() {
                 <span className="hld-number" aria-hidden="true">
                   {layer.number}
                 </span>
-                <h3>{layer.title}</h3>
+                <h2>{layer.title}</h2>
               </div>
               <div className="hld-nodes">
                 {layer.nodes.map((node) => (
@@ -243,7 +243,7 @@ export function SystemDiagram() {
             <span className="hld-number" aria-hidden="true">
               6
             </span>
-            <h3>Ingestion pipeline</h3>
+            <h2>Ingestion pipeline</h2>
           </div>
           <ol>
             {ingestion.map((step) => (
@@ -257,9 +257,9 @@ export function SystemDiagram() {
       </div>
 
       <section className="hld-chips-block" aria-labelledby="hld-lane-title">
-        <h3 id="hld-lane-title">
+        <h2 id="hld-lane-title">
           Production scale: designed for, not built today
-        </h3>
+        </h2>
         <ul className="hld-chips hld-chips-dashed">
           {productionLane.map(([name, detail]) => (
             <li key={name} title={detail}>
@@ -270,7 +270,7 @@ export function SystemDiagram() {
       </section>
 
       <section className="hld-chips-block" aria-labelledby="hld-patterns-title">
-        <h3 id="hld-patterns-title">Patterns in use</h3>
+        <h2 id="hld-patterns-title">Patterns in use</h2>
         <ul className="hld-chips">
           {patterns.map(([name, detail]) => (
             <li key={name} title={detail}>

@@ -318,3 +318,46 @@
     display: none;
   }
 }
+
+/* ===== Slides always fit; centering never clips the top; fullscreen controls float and fade ===== */
+.deck-slide {
+  justify-content: flex-start;
+  gap: 0;
+}
+.slide-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2em;
+  margin-block: auto; /* centers when there is room and never pushes the top out of view when there is not */
+}
+.deck {
+  position: relative;
+}
+.deck-full {
+  height: 100vh;
+  padding: 0;
+}
+.deck-full .deck-slide {
+  padding: clamp(64px, 9vh, 110px) 7vmin clamp(64px, 9vh, 110px);
+}
+.deck-full .deck-bar,
+.deck-full .deck-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 14px 22px;
+  opacity: 0.85;
+  transition: opacity 250ms ease;
+}
+.deck-full .deck-bar {
+  top: 0;
+}
+.deck-full .deck-foot {
+  bottom: 0;
+}
+.deck-full.controls-hidden .deck-bar,
+.deck-full.controls-hidden .deck-foot {
+  opacity: 0;
+  pointer-events: none;
+}

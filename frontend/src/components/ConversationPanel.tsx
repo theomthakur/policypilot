@@ -3,6 +3,7 @@ import type { AnswerPayload, Citation } from '../api/types'
 import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
+import { UserAvatar } from './UserAvatar'
 import { PolicyPilotMark } from './PolicyPilotMark'
 
 export interface DisplayMessage {
@@ -114,7 +115,44 @@ function CopyButton({ answer }: { answer: AnswerPayload }) {
     }
   }
   return (
-    <button type="button" onClick={() => void copy()}>
+    <button
+      type="button"
+      className={`copy-button${copied ? ' is-copied' : ''}`}
+      onClick={() => void copy()}
+      aria-label={copied ? 'Copied to clipboard' : 'Copy answer'}
+    >
+      {copied ? (
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path
+            d="M3.5 8.5l3 3 6-7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <rect
+            x="5.5"
+            y="5.5"
+            width="8"
+            height="8"
+            rx="1.8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          />
+          <path
+            d="M10.5 3.8V3.5A1.8 1.8 0 0 0 8.7 1.7H3.5A1.8 1.8 0 0 0 1.7 3.5v5.2a1.8 1.8 0 0 0 1.8 1.8h.3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
       {copied ? 'Copied' : 'Copy'}
     </button>
   )
@@ -275,7 +313,11 @@ export function ConversationPanel({
               }
               aria-hidden="true"
             >
-              {message.role === 'assistant' ? <PolicyPilotMark /> : 'You'}
+              {message.role === 'assistant' ? (
+                <PolicyPilotMark />
+              ) : (
+                <UserAvatar />
+              )}
             </div>
             <div className="message-content">
               <span className="message-author">

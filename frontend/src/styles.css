@@ -1,5 +1,6 @@
 :root {
   font-family:
+    'Inter Variable',
     'Avenir Next',
     Avenir,
     ui-sans-serif,
@@ -13,7 +14,7 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --ink: #20162a;
-  --muted: #716879;
+  --muted: #655c6d;
   --line: #e4deea;
   --surface: #ffffff;
   --surface-soft: #faf8fc;
@@ -135,7 +136,7 @@ summary:focus-visible {
 .launch-brand p {
   margin: 8px 0 0;
   color: var(--t-text-766b7e);
-  font-size: 11px;
+  font-size: 12.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -204,7 +205,7 @@ summary:focus-visible {
   background: transparent;
   border: 0;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 650;
   transition: 150ms ease;
 }
@@ -247,7 +248,7 @@ summary:focus-visible {
 .brand span {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12.5px;
   letter-spacing: 0.01em;
 }
 .health-pill,
@@ -260,7 +261,7 @@ summary:focus-visible {
   border-radius: 999px;
   color: var(--t-text-665b6e);
   background: var(--t-bg-faf8fc);
-  font-size: 11px;
+  font-size: 12.5px;
   text-transform: capitalize;
 }
 .health-pill > span,
@@ -367,7 +368,7 @@ summary:focus-visible {
 .eyebrow {
   margin: 0;
   color: var(--violet-bright);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -379,7 +380,7 @@ summary:focus-visible {
   background: var(--violet-soft);
   border: 1px solid var(--t-border-e5d7ed);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   text-align: center;
 }
@@ -413,7 +414,7 @@ summary:focus-visible {
   font-size: 12px;
 }
 .drop-zone span:last-child {
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .upload-icon {
   width: 28px;
@@ -434,7 +435,7 @@ summary:focus-visible {
   justify-content: space-between;
   margin-bottom: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 progress {
   width: 100%;
@@ -444,7 +445,7 @@ progress {
 .inline-status,
 .inline-error {
   margin: 4px 16px 12px;
-  font-size: 11px;
+  font-size: 12.5px;
 }
 .inline-status {
   color: var(--muted);
@@ -491,7 +492,7 @@ progress {
   background: var(--t-bg-fbeae5);
   border-radius: 5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
 }
 .document-details {
@@ -502,13 +503,13 @@ progress {
 }
 .document-details strong {
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .document-details > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 .document-status {
   display: flex;
@@ -538,7 +539,7 @@ progress {
   background: var(--t-bg-fff9e8);
   border: 1px solid var(--t-border-eee3bd);
   border-radius: 8px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 .synthetic-note span {
@@ -558,14 +559,14 @@ progress {
   font-size: 12px;
 }
 .empty-state span {
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .text-button {
   padding: 3px;
   color: var(--violet-text);
   background: transparent;
   border: 0;
-  font-size: 10px;
+  font-size: 12.5px;
   text-decoration: underline;
 }
 .skeleton {
@@ -604,7 +605,8 @@ progress {
 }
 .conversation-heading {
   padding-inline: 20px;
-  box-shadow: inset 0 -2px 0 rgba(79, 129, 189, 0.82);
+  box-shadow: none;
+  border-bottom: 1px solid var(--line);
 }
 .mode-toggle {
   display: flex;
@@ -618,7 +620,7 @@ progress {
   background: transparent;
   border: 0;
   border-radius: 6px;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 .mode-toggle button.active {
@@ -645,7 +647,7 @@ progress {
   place-items: center;
   flex: none;
   border-radius: 8px 8px 3px 8px;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 .assistant-avatar {
@@ -674,7 +676,7 @@ progress {
   max-width: 360px;
   margin: auto;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.6;
 }
 .example-prompts {
@@ -692,7 +694,7 @@ progress {
   background: var(--t-bg-f7f9f7);
   border: 1px solid var(--t-border-e3e8e5);
   border-radius: 9px;
-  font-size: 10px;
+  font-size: 12.5px;
   text-align: left;
 }
 .example-prompts button:hover {
@@ -722,7 +724,7 @@ progress {
   display: block;
   margin: 0 0 5px;
   color: var(--t-text-7d8a84);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 .message-content > p {
@@ -788,7 +790,7 @@ progress {
   background: var(--t-bg-eff8f3);
   border: 1px solid var(--t-border-cce5d9);
   border-radius: 6px;
-  font-size: 9px;
+  font-size: 12px;
   text-align: left;
 }
 .citation-chip:hover {
@@ -809,7 +811,7 @@ progress {
   margin-bottom: 10px;
   padding: 9px 10px;
   border-radius: 7px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 .answer-notice strong {
@@ -857,7 +859,7 @@ progress {
   background: transparent;
   border: 0;
   outline: 0;
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 .send-button {
@@ -878,7 +880,7 @@ progress {
 .composer-wrap > p {
   margin: 7px 0 0;
   color: var(--t-text-87928d);
-  font-size: 8px;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -922,7 +924,7 @@ progress {
   background: var(--surface);
   border: 1px solid var(--t-border-d9c98f);
   border-radius: 6px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .clarification-form {
   display: flex;
@@ -935,7 +937,7 @@ progress {
   padding: 7px 9px;
   border: 1px solid var(--t-border-d9c98f);
   border-radius: 6px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .clarification-form button {
   padding: 7px 10px;
@@ -943,7 +945,7 @@ progress {
   background: #745c1c;
   border: 0;
   border-radius: 6px;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 /* Trace */
@@ -993,10 +995,10 @@ progress {
 }
 .trace-empty strong {
   color: var(--t-text-4a5751);
-  font-size: 11px;
+  font-size: 12.5px;
 }
 .trace-empty span {
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .trace-list {
@@ -1033,7 +1035,7 @@ progress {
   background: var(--t-bg-dfede6);
   border: 1px solid var(--t-border-c2d9ce);
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 12.5px;
   font-weight: 700;
 }
 .event-error,
@@ -1058,25 +1060,25 @@ progress {
 }
 .event-title-row strong {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 500;
   text-transform: lowercase;
 }
 .event-title-row time {
   margin-left: auto;
   color: var(--t-text-89958f);
-  font-size: 8px;
+  font-size: 11px;
 }
 .event-body > p {
   margin: 4px 0;
   color: var(--t-text-65716b);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 .event-body details {
   margin: 6px 0;
   color: var(--t-text-6f7c76);
-  font-size: 8px;
+  font-size: 11px;
 }
 .event-body summary {
   cursor: pointer;
@@ -1089,7 +1091,7 @@ progress {
   background: var(--t-bg-edf1ef);
   border-radius: 5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 8px;
+  font-size: 11px;
   white-space: pre-wrap;
 }
 .trace-badge {
@@ -1097,7 +1099,7 @@ progress {
   color: var(--t-text-8a4a1e);
   background: var(--t-bg-ffeadb);
   border-radius: 4px;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -1118,13 +1120,13 @@ progress {
   color: var(--t-text-557266);
   background: var(--t-bg-eef3f0);
   border-radius: 4px;
-  font-size: 7px;
+  font-size: 11px;
 }
 .event-status {
   display: inline-block;
   margin-top: 5px;
   color: var(--t-text-37805d);
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -1162,7 +1164,7 @@ progress {
 }
 .run-totals span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1207,7 +1209,7 @@ progress {
 .citation-drawer header p:last-child {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .icon-button {
   width: 32px;
@@ -1224,7 +1226,7 @@ progress {
   color: var(--t-text-236c49);
   background: var(--t-bg-e6f5ec);
   border-bottom: 1px solid var(--t-border-cde4d6);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 .verification-strip span {
@@ -1263,7 +1265,7 @@ progress {
   right: 22px;
   color: var(--t-text-8a918d);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 9px;
+  font-size: 12px;
 }
 .citation-drawer footer {
   padding: 14px 20px 18px;
@@ -1272,7 +1274,7 @@ progress {
 }
 .quote-label {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1283,7 +1285,7 @@ progress {
   color: var(--t-text-4a554f);
   border-left: 2px solid #9cc8b4;
   font-family: Georgia, serif;
-  font-size: 10px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
@@ -1317,13 +1319,13 @@ progress {
 .passcode-card > p:not(.eyebrow, .inline-error) {
   margin: 0 0 22px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 .passcode-card label {
   display: block;
   margin-bottom: 5px;
-  font-size: 10px;
+  font-size: 12.5px;
   font-weight: 700;
 }
 .passcode-card input {
@@ -1408,7 +1410,7 @@ progress {
 .welcome-kicker {
   margin: 0 0 6px !important;
   color: var(--violet-bright) !important;
-  font-size: 8px !important;
+  font-size: 11px !important;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1530,7 +1532,7 @@ progress {
   background: var(--t-bg-rgba255255255082);
   border: 1px solid var(--t-border-e1d8e7);
   border-radius: 8px;
-  font-size: 10px;
+  font-size: 12.5px;
   font-weight: 650;
 }
 .guide-back:hover {
@@ -1564,7 +1566,7 @@ progress {
   overflow-x: auto;
   background: var(--t-bg-fff);
   border: 1px solid var(--line);
-  border-top: 2px solid var(--blue-rule);
+  border-top: 1px solid var(--line);
   border-radius: 13px;
   box-shadow: 0 10px 28px rgba(63, 28, 87, 0.055);
 }
@@ -1575,7 +1577,7 @@ progress {
   background: var(--t-bg-faf8fc);
   border: 1px solid var(--t-border-e5dbea);
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   text-align: center;
 }
@@ -1624,7 +1626,7 @@ progress {
 }
 .layer-number {
   color: var(--violet-bright);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
 }
@@ -1646,7 +1648,7 @@ progress {
   padding: 5px 0;
   color: var(--t-text-736979);
   border-bottom: 1px solid var(--t-border-f0ebf3);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .guide-split {
   display: grid;
@@ -1664,7 +1666,7 @@ progress {
   gap: 9px;
   padding: 7px 0;
   color: var(--t-text-655b6c);
-  font-size: 10px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 .numbered-flow li::before {
@@ -1676,7 +1678,7 @@ progress {
   color: var(--violet-text);
   background: var(--violet-soft);
   border-radius: 50%;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
 }
 .invariant-strip,
@@ -1692,13 +1694,13 @@ progress {
 }
 .invariant-strip strong {
   flex: none;
-  font-size: 11px;
+  font-size: 12.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .invariant-strip span {
   color: #eadcf2;
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.55;
 }
 .presentation-timeline {
@@ -1739,13 +1741,13 @@ progress {
   background: var(--violet);
   border: 4px solid var(--t-border-f3ebf8);
   border-radius: 50%;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
 }
 .presentation-timeline time {
   color: var(--violet-bright);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 .presentation-timeline h2 {
@@ -1756,13 +1758,13 @@ progress {
 .presentation-timeline p {
   margin: 0;
   color: var(--t-text-756b7c);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .check-list li {
   position: relative;
   padding: 7px 0 7px 24px;
   color: var(--t-text-665b6e);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .check-list li::before {
   content: '✓';
@@ -1790,11 +1792,11 @@ progress {
 }
 .metric-list strong {
   color: var(--violet-text);
-  font-size: 11px;
+  font-size: 12.5px;
 }
 .metric-list span {
   color: var(--t-text-7a6f81);
-  font-size: 8px;
+  font-size: 11px;
 }
 .presentation-rule .policy-pilot-mark {
   width: 42px;
@@ -1812,7 +1814,7 @@ progress {
 }
 .presentation-rule span {
   color: #eadcf2;
-  font-size: 10px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
@@ -1839,7 +1841,7 @@ progress {
     background: transparent;
     border: 0;
     border-bottom: 2px solid transparent;
-    font-size: 10px;
+    font-size: 12.5px;
     text-transform: capitalize;
   }
   .mobile-tabs button.active {
@@ -1852,7 +1854,7 @@ progress {
     color: white;
     background: var(--forest);
     border-radius: 99px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .pane-trace.mobile-active {
     display: block;
@@ -1883,7 +1885,7 @@ progress {
   .primary-nav button {
     flex: 1;
     padding-block: 8px;
-    font-size: 10px;
+    font-size: 12.5px;
   }
   .brand span {
     display: none;
@@ -1897,7 +1899,7 @@ progress {
     height: 76px;
   }
   .launch-brand p {
-    font-size: 9px;
+    font-size: 12px;
   }
   .health-pill {
     display: none;
@@ -2028,7 +2030,7 @@ progress {
 .message-meta {
   margin-left: 8px;
   color: var(--t-text-8c8196);
-  font-size: 11px;
+  font-size: 12.5px;
 }
 
 .animated-mark {
@@ -2280,7 +2282,7 @@ progress {
   font-size: 16px;
 }
 .composer-wrap > p {
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 /* Welcome state: centered under the logo */
@@ -2324,7 +2326,7 @@ progress {
   line-height: 1.5;
 }
 .event-status {
-  font-size: 10.5px;
+  font-size: 13px;
 }
 .document-details strong {
   font-size: 13.5px;
@@ -2418,4 +2420,72 @@ progress {
 }
 .conversation-heading {
   min-height: 76px;
+}
+
+/* ===== Design pass ===== */
+/* Primary navigation: larger, easier to hit and read */
+.primary-nav button {
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.brand strong {
+  font-size: 19px;
+}
+.brand span {
+  font-size: 12.5px;
+}
+
+/* People: both avatars are the same round size and weight */
+.assistant-avatar,
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+.user-avatar {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--violet-text);
+  background: var(--violet-soft);
+}
+.user-avatar svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Keyboard focus is always visible */
+:where(button, a, textarea, input, [role='switch']):focus-visible {
+  outline: 2px solid var(--violet-text);
+  outline-offset: 2px;
+}
+
+/* Typography: comfortable line length, aligned numerals */
+.answer-view p,
+.answer-view li,
+.message-content > p {
+  max-width: 74ch;
+}
+.run-totals strong,
+.slide-stat strong,
+.count-badge,
+.message-meta,
+time {
+  font-variant-numeric: tabular-nums;
+}
+
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.copy-button svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.copy-button.is-copied {
+  color: var(--ok, #1c7a43);
 }

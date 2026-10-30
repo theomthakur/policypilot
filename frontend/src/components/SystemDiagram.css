@@ -7,6 +7,7 @@
   display: grid;
   gap: 18px;
 }
+.hld h2,
 .hld h3 {
   margin: 0;
   font-size: 15px;
@@ -203,7 +204,7 @@
   }
 }
 
-.hld-chips-block h3 {
+.hld-chips-block h2 {
   margin-bottom: 8px;
 }
 .hld-chips {

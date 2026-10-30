@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { evaluationCases } from '../data/evaluation'
 import './Pages.css'
 
@@ -280,6 +286,8 @@ export function PresentationPage({ onBack }: { onBack: () => void }) {
   const [index, setIndex] = useState(0)
   const [full, setFull] = useState(false)
   const deck = useRef<HTMLElement>(null)
+  const slideRef = useRef<HTMLElement>(null)
+  const [controlsVisible, setControlsVisible] = useState(true)
 
   const go = useCallback(
     (delta: number) =>
@@ -317,10 +325,55 @@ export function PresentationPage({ onBack }: { onBack: () => void }) {
     }
   }, [go, toggleFullscreen])
 
+  // Every slide must fit the screen it is shown on, in a window or in fullscreen: if the content is taller
+  // than the slide, shrink the text until it fits (never below a readable minimum).
+  useLayoutEffect(() => {
+    const element = slideRef.current
+    if (!element) return
+    const fit = () => {
+      element.style.fontSize = ''
+      let size = parseFloat(getComputedStyle(element).fontSize)
+      for (let step = 0; step < 40; step += 1) {
+        if (element.scrollHeight <= element.clientHeight + 1 || size <= 11)
+          break
+        size *= 0.94
+        element.style.fontSize = `${size}px`
+      }
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [index, full])
+
+  // In fullscreen the controls fade away and return when the mouse moves, so they never sit over a slide.
+  useEffect(() => {
+    if (!full) {
+      setControlsVisible(true)
+      return
+    }
+    let timer = window.setTimeout(() => setControlsVisible(false), 2500)
+    const wake = () => {
+      setControlsVisible(true)
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => setControlsVisible(false), 2500)
+    }
+    window.addEventListener('mousemove', wake)
+    window.addEventListener('keydown', wake)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('mousemove', wake)
+      window.removeEventListener('keydown', wake)
+    }
+  }, [full])
+
   const slide = slides[index]
   const pad = (n: number) => String(n).padStart(2, '0')
   return (
-    <main className={`deck${full ? ' deck-full' : ''}`} ref={deck}>
+    <main
+      className={`deck${full ? ' deck-full' : ''}${controlsVisible ? '' : ' controls-hidden'}`}
+      ref={deck}
+    >
       <div className="deck-bar">
         {!full && (
           <button className="page-back" type="button" onClick={onBack}>
@@ -336,12 +389,15 @@ export function PresentationPage({ onBack }: { onBack: () => void }) {
       </div>
       <section
         className="deck-slide"
+        ref={slideRef}
         aria-live="polite"
         aria-label={`Slide ${index + 1} of ${slides.length}`}
       >
-        <p className="eyebrow">{slide.kicker}</p>
-        <h1>{slide.title}</h1>
-        {slide.body}
+        <div className="slide-inner">
+          <p className="eyebrow">{slide.kicker}</p>
+          <h1>{slide.title}</h1>
+          {slide.body}
+        </div>
       </section>
       <footer className="deck-foot">
         <button

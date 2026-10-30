@@ -271,6 +271,7 @@ export function App() {
         </div>
       )}
       <header className="topbar">
+        <h1 className="visually-hidden">PolicyPilot, a policy assistant</h1>
         <div className="brand">
           <PolicyPilotMark className="header-mark" />
           <div>

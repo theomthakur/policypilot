@@ -150,7 +150,7 @@
   --t-text-6c6450: #6c6450;
   --t-text-6f6477: #6f6477;
   --t-text-6f7c76: #6f7c76;
-  --t-text-716879: #716879;
+  --t-text-716879: #655c6d;
   --t-text-736979: #736979;
   --t-text-75540f: #75540f;
   --t-text-756b7c: #756b7c;
@@ -167,7 +167,7 @@
   --t-text-8a4a1e: #8a4a1e;
   --t-text-8a918d: #8a918d;
   --t-text-8c3732: #8c3732;
-  --t-text-8c8196: #8c8196;
+  --t-text-8c8196: #6f657a;
   --t-text-8d3733: #8d3733;
   --t-text-96423d: #96423d;
   --t-text-a66b24: #a66b24;
@@ -191,6 +191,8 @@
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
   --violet-text: #c9a0f0;
   --mark-color: #b98ae8;
+  --violet-bright: #d2a8f5;
+  --ok: #6fcf97;
   --t-bg-f8e8b5: #372d0d;
   --t-bg-d8c9e1: #241b2a;
   --t-bg-d8e2dd: #1c2320;

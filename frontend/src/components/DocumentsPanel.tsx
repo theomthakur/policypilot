@@ -107,6 +107,7 @@ export function DocumentsPanel({
         <span>Drag and drop or choose a file</span>
       </button>
       <input
+        aria-label="Upload a policy PDF"
         ref={inputRef}
         className="visually-hidden"
         type="file"
