@@ -4,8 +4,11 @@ set -eu
 COMPOSE="${COMPOSE:-docker compose}"
 BASE_URL="${POLICYPILOT_BASE_URL:-http://localhost:8080/api/v1}"
 PASSCODE="${POLICYPILOT_DEMO_PASSCODE:-}"
-header_args=""
-[ -n "$PASSCODE" ] && header_args="-H X-Demo-Passcode:$PASSCODE"
+jar="$(mktemp)"
+trap 'rm -f "$jar"' EXIT
+# The session cookie owns the session, so every request shares one cookie jar.
+header_args="-b $jar -c $jar"
+[ -n "$PASSCODE" ] && header_args="$header_args -H X-Demo-Passcode:$PASSCODE"
 
 # shellcheck disable=SC2086
 before_documents="$(curl -fsS $header_args "$BASE_URL/documents" | jq '.items | length')"

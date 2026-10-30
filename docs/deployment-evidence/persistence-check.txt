@@ -1,0 +1,11 @@
+environment: local Docker Compose rehearsal (not the public deployment)
+UTC 2026-10-30T00:39:05Z  commit 9f5bd76
+ Container policypilot-postgres-1  Restarting
+ Container policypilot-frontend-1  Restarting
+ Container policypilot-redis-1  Restarting
+ Container policypilot-backend-1  Restarting
+ Container policypilot-postgres-1  Started
+ Container policypilot-frontend-1  Started
+ Container policypilot-redis-1  Started
+ Container policypilot-backend-1  Started
+Persistence check passed: 10 documents and session 2481a3f7-1f60-4e20-a178-f9bf30a3321b survived restart.

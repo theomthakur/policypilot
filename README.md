@@ -10,7 +10,7 @@ PolicyPilot is a full-stack agentic retrieval-augmented generation application o
 
 - Upload and page-aware indexing of text PDFs.
 - Hybrid PostgreSQL full-text and pgvector retrieval.
-- Three corpus-scoped read-only agent tools.
+- Four corpus-scoped read-only agent tools, plus conversational replies for greetings and thanks.
 - Result-driven re-retrieval and multi-document synthesis.
 - Clarification, insufficient-evidence, conflict, prompt-injection, and tool-timeout behavior.
 - PostgreSQL persistence and useful Redis caching/session/rate-limit roles with outage fallback.
@@ -19,7 +19,7 @@ PolicyPilot is a full-stack agentic retrieval-augmented generation application o
 
 ## Quick start
 
-Prerequisites: Docker with Compose, `curl`, and `jq`. Copy the environment template and add an LLM key unless `LLM_PROVIDER=fake` is selected.
+Prerequisites: Docker with Compose, `curl`, and `jq`. Copy the environment template and either add an OpenRouter-compatible key (`LLM_API_KEY`, `LLM_PROVIDER=openai_compatible`) or set `LLM_PROVIDER=offline` to run the whole stack without a key; the offline mode retrieves and verifies for real but its answers are extractive, so use a real model for answer quality. (`fake` is only for automated tests.)
 
 ```sh
 cp .env.example .env
@@ -45,9 +45,11 @@ flowchart LR
   G --> T1[list_documents]
   G --> T2[search_documents]
   G --> T3[read_document_pages]
+  G --> T4[get_document_outline]
   T1 --> P[(PostgreSQL + pgvector)]
   T2 --> P
   T3 --> P
+  T4 --> P
   A --> R[(Redis)]
   A --> M[OpenAI-compatible model]
   A --> U[(PDF upload volume)]

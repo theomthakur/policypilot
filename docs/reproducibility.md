@@ -35,7 +35,7 @@ Prompts and their version identifiers live with the backend agent implementation
 
 Defaults from `.env.example`:
 
-- Page-bounded chunks: 350 tokens.
+- Page-bounded chunks: 200 tokens with a 30-token overlap (chosen by `eval/retrieval_bench.py`; see ADR 0005).
 - Overlap: 50 tokens.
 - Candidate count: 20 per retrieval method.
 - Returned results: 6 by default.

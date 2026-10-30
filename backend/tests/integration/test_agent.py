@@ -594,3 +594,21 @@ def test_malformed_arguments_cost_no_budget_and_are_not_weak_results(
     assert "never evidence IDs like E1" in first
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
     assert not events.of("limit_reached") and outcome.totals.query_revisions == 1
+
+
+def test_chat_reply_is_rejected_for_a_real_policy_question(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("chat_reply", {"message": "I'm here to help with questions about policies!"})),
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "What is the bandwidth limit for guests on wifi?")
+    assert "not small talk" in next(m["content"] for m in model.calls[1] if m["role"] == "tool")
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1

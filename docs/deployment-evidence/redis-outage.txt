@@ -1,0 +1,16 @@
+environment: local Docker Compose rehearsal (not the public deployment)
+UTC 2026-10-30T00:39:19Z  commit 9f5bd76
+ Container policypilot-redis-1  Stopping
+ Container policypilot-redis-1  Stopped
+{
+  "status": "degraded",
+  "version": "0.1.0",
+  "checks": {
+    "database": "ok",
+    "migrations": "ok",
+    "redis": "down",
+    "llm_config": "ok"
+  },
+  "corpus_documents": 10
+}
+Redis outage fallback passed. Redis will now be restarted.

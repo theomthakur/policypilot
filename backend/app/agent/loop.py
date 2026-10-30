@@ -30,6 +30,10 @@ from app.tools.injection import find_injection
 
 logger = logging.getLogger("policypilot.agent")
 
+# A greeting, thanks or "what can you do" is short; anything longer is treated as a real question.
+CHAT_MAX_WORDS = 6
+
+
 WRAP_UP = (
     "You have reached a limit. Call final_answer now using only the evidence you already have. "
     "Say what is incomplete with a `partial` notice."
@@ -126,6 +130,7 @@ class AgentRun:
         self.specs = openai_tool_specs(include_outline)
         self.totals = Totals(model=model.name)
         self.state = RunState()
+        self.question_words = 0
         self.started = time.monotonic()
 
     # ---- helpers -------------------------------------------------------------------------------
@@ -210,6 +215,7 @@ class AgentRun:
 
     # ---- main loop -----------------------------------------------------------------------------
     async def run(self, ctx: QuestionContext) -> Outcome:
+        self.question_words = len(ctx.question.split())
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": prompts.load("system")},
@@ -248,6 +254,15 @@ class AgentRun:
                     summary="Plan: " + "; ".join(map(str, call.arguments.get("sub_questions", [])))[:260],
                 )
             elif call.name == "chat_reply":
+                if self.question_words >= CHAT_MAX_WORDS:
+                    self._tool_message(
+                        messages,
+                        call,
+                        "This is a question about the policies, not small talk. Search the documents "
+                        "(ask for clarification only after a search shows the answer depends on a "
+                        "missing detail).",
+                    )
+                    continue
                 return await self._chat(call)
             elif call.name == "ask_clarification":
                 if self.totals.tool_calls == 0:

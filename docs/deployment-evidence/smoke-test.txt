@@ -1,0 +1,31 @@
+environment: local Docker Compose rehearsal (not the public deployment)
+UTC 2026-10-30T00:39:41Z  commit 9f5bd76
+{
+  "status": "completed",
+  "stop_reason": "answered",
+  "answer": "Unregistered devices on the NorthfieldGuest network have specific bandwidth limits. The download bandwidth limit is 10 Mbps, while the upload bandwidth limit is 2 Mbps. These limits apply to all unregistered guest devices accessing the network.",
+  "citations": [
+    {
+      "page": 3,
+      "check": "exact_quote",
+      "index": 1,
+      "quote": "Unregistered guest devices are limited to 10 Mbps download and 2 Mbps upload on the NorthfieldGuest wireless\nnetwork.",
+      "title": "Acceptable Use and Guest Network Policy",
+      "verified": true,
+      "document_id": "76c0b91f-2b94-4b3f-8c5e-41e5013bce56"
+    }
+  ],
+  "totals": {
+    "model": "openai/gpt-4o-mini",
+    "steps": 3,
+    "retries": 0,
+    "latency_ms": 3827,
+    "tool_calls": 2,
+    "prompt_tokens": 8588,
+    "prompt_version": "v4",
+    "query_revisions": 1,
+    "completion_tokens": 233,
+    "estimated_cost_usd": 0.001428
+  }
+}
+Smoke test passed.

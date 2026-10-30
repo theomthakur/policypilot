@@ -150,7 +150,7 @@ sequenceDiagram
     API-->>UI: 201 document + ingestion_run
     API->>Parser: Extract one page at a time
     Parser-->>API: Page number + normalized text
-    API->>API: Split within page (350 tokens, 50 overlap)
+    API->>API: Split within page (200 tokens, 30 overlap)
     API->>Embed: Batch chunk text
     Embed-->>API: 384-d vectors
     API->>DB: Atomic pages/chunks/vector/FTS write

@@ -4,10 +4,13 @@ set -eu
 COMPOSE="${COMPOSE:-docker compose}"
 BASE_URL="${POLICYPILOT_BASE_URL:-http://localhost:8080/api/v1}"
 PASSCODE="${POLICYPILOT_DEMO_PASSCODE:-}"
-header_args=""
-[ -n "$PASSCODE" ] && header_args="-H X-Demo-Passcode:$PASSCODE"
+jar="$(mktemp)"
+# The session cookie owns the session, so every request shares one cookie jar.
+header_args="-b $jar -c $jar"
+[ -n "$PASSCODE" ] && header_args="$header_args -H X-Demo-Passcode:$PASSCODE"
 
 restore_redis() {
+  rm -f "$jar"
   $COMPOSE start redis >/dev/null 2>&1 || true
 }
 trap restore_redis EXIT INT TERM

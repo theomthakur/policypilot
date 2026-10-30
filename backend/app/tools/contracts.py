@@ -128,7 +128,8 @@ DESCRIPTIONS = {
     "ask_clarification": "Ask the user one targeted question instead of guessing. Ends the turn.",
     "chat_reply": (
         "Reply directly, without searching, to a greeting, thanks, or a question about what you can do. "
-        "Never use it for a policy question. Ends the turn."
+        "Never use it for any question about accounts, access, data, security or other university "
+        "policy. Ends the turn."
     ),
     "final_answer": (
         "Submit the answer. Each claim must cite evidence IDs from this turn and quote the supporting text "
