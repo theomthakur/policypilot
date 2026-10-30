@@ -1023,3 +1023,28 @@ def test_judge_listing_more_than_five_readings_is_still_assessed() -> None:
     readings = [{"label": f"Option {i}", "quote": f"Rule number {i} applies."} for i in range(7)]
     parsed = AssessQuestionInput.model_validate({"answerable": False, "interpretations": readings})
     assert len(parsed.interpretations) == 7
+
+
+def test_a_word_shared_by_some_labels_does_not_count_as_naming_one() -> None:
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import AssessQuestionInput
+
+    texts = {
+        "Home Directories": "Home Directories: quota 50 GB per user.",
+        "Project Storage": "Project Storage: quota set per allocation.",
+        "Scratch Storage": "Scratch Storage: purged after 60 days.",
+    }
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "answers_differ": True,
+            "interpretations": [{"label": k, "quote": v} for k, v in texts.items()],
+        }
+    )
+    hits = [{"excerpt": " ".join(texts.values()), "document_id": "d1", "page": 5}]
+    run = AgentRun.__new__(AgentRun)
+    run.question = "How much storage do I get?"
+    broad = run._backed_variants(verdict, hits)
+    assert not broad.named and len(broad.options) == 3
+    run.question = "How much scratch space do I get?"
+    assert run._backed_variants(verdict, hits).named

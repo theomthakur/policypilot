@@ -812,14 +812,14 @@ class AgentRun:
         `details` with the reason it was dropped, so a verdict can be replayed and audited."""
         question_tokens = _tokens(self.question)
         label_tokens = [_tokens(item.label) for item in verdict.interpretations]
-        shared = set.intersection(*label_tokens) if label_tokens else set()
         details: list[dict[str, Any]] = []
         verified: dict[str, dict[str, dict[str, Any]]] = {}
         named = False
         for item, tokens in zip(verdict.interpretations, label_tokens, strict=True):
             detail: dict[str, Any] = {"label": item.label[:80], "quote": item.quote[:160]}
             details.append(detail)
-            distinguishing = tokens - shared - _GENERIC_STEMS
+            others = set().union(*(t for t in label_tokens if t is not tokens))
+            distinguishing = tokens - others - _GENERIC_STEMS  # words only this kind carries
             if distinguishing & question_tokens:
                 detail["status"] = "named_by_user"  # the user already said which kind applies
                 named = True
@@ -913,9 +913,9 @@ class AgentRun:
         # The decision is made here from the structured fields, not from the model's own "answerable" flag
         # (a judge that lists four quoted variants and then says "answerable" contradicts itself).
         label_tokens = [_tokens(d["label"]) for d in variants.details]
-        shared = set.intersection(*label_tokens) if label_tokens else set()
+        unique = [t - set().union(*(u for u in label_tokens if u is not t)) for t in label_tokens]
         value_named = bool(
-            _tokens(verdict.value_in_question or "") & (set().union(*label_tokens) - shared)
+            _tokens(verdict.value_in_question or "") & set().union(*unique)
             if label_tokens
             else (verdict.value_in_question or "").strip()
         )  # the judge's "the user stated a value" counts only if it points at one of the readings

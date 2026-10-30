@@ -47,6 +47,22 @@ What this shows, and what it does not:
 - The older held-out set scored 5 of 10 in this single run (12 of 20 earlier). HELD-4 (ambiguous) is still not asked about; HELD-8, HELD-9 and HELD-2 failed. One run per set cannot separate a regression from noise, so treat these as indicative, not as a measured improvement.
 - A judge probe on 15 questions asked on 3 of 6 ambiguous ones and on none of 9 specific ones.
 
+### Naming-rule fix (`r26-tuned`, `r26-heldout2`, `r26-heldout`)
+
+A reviewer's trace read found a bug: a word that appeared in some of the proposed readings (for example "storage" in "Project Storage" and "Scratch Storage", but not "Home Directories") counted as the user naming a reading, so "How much storage do I get?" never got its question. Only words unique to one reading now count, and the judge's "the user stated a value" flag follows the same rule. Test added; 156 backend tests pass.
+
+One run per set, same model:
+
+| Set | Agent | Baseline |
+|---|---:|---:|
+| 11 tuned cases | **9 of 11** | 4 of 9 |
+| 9 fresh cases | **9 of 9** | 5 of 7 |
+| 10 older held-out cases | **6 of 10** | 5 of 9 |
+
+- HELD-4 (ambiguous) is asked for the first time and passes. CASE-4 asks and passes. No case that is not meant to be ambiguous received a clarifying question in any of the three runs.
+- Still failing: CASE-11 (correct answer, reaches the six-call limit) and CASE-6 (a stop-reason failure this time; it passed in r23 to r25, so it is unstable). On the older set HELD-2, HELD-7, HELD-8 and HELD-9 fail; HELD-8 reached the call limit this time and passed in r25.
+- The older held-out set has now been looked at several times, so it is no longer a clean test. Single runs cannot separate noise from change.
+
 ### Last change of 30 October (`r25-tuned`, `r25-heldout2`, `r25-heldout`)
 
 Three more changes: the judge now sees up to 12 merged results (the merge used to keep 6 per search and 8 in all, so later chunks never reached it); the judge's "the user stated a value" flag only blocks a question when it points at what tells one reading from another (it blocked CASE-4 by saying "Northfield account"); and CASE-4's check changed.
