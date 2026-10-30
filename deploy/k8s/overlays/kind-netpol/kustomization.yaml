@@ -1,0 +1,9 @@
+# The kind overlay plus the NetworkPolicy component. Use it on a cluster whose CNI enforces policies (the drills used
+# kind with Calico: see docs/kubernetes.md). On kindnet, kind's default, enforcement was unreliable.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: policypilot
+resources:
+  - ../kind
+components:
+  - ../../components/network-policies

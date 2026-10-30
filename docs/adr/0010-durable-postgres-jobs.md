@@ -19,4 +19,4 @@ A `jobs` table in PostgreSQL holds turns and ingestions. The API creates the job
 
 ## Consequences
 - Restarting any process no longer loses accepted questions or uploads.
-- Uploaded PDFs are still on a local volume. Running API and workers on different nodes needs shared object storage first; the Kubernetes manifests therefore pin the worker to the API's node and keep one replica of each ([0011](0011-kubernetes-deployment.md)).
+- Uploaded PDFs are on a local volume by default. `STORAGE_BACKEND=s3` stores them in an S3-compatible bucket (tested against SeaweedFS and an S3 emulator), and a worker then fetches the PDF from the bucket, so API and workers need no shared disk. Without it the Kubernetes manifests pin the worker to the API's node ([0011](0011-kubernetes-deployment.md)).

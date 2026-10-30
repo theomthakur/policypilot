@@ -6,6 +6,23 @@ This section supersedes the headline numbers further down. The older sections (r
 
 **What changed since r10.** Prompt v9; a structured ambiguity check after the first search; code that normalizes abstentions; document metadata (authority, version, effective date, documented supersession) with policy-family discovery and a conflict repair; follow-up search scoped to earlier sources; a 0.9 ranking weight for NIST reference material; truthful counters. Code and tests: see `docs/remaining-execution-plan.md` (handoff log). Same model (`openai/gpt-4o-mini`, temperature 0, seed 42), same 14-document library.
 
+### Later the same day: fresh set, supersession template and facet gate (r18, `eval/heldout2.yaml`)
+
+Outside LLM suggestions led to three changes, made after a second held-out set of nine new questions was written and committed (`eval/heldout2.yaml`, commit before the changes) and run against the old build:
+
+1. **Supersession in code.** Documents' supersession metadata now carries scope terms and exception terms taken from what the 2025 standard says about itself. When a question is about a superseded provision in force today, both documents were read in the turn, and the question is not historical, the answer is *built from the two literal passages* (current rule, earlier rule, conflict notice) instead of trusting the model. Service accounts and other documented exceptions are left alone; historical questions are left alone; the earlier repair message obeys the same scope.
+2. **A stricter clarification gate.** The judge model (`gpt-4o`, one short call per new question) must now fill `value_in_question`, `default_reading` and `answers_differ` and quote two passages from one document; code asks only if no value is named, there is no default, the answers differ and the quotes differ in a figure or most of their wording. A model that returns an unexpected field no longer silently disables the check (a bug found here: the skipped check is now visible in the trace).
+3. **Summary figures are checked.** A sentence of the summary that states a figure no cited page contains is removed with a notice.
+
+| Fresh set (9 questions) | Agent | Baseline |
+|---|---:|---:|
+| Before the changes (2 runs) | 7 of 18 | 10 of 14 |
+| After the first version of the changes (2 runs) | **11 of 18** | 10 of 14 |
+
+Per case, after: the historical question (HELD-12) 2 of 2 and all four specific lookups 2 of 2 (the old gate had asked needlessly on one); the current-rule question (HELD-11) 1 of 2 (the other hit the token budget); the service-account control (HELD-13) 0 of 2 because the older build's repair message wrongly pulled the 2025 standard in (since fixed: the repair respects scope and exceptions); both ambiguous questions (HELD-15, HELD-16) 0 of 2 because of the bug above. On the tuned set one run (r18) passed 8 of 11 for the agent against 5 of 9 for the baseline, with the conflict case (CASE-6) passing for the first time (the template) and CASE-4, CASE-9 and CASE-11 failing.
+
+**What is not validated.** The fixes for the field bug and the scoped repair came after those runs. Every later real-model run (a second pair of fresh-set runs and a full tuned run) failed instantly with HTTP 403: the evaluation key's $1 limit was used up. Those runs were deleted rather than reported; the fixes are covered by unit tests only. The fresh set was also looked at while diagnosing, so its post-fix numbers are no longer a clean held-out measurement.
+
 ### Tuned cases, three repeats (r15, r16, r17; `eval/results/run-2026-10-30-gpt-4o-mini-r1{5,6,7}/`)
 
 | Case | Category | Agent passed | Baseline passed | What fails |

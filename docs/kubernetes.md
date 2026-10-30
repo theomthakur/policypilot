@@ -7,6 +7,8 @@ Decision record: [ADR 0011](adr/0011-kubernetes-deployment.md). Docker Compose r
 ```sh
 # needs docker, kind (https://kind.sigs.k8s.io), kubectl; LLM_API_KEY in the environment or .env
 scripts/k8s_up.sh          # cluster, images, ingress controller, generated secrets, deploy, wait
+ENABLE_OBJECT_STORAGE=true scripts/k8s_up.sh   # the same with uploads in a bucket and two replicas each of API and worker
+# NetworkPolicies: create the cluster with Calico (disableDefaultCNI, apply the Calico manifest), then OVERLAY=kind-netpol scripts/k8s_up.sh
 scripts/k8s_smoke.sh       # checks from outside and inside
 scripts/k8s_recovery.sh    # failure drills (below)
 scripts/k8s_up.sh down     # delete the cluster
@@ -21,7 +23,9 @@ Then open http://localhost:8088/ and sign in as `alice` or `bob` (generated pass
 | `base/` | Kustomize base | namespace (Pod Security `restricted`), config, PostgreSQL + pgvector and Redis StatefulSets with PVCs, migration Job, seed Job, API, worker, frontend |
 | `overlays/kind/` | Overlay (tested) | Keycloak (development identity provider), Ingress, cluster-specific URLs |
 | `overlays/openshift/` | Overlay (**rendered only, never deployed**) | arbitrary user IDs, a Route; no database, no identity provider |
-| `components/network-policies/` | Opt-in component | default-deny plus the real connections; see "NetworkPolicy" |
+| `components/network-policies/` | Opt-in component | default-deny plus the real connections; enforced and checked on Calico |
+| `components/object-storage/`, `overlays/kind-scaled/` | Opt-in component and overlay (tested) | uploads in an S3-compatible bucket; 2 API and 2 worker replicas, no shared volume |
+| `overlays/kind-netpol/` | Overlay (tested on Calico) | the kind overlay with the NetworkPolicy component |
 
 - **Order of events:** the migration Job and the seed Job run per release; the API, worker and seed pods wait (init container `wait-schema`) until the schema is at the latest migration. Concurrent seeders are serialized by a PostgreSQL advisory lock. The 14 documents ship as the image `policypilot-corpus` and are copied out at start; nothing is mounted from a host.
 - **Secrets** (`policypilot-secrets`, `keycloak-secrets`) are created by `scripts/k8s_up.sh` from random values and your `LLM_API_KEY`; none is in the repository, in the evidence files or in a screenshot.
@@ -46,8 +50,8 @@ Application rollback and database rollback are separate operations. Migrations a
 
 ## What this does not do
 
-- **No horizontal scaling of the API or worker.** Uploads sit on a ReadWriteOnce volume that the API and worker share, so both run as one replica on one node (the worker has a pod affinity to the API). The next step is an object-storage adapter (S3-compatible, MinIO locally) behind the existing storage path plus a load test; only then is a HorizontalPodAutoscaler honest. None is shipped. The frontend has two replicas, which proves nothing about the backend's scaling.
+- **Scaling is limited and was not load-tested.** By default uploads sit on a ReadWriteOnce volume shared by the API and worker, so both run as one replica on one node. The `kind-scaled` overlay (component `components/object-storage`) puts uploads in an S3-compatible bucket (SeaweedFS, image pinned by digest) and runs **two API and two worker replicas with no shared volume**: a browser upload was ingested by one worker pod and visible to a second user's isolation check (`kind-scaled-flow.txt`). Everything ran on one kind node, so cross-node scheduling is untested, and there was no load test, so no HorizontalPodAutoscaler is shipped.
 - **No database high availability.** One PostgreSQL pod with a PVC survives pod and process restarts; it does not survive losing the node's disk. A managed database or an operator, with point-in-time backups, is the production design; `pg_dump` is shown only as a drill.
-- **NetworkPolicy is written but its enforcement was not demonstrated.** The component is valid and renders. On this `kind` cluster (kindnet's policy engine) it made fresh connections unreliable: in a controlled test **7 of 40** new connections from the API to Keycloak failed and 17 took over a second, versus 0 of 40 with the policies removed. The kind overlay therefore leaves the component out, and the cluster in the evidence ran without network policies. To use them, run a CNI with solid policy support (for example Calico or Cilium) and enable the component. Standard NetworkPolicy also cannot allow `openrouter.ai` by name: egress to the model provider is port 443 to any public address; an egress proxy or a CNI-specific FQDN policy is the production control.
+- **NetworkPolicy needs a CNI that enforces it.** On kind's default CNI (kindnet) the policies made fresh connections unreliable (**7 of 40** failed, 17 slow, against 0 of 40 without them), so the plain `kind` overlay leaves them out. On kind with **Calico v3.28.2** (`kind-netpol` overlay) all nine policies applied, the app deployed and started with them, every connection the policies allow worked (40 of 40 fresh connections fast), and every connection they forbid was blocked (frontend to PostgreSQL, Redis and Keycloak; worker to Keycloak and the API): see `networkpolicy-calico.md`. Sign-in through the browser was not re-run on the Calico cluster. Standard NetworkPolicy also cannot allow `openrouter.ai` by name: egress to the model provider is port 443 to any public address; an egress proxy or a CNI-specific FQDN policy is the production control.
 - **OpenShift:** the overlay renders and its changes are the standard ones (no fixed user IDs, group-0 writable directories in the image, a Route) but nothing was run on OpenShift. PostgreSQL and Redis there should be managed services or operator-run.
 - **HTTPS:** the demo is plain HTTP on localhost, so cookies are not marked `Secure`; set `AUTH_COOKIE_SECURE` and `SESSION_COOKIE_SECURE` behind TLS.

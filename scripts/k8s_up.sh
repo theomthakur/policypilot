@@ -10,7 +10,7 @@ CLUSTER="${CLUSTER:-policypilot}"
 KIND="${KIND:-kind}"
 TAG="${IMAGE_TAG:-local}"
 NS=policypilot
-OVERLAY=kind
+OVERLAY="${OVERLAY:-kind}"
 [ "${ENABLE_OBJECT_STORAGE:-false}" = "true" ] && OVERLAY=kind-scaled
 INGRESS_MANIFEST="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/kind/deploy.yaml"
 

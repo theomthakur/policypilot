@@ -1,0 +1,8 @@
+[alice] sign-in screen shown to a signed-out visitor
+[alice] signed in through the identity provider
+[alice] uploaded alice-private.pdf and it finished processing
+[alice] documents visible: 15; not from the shared corpus: 1. Alice private note
+[bob] sign-in screen shown to a signed-out visitor
+[bob] signed in through the identity provider
+[bob] documents visible: 14; not from the shared corpus: none
+[bob] cannot see Alice private (isolated)

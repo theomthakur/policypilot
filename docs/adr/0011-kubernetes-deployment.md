@@ -15,9 +15,9 @@ Kustomize: a `base` of plain manifests and a `kind` overlay that was actually de
 - **OpenShift:** an overlay (arbitrary user IDs, a Route instead of an Ingress) that was **rendered but never deployed**.
 
 ## What this deliberately does not do
-- No horizontal scaling of the API: uploads sit on a ReadWriteOnce volume shared with the worker on one node. Scaling out needs object storage (an S3-compatible adapter, with MinIO locally, is the next step) and a load test. No HorizontalPodAutoscaler is shipped because none was tested.
+- No autoscaler and no load test. By default uploads sit on a ReadWriteOnce volume shared with the worker on one node; the `kind-scaled` overlay moves them to an S3-compatible bucket and runs two replicas of the API and worker, tested on one node only.
 - No database replication or failover, no Redis Sentinel: the single PostgreSQL StatefulSet is durable (PVC), not highly available. The production answer is a managed or operator-run database.
-- NetworkPolicy cannot allow `openrouter.ai` by name; egress to the model provider is port 443 to any public address, and a name-based egress proxy or a CNI-specific policy is the production control.
+- NetworkPolicies are an opt-in component: kind's default CNI enforced them unreliably, Calico enforced them correctly. NetworkPolicy cannot allow `openrouter.ai` by name; egress to the model provider is port 443 to any public address, and a name-based egress proxy or a CNI-specific policy is the production control.
 
 ## Consequences
 - The same images run under Compose and Kubernetes. A cluster deployment is reproducible from one command and has recorded drill evidence (`docs/deployment-evidence/`).
