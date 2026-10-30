@@ -2,6 +2,14 @@
 
 ## Final evaluated release (read this first)
 
+> **Reliability branch, not yet re-measured:** `improve/reliability-and-evaluation` adds three deterministic
+> protections after the results below: (1) evidence-backed clarification variants can no longer be vetoed by
+> a contradictory model boolean, (2) displayed claims and standard summaries are built from literal verified
+> source spans rather than free-form model prose, and (3) a focused follow-up with relevant evidence reserves
+> its final data-tool slot for `final_answer`. Unit and integration regressions cover these behaviors. These
+> changes have **not** been included in a live-model score yet; re-run the frozen and fresh suites after the
+> OpenRouter key is available. Do not compare them numerically with the historical rows below.
+
 Everything below this block is the history of how the numbers were reached. This block is the current, canonical result.
 
 - **Code:** branch `integration/full-stack`. The full runs (`r26-tuned`, `r26-heldout2`, `r26-heldout`) ran on commit `7c1e12f`. One later fix (the ambiguity judge's tokens no longer count against the agent's per-turn token limit, commit `18d47d0`) was checked with a re-run of CASE-4 and CASE-6 only (`r27-focus`, both passed). A full re-run on the final commit is pending model credit and will replace the numbers here.

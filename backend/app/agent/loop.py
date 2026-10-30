@@ -19,10 +19,8 @@ from sqlalchemy import select
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
 from app.agent.verifier import (
-    YEAR,
     PageText,
     check_quote,
-    figure_in_text,
     locate_quote,
     sanitize_final_answer,
     verify_answer,
@@ -558,6 +556,23 @@ class AgentRun:
             self.totals.blocked_calls += 1
             self._tool_message(messages, call, "Tool call limit reached. Call final_answer now.")
             return await self._wrap_up(messages, "limit_tool_calls")
+        # Follow-up and clarification turns already have a focused question and at least one relevant result.
+        # Keep the final data-tool slot for genuinely new evidence; otherwise a weak model can burn it on one
+        # more paraphrase search and turn a supported answer into an artificial limit failure.
+        if (
+            (self.ctx and (self.ctx.history or self.ctx.clarification))
+            and st.ledger_has_good
+            and self.totals.tool_calls >= s.agent_max_tool_calls - 1
+            and call.name == "search_documents"
+        ):
+            self.totals.blocked_calls += 1
+            self._tool_message(
+                messages,
+                call,
+                "A relevant source is already available and the final search slot is reserved. "
+                "Call final_answer now using the evidence already returned.",
+            )
+            return await self._answer_from_existing_evidence(messages)
         if self._time_left() <= 0:
             return await self._wrap_up(messages, "limit_time")
         digest = _args_hash(call.name, call.arguments)
@@ -925,7 +940,12 @@ class AgentRun:
             if label_tokens
             else (verdict.value_in_question or "").strip()
         )  # the judge's "the user stated a value" counts only if it points at one of the readings
-        ask = verdict.answers_differ and not value_named and not default and len(options) >= 2
+        # `answers_differ` is useful telemetry but the judge can occasionally contradict its own quoted
+        # variants. `_backed_variants` has already established that the same document contains two relevant,
+        # different rules. Let that deterministic evidence win over a single probabilistic boolean.
+        evidence_rules_differ = len(options) >= 2
+        answers_differ = verdict.answers_differ or evidence_rules_differ
+        ask = answers_differ and not value_named and not default and len(options) >= 2
         mentions = verdict.clarification_question.strip().lower()
         dropped = [d["label"].lower() for d in variants.details if d.get("status") != "verified"]
         if ask and not (
@@ -954,7 +974,9 @@ class AgentRun:
                 "proposed": len(verdict.interpretations),
                 "supported": len(options),
                 "kinds": variants.details,
-                "answers_differ": verdict.answers_differ,
+                "answers_differ": answers_differ,
+                "judge_answers_differ": verdict.answers_differ,
+                "evidence_rules_differ": evidence_rules_differ,
                 "value_in_question": verdict.value_in_question,
                 "default_reading": default or None,
                 "default_asserted": verdict.default_reading
@@ -1038,40 +1060,50 @@ class AgentRun:
         outcome = await self._final_answer(call, messages, partial_reason=reason)
         return outcome or await self._partial(reason)
 
+    async def _answer_from_existing_evidence(self, messages: list[dict[str, Any]]) -> Outcome:
+        """Finish a focused follow-up before it wastes its last data-tool slot.
+
+        This is not a partial-answer path: the tool ledger already contains relevant evidence. It remains
+        bounded, closes every pending tool call, and is visible in the trace as an evidence-preserving stop.
+        """
+        if self._time_left() <= 0 or not self.state.ledger:
+            return await self._partial("limit_time")
+        await self.emit(
+            "early_stop",
+            "info",
+            state="EVALUATE",
+            summary="Relevant evidence is already available; reserving the final search slot and answering.",
+        )
+        self._close_open_tool_calls(messages)
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "Use the relevant evidence already returned and call final_answer now. "
+                    "Do not search again."
+                ),
+            }
+        )
+        try:
+            response = await self._model_call(messages, force_tool="final_answer")
+        except TimeoutError:
+            return await self._partial("limit_time")
+        call = next((c for c in response.tool_calls if c.name == "final_answer"), None)
+        if call is None:
+            return await self._partial("limit_tool_calls")
+        outcome = await self._final_answer(call, messages)
+        return outcome or await self._partial("limit_tool_calls")
+
     async def _verify_summary(self, answer: dict[str, Any]) -> dict[str, Any]:
-        """Claims are quote-checked, the summary prose is not. Drop any summary sentence stating a figure that
-        no cited page contains, and say so. Words and names are not checked; numbers are."""
-        if not answer["citations"] or not answer["summary"]:
+        """Make the displayed answer no broader than its verified claims.
+
+        The model's summary may be fluent but, unlike a claim quote, cannot be mechanically entailed by a
+        page. For evidence-backed answers we therefore display the verified literal claim spans. Conflict
+        answers use the separate metadata-backed template above.
+        """
+        if not answer["citations"] or not answer["claims"]:
             return answer
-        pages = [
-            await self.page_text(uuid.UUID(c["document_id"]), c["page"]) or "" for c in answer["citations"]
-        ]
-        haystack = "\n".join(pages)
-        kept_lines: list[str] = []
-        dropped = 0
-        for line in str(answer["summary"]).split("\n"):
-            kept: list[str] = []
-            for sentence in re.split(r"(?<=[.!?])\s+", line):
-                figures = [f for f in re.findall(r"\d[\d,.]*\d|\d", sentence) if not YEAR.match(f)]
-                if all(figure_in_text(f, haystack) for f in figures):
-                    kept.append(sentence)
-                else:
-                    dropped += 1
-            kept_lines.append(" ".join(kept))
-        if dropped:
-            # Never put back text that was just rejected: fall back to the verified claims themselves.
-            answer["summary"] = (
-                "\n".join(line for line in kept_lines if line.strip()).strip()
-                or " ".join(str(c["text"]) for c in answer["claims"])
-                or ABSTAIN_TEXT
-            )
-            answer["notices"].append(
-                {
-                    "kind": "partial",
-                    "text": f"{dropped} sentence(s) with figures no cited page contains were removed.",
-                    "citation_indexes": [],
-                }
-            )
+        answer["summary"] = " ".join(str(c["text"]) for c in answer["claims"]).strip() or ABSTAIN_TEXT
         return answer
 
     async def _normalize(self, answer: dict[str, Any]) -> dict[str, Any]:

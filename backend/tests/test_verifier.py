@@ -65,7 +65,8 @@ async def test_unsupported_and_unknown_evidence_are_rejected() -> None:
     )
     result = await verify_answer(draft, LEDGER, page_text)
     assert not result.ok and len(result.failures) == 2
-    assert [c["text"] for c in result.answer["claims"]] == ["Good."]
+    # Displayed claims are the verifier's literal source spans, not model prose.
+    assert [c["text"] for c in result.answer["claims"]] == ["every 90 days"]
     assert result.answer["unverified_claims"] == ["Wrong quote.", "Never seen."]
     assert result.answer["partial"] is True
 
@@ -227,3 +228,17 @@ async def test_a_summary_with_only_rejected_sentences_falls_back_to_the_verified
     run.page_text = page_text  # type: ignore[method-assign]
     answer = await run._verify_summary(verified.answer)
     assert "999" not in answer["summary"] and "10 Mbps" in answer["summary"]
+
+
+async def test_an_evidence_backed_summary_is_built_only_from_verified_claim_spans() -> None:
+    from app.agent.loop import AgentRun
+
+    draft = FinalAnswerInput(
+        summary="Guests get 10 Mbps and may use the network for any lawful purpose.",
+        claims=[DraftClaim(text="Guest download is 10 Mbps.", evidence_ids=["E1"], quote="10 Mbps download")],
+    )
+    verified = await verify_answer(draft, LEDGER, page_text)
+    run = AgentRun.__new__(AgentRun)
+    answer = await run._verify_summary(verified.answer)
+    assert answer["summary"] == "10 Mbps download"
+    assert "lawful purpose" not in answer["summary"]

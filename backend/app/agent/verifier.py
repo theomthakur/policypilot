@@ -2,7 +2,8 @@
 
 A claim is accepted only if every cited evidence ID came from a tool call in this turn and the claim's
 quote appears on the cited page (exact normalized substring; token overlap only as a fallback signal).
-This proves provenance and quoted support, not full logical entailment.
+The user-visible claim text is then the literal page span, rather than an unverified model paraphrase.
+That deliberately trades a little fluency for an auditable claim-to-source guarantee.
 """
 
 import re
@@ -225,8 +226,9 @@ async def verify_answer(
     unverified: list[str] = []
     failures: list[str] = []
 
-    async def verify_claim(claim: DraftClaim) -> list[int]:
+    async def verify_claim(claim: DraftClaim) -> tuple[list[int], str | None]:
         indexes: list[int] = []
+        literal_text: str | None = None
         for key in claim.evidence_ids:
             item = ledger.get(key)
             if item is None:
@@ -253,6 +255,9 @@ async def verify_answer(
                     + (f' The closest text on that page is: "{nearby}"' if nearby else "")
                 )
                 continue
+            # The page's own span is what the person sees as the claim. A model can still write a concise
+            # draft claim, but it is not allowed to introduce meaning that the verifier cannot prove.
+            literal_text = literal_text or literal
             absent = [
                 f
                 for f in re.findall(r"\d[\d,.]*\d|\d", claim.text)
@@ -279,12 +284,12 @@ async def verify_answer(
                     }
                 )
             indexes.append(index_of[slot])
-        return indexes
+        return indexes, literal_text
 
     for claim in draft.claims:
-        indexes = await verify_claim(claim)
-        if indexes:
-            claims.append({"text": claim.text, "citation_indexes": sorted(set(indexes))})
+        indexes, literal = await verify_claim(claim)
+        if indexes and literal:
+            claims.append({"text": strip_evidence_ids(literal), "citation_indexes": sorted(set(indexes))})
         else:
             unverified.append(claim.text)
 
