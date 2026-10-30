@@ -200,7 +200,9 @@ async def _finish(
         else:
             state["pending_clarification"] = None
             if answer:
-                state["history"].append([turn.question, str(answer["summary"])[:400]])
+                sources = sorted({f"{c['title']} p.{c['page']}" for c in answer.get("citations", [])})
+                note = f" [Sources: {'; '.join(sources)}]" if sources else ""
+                state["history"].append([turn.question, str(answer["summary"])[:450] + note])
         await session_state.save(db, turn.session_id, state)
     await limits.add_spend(cost)
 

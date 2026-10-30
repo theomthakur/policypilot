@@ -41,7 +41,7 @@ def build_user_message(ctx: QuestionContext) -> str:
     if ctx.history:
         recent = ctx.history[-3:]
         parts.append(
-            "Earlier in this conversation:\n" + "\n".join(f"- Q: {q}\n  A: {a[:300]}" for q, a in recent)
+            "Earlier in this conversation:\n" + "\n".join(f"- Q: {q}\n  A: {a[:600]}" for q, a in recent)
         )
     if ctx.clarification and ctx.original_question:
         asked, reply = ctx.clarification
@@ -53,6 +53,12 @@ def build_user_message(ctx: QuestionContext) -> str:
         )
     else:
         parts.append(f"Question: {ctx.question}")
+    if ctx.history:
+        parts.append(
+            "If this message follows up on the conversation above, answer only what is new: do not repeat "
+            "the earlier answer, and search for details its sources did not cover. If the documents hold "
+            "nothing more, say so in one sentence."
+        )
     return "\n\n".join(parts)
 
 
@@ -72,7 +78,7 @@ def _model_view(name: str, result: ToolResult, state: RunState) -> str:
             hit.pop("text_rank", None)
         body.pop("corpus_version", None)
         body.pop("cached", None)
-    elif name == "read_document_pages":
+    elif name == "read_document_pages" and body.get("document_id"):
         doc_id, title = uuid.UUID(body["document_id"]), body["title"]
         for page in body.get("pages", []):
             page["evidence_id"] = state.evidence_key(doc_id, title, page["page"])
@@ -241,6 +247,8 @@ class AgentRun:
                     sub_questions=call.arguments.get("sub_questions", []),
                     summary="Plan: " + "; ".join(map(str, call.arguments.get("sub_questions", [])))[:260],
                 )
+            elif call.name == "chat_reply":
+                return await self._chat(call)
             elif call.name == "ask_clarification":
                 if self.totals.tool_calls == 0:
                     self._tool_message(
@@ -288,6 +296,21 @@ class AgentRun:
             return
         self.state.planned = True
         self._tool_message(messages, call, "Plan recorded. Continue.")
+
+    async def _chat(self, call: ToolCall) -> Outcome:
+        """A direct reply to a greeting, thanks or a question about the assistant; no documents involved."""
+        message = str(call.arguments.get("message", "")).strip()[:800] or "Hello! Ask me about the policies."
+        answer = {
+            "summary": message,
+            "claims": [],
+            "citations": [],
+            "notices": [],
+            "unverified_claims": [],
+            "stop_reason": "answered",
+            "partial": False,
+        }
+        await self.emit("answer", "ok", state="EMIT", summary=message[:300], stop_reason="answered")
+        return self._finish("answered", answer)
 
     async def _clarify(self, call: ToolCall) -> Outcome:
         try:
@@ -388,7 +411,11 @@ class AgentRun:
             await asyncio.sleep(0.2 * attempt)
         assert result is not None
 
-        if result.status == "error":
+        bad_arguments = result.error is not None and result.error.code == "INVALID_ARGUMENT"
+        if bad_arguments:
+            # A malformed call is the model's mistake, not a failed tool: no budget, not a weak result.
+            self.totals.tool_calls -= 1
+        elif result.status == "error":
             st.tool_failures += 1
         for where, snippet in _scan_injection(call.name, result):
             if where not in st.flagged:
@@ -403,7 +430,7 @@ class AgentRun:
         if call.name == "search_documents":
             st.last_query = str(call.arguments.get("query", ""))
             data = result.data or {}
-            st.last_search_weak = result.status != "ok" or bool(data.get("weak"))
+            st.last_search_weak = (result.status != "ok" and not bad_arguments) or bool(data.get("weak"))
             st.last_search_reason = (
                 "no_hits" if result.status != "ok" or not data.get("hits") else "low_score"
             )

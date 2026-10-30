@@ -195,3 +195,23 @@ def test_unknown_session_and_turn_are_404(
         assert client.get(f"/api/v1/turns/{nil}").status_code == 404
         assert client.get(f"/api/v1/turns/{nil}/events").status_code == 404
         assert _send(client, "").status_code == 400
+
+
+def test_the_next_turn_sees_the_previous_answer_and_its_sources(
+    monkeypatch: pytest.MonkeyPatch, make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth limit mbps"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+            respond(("chat_reply", {"message": "You are welcome!"})),
+        ]
+    )
+    with _boot(monkeypatch, model, make_pdf, tmp_path) as client:
+        _wait(client, _send(client, "What is the guest bandwidth limit?").json()["turn_id"])
+        second = _wait(client, _send(client, "thanks").json()["turn_id"])
+        assert second["answer"]["summary"] == "You are welcome!" and second["totals"]["tool_calls"] == 0
+        opening = next(m["content"] for m in model.calls[-1] if m["role"] == "user")
+        assert "What is the guest bandwidth limit?" in opening and "Sources:" in opening

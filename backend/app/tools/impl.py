@@ -261,7 +261,14 @@ async def run_tool(ctx: ToolContext, name: str, raw_args: dict[str, Any]) -> Too
         args = model.model_validate(raw_args)
     except ValidationError as exc:
         first = exc.errors()[0]
-        return _error("INVALID_ARGUMENT", f"{'.'.join(map(str, first['loc']))}: {first['msg']}")
+        where = ".".join(map(str, first["loc"]))
+        hint = (
+            " Use the document_id values (UUIDs) returned by list_documents or search_documents, "
+            "never evidence IDs like E1, or leave the filter out."
+            if "document_id" in where
+            else " Fix the argument and call again."
+        )
+        return _error("INVALID_ARGUMENT", f"{where}: {first['msg']}.{hint}")
     fault = ctx.faults.take(name)
 
     async def attempt() -> ToolResult:

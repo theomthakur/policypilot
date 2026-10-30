@@ -42,7 +42,14 @@ class ListDocumentsInput(_Strict):
 
 class SearchDocumentsInput(_Strict):
     query: str = Field(min_length=3, max_length=300)
-    document_ids: list[uuid.UUID] = Field(default_factory=list, max_length=15)
+    document_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        max_length=15,
+        description=(
+            "Optional filter: document_id UUIDs from list_documents or search results, "
+            "never evidence IDs like E1."
+        ),
+    )
     page_start: int | None = Field(default=None, ge=1)
     page_end: int | None = Field(default=None, ge=1)
     top_k: int = Field(default=6, ge=1, le=10)
@@ -73,6 +80,10 @@ class AskClarificationInput(_Strict):
     options: list[str] = Field(default_factory=list, max_length=5)
 
 
+class ChatReplyInput(_Strict):
+    message: str = Field(min_length=1, max_length=800)
+
+
 class DraftClaim(_Strict):
     text: str = Field(min_length=1, max_length=600)
     evidence_ids: list[str] = Field(min_length=1, max_length=4)
@@ -92,7 +103,7 @@ class FinalAnswerInput(_Strict):
 
 
 DATA_TOOLS = ("list_documents", "search_documents", "read_document_pages", "get_document_outline")
-CONTROL_ACTIONS = ("plan", "ask_clarification", "final_answer")
+CONTROL_ACTIONS = ("plan", "ask_clarification", "chat_reply", "final_answer")
 
 INPUT_MODELS: dict[str, type[BaseModel]] = {
     "list_documents": ListDocumentsInput,
@@ -101,6 +112,7 @@ INPUT_MODELS: dict[str, type[BaseModel]] = {
     "get_document_outline": GetDocumentOutlineInput,
     "plan": PlanInput,
     "ask_clarification": AskClarificationInput,
+    "chat_reply": ChatReplyInput,
     "final_answer": FinalAnswerInput,
 }
 
@@ -114,6 +126,10 @@ DESCRIPTIONS = {
     "read_document_pages": "Read the full text of up to 3 consecutive pages of one document.",
     "get_document_outline": "Headings of a document with their page numbers.",
     "ask_clarification": "Ask the user one targeted question instead of guessing. Ends the turn.",
+    "chat_reply": (
+        "Reply directly, without searching, to a greeting, thanks, or a question about what you can do. "
+        "Never use it for a policy question. Ends the turn."
+    ),
     "final_answer": (
         "Submit the answer. Each claim must cite evidence IDs from this turn and quote the supporting text "
         "verbatim from the cited page. Use notices for conflicts, missing evidence and partial answers."
