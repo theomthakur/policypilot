@@ -26,7 +26,8 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate   # the ReadWriteOnce uploads volume cannot be attached to an old and a new pod at once
+    type: RollingUpdate   # the old pod keeps serving until the new one is ready; a bad image never takes traffic
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}   # (the RWO uploads volume needs both pods on one node)
   selector:
     matchLabels: {app.kubernetes.io/name: api}
   template:

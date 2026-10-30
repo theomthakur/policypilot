@@ -28,3 +28,4 @@ dist/
 backups/
 eval/results/*
 !eval/results/.gitkeep
+.k8s-demo-credentials

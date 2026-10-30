@@ -1,5 +1,5 @@
 # Runs the durable jobs (agent turns and document ingestion). It claims work from PostgreSQL with a lease, so
-# killing this pod mid-job hands the job to the next worker once the lease runs out (docs/adr/0005).
+# killing this pod mid-job hands the job to the next worker once the lease runs out (docs/adr/0010).
 apiVersion: apps/v1
 kind: Deployment
 metadata:

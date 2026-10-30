@@ -12,3 +12,6 @@ Each record states the context, the decision, the alternatives considered and th
 | [0006](0006-local-onnx-embeddings.md) | Local ONNX embeddings by default | Accepted |
 | [0007](0007-citation-verification.md) | Three-check citation verification | Accepted |
 | [0008](0008-single-vm-compose-deployment.md) | Single VM, same Compose file, Caddy | Accepted |
+| [0009](0009-oidc-sign-in-and-ownership.md) | OpenID Connect sign-in, server-side sessions, per-user ownership | Accepted |
+| [0010](0010-durable-postgres-jobs.md) | Durable PostgreSQL jobs with a separate worker | Accepted |
+| [0011](0011-kubernetes-deployment.md) | Kubernetes as a second, tested deployment path | Accepted |

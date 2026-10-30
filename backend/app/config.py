@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     demo_passcode: str = ""
     session_cookie_secure: bool = False
 
-    # Durable jobs (docs/adr/0005): turns and ingestion run from a PostgreSQL job table.
+    # Durable jobs (docs/adr/0010): turns and ingestion run from a PostgreSQL job table.
     worker_embedded: bool = (
         True  # False when a separate worker process (python -m app.jobs.worker) runs the jobs
     )

@@ -1,0 +1,7 @@
+{
+  "name": "policypilot-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser walkthroughs for a running deployment: real sign-in, upload, question, isolation",
+  "dependencies": { "playwright": "1.52.0" }
+}
