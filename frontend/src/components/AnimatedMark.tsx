@@ -28,7 +28,7 @@ export function AnimatedMark({
       aria-hidden="true"
       style={{ ['--mark-speed' as string]: `${speed}s` }}
     >
-      <g fill="#57068c">
+      <g fill="currentColor">
         {PETALS.map((d, index) => (
           <path key={index} d={d} />
         ))}

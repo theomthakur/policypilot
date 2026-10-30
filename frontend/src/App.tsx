@@ -15,6 +15,7 @@ import {
 } from './components/ConversationPanel'
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PasscodeDialog } from './components/PasscodeDialog'
+import { systemTheme, usePreference } from './hooks/usePreference'
 import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
 import { ArchitecturePage } from './components/ArchitecturePage'
@@ -50,7 +51,7 @@ export function App() {
   )
   const [messages, setMessages] = useState<DisplayMessage[]>([])
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
-  const [mode, setMode] = useState<'agent' | 'baseline'>('agent')
+  const [chosenMode, setMode] = useState<'agent' | 'baseline'>('agent')
   const [citation, setCitation] = useState<Citation | null>(null)
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
@@ -60,6 +61,19 @@ export function App() {
   const completedTurn = useRef<string | null>(null)
   const clarificationTurn = useRef<string | null>(null)
   const sentMode = useRef<'agent' | 'baseline'>('agent')
+  const [developer, setDeveloper] = usePreference<boolean>(
+    'pp_developer',
+    false,
+  )
+  const [theme, setTheme] = usePreference<'light' | 'dark'>(
+    'pp_theme',
+    systemTheme(),
+  )
+  const mode = developer ? chosenMode : 'agent'
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
 
   useEffect(() => {
     const reduceMotion = window.matchMedia(
@@ -273,12 +287,38 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-actions">
-          <span
-            className={`health-pill health-${health.data?.status ?? (health.isError ? 'down' : 'checking')}`}
+          {(developer || health.data?.status !== 'ok') && (
+            <span
+              className={`health-pill health-${health.data?.status ?? (health.isError ? 'down' : 'checking')}`}
+            >
+              <span />
+              {health.data?.status ?? (health.isError ? 'offline' : 'checking')}
+            </span>
+          )}
+          <button
+            className={`switch${developer ? ' on' : ''}`}
+            type="button"
+            role="switch"
+            aria-checked={developer}
+            title="Show metrics, technical details and the Agent / Quick switch"
+            onClick={() => setDeveloper(!developer)}
           >
-            <span />
-            {health.data?.status ?? (health.isError ? 'offline' : 'checking')}
-          </span>
+            <span className="switch-track" aria-hidden="true">
+              <i />
+            </span>
+            Developer
+          </button>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label={
+              theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+            }
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? '☀' : '☾'}
+          </button>
           <button
             className="secondary-button"
             type="button"
@@ -342,6 +382,7 @@ export function App() {
                 streamLabel={streamLabel}
                 sessionReady={Boolean(sessionId)}
                 mode={mode}
+                developer={developer}
                 onModeChange={setMode}
                 onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}
@@ -354,6 +395,7 @@ export function App() {
                 events={turn.events}
                 totals={turn.totals}
                 streamStatus={turn.status}
+                developer={developer}
               />
             </div>
           </main>

@@ -27,7 +27,12 @@ const totals: RunTotals = {
 describe('TracePanel', () => {
   it('renders adaptive action badges and run totals', () => {
     render(
-      <TracePanel events={[event]} totals={totals} streamStatus="completed" />,
+      <TracePanel
+        events={[event]}
+        totals={totals}
+        streamStatus="completed"
+        developer
+      />,
     )
 
     expect(screen.getByText('Query revised')).toBeInTheDocument()
@@ -38,5 +43,18 @@ describe('TracePanel', () => {
     expect(screen.getByLabelText('Run totals')).toHaveTextContent(
       'answer complete',
     )
+  })
+
+  it('hides metrics and technical details for a normal user', () => {
+    render(
+      <TracePanel events={[event]} totals={totals} streamStatus="completed" />,
+    )
+
+    expect(screen.queryByLabelText('Run totals')).not.toBeInTheDocument()
+    expect(screen.queryByText('Technical details')).not.toBeInTheDocument()
+    expect(screen.queryByText('12 ms')).not.toBeInTheDocument()
+    expect(
+      screen.getByText('Changed the query after weak evidence.'),
+    ).toBeInTheDocument()
   })
 })

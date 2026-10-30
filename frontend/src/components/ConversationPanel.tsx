@@ -18,6 +18,7 @@ interface ConversationPanelProps {
   streamLabel: string | null
   sessionReady: boolean
   mode: 'agent' | 'baseline'
+  developer: boolean
   onModeChange: (mode: 'agent' | 'baseline') => void
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
@@ -81,6 +82,7 @@ export function ConversationPanel({
   streamLabel,
   sessionReady,
   mode,
+  developer,
   onModeChange,
   onSend,
   onCitationOpen,
@@ -117,38 +119,42 @@ export function ConversationPanel({
           <p className="eyebrow">Grounded policy assistant</p>
           <h2 id="conversation-title">Conversation</h2>
         </div>
-        <div className="mode-toggle" aria-label="Answer mode">
-          <button
-            className={mode === 'agent' ? 'active' : ''}
-            type="button"
-            onClick={() => onModeChange('agent')}
-          >
-            Agent
-          </button>
-          <button
-            className={mode === 'baseline' ? 'active' : ''}
-            type="button"
-            onClick={() => onModeChange('baseline')}
-          >
-            Quick
-          </button>
-        </div>
-      </div>
-      <p className="mode-hint">
-        {mode === 'agent' ? (
-          <>
-            <strong>Agent:</strong> searches, searches again with different
-            words when unsure, asks you when your question is unclear, and
-            checks every quote. Slower, more careful.
-          </>
-        ) : (
-          <>
-            <strong>Quick:</strong> searches once and answers once, with the
-            same quote check. Faster, and the simple version the agent is
-            compared against.
-          </>
+        {developer && (
+          <div className="mode-toggle" aria-label="Answer mode">
+            <button
+              className={mode === 'agent' ? 'active' : ''}
+              type="button"
+              onClick={() => onModeChange('agent')}
+            >
+              Agent
+            </button>
+            <button
+              className={mode === 'baseline' ? 'active' : ''}
+              type="button"
+              onClick={() => onModeChange('baseline')}
+            >
+              Quick
+            </button>
+          </div>
         )}
-      </p>
+      </div>
+      {developer && (
+        <p className="mode-hint">
+          {mode === 'agent' ? (
+            <>
+              <strong>Agent:</strong> searches, searches again with different
+              words when unsure, asks you when your question is unclear, and
+              checks every quote. Slower, more careful.
+            </>
+          ) : (
+            <>
+              <strong>Quick:</strong> searches once and answers once, with the
+              same quote check. Faster, and the simple version the agent is
+              compared against.
+            </>
+          )}
+        </p>
+      )}
 
       <div className="messages" aria-live="polite">
         {messages.length === 0 && (

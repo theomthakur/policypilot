@@ -5,6 +5,7 @@ interface TracePanelProps {
   events: TraceEvent[]
   totals: RunTotals | null
   streamStatus: 'idle' | 'streaming' | 'polling' | 'completed' | 'failed'
+  developer?: boolean
 }
 
 const badgeTypes: Partial<Record<TraceEventType, string>> = {
@@ -31,7 +32,12 @@ function EventIcon({ event }: { event: TraceEvent }) {
   )
 }
 
-export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
+export function TracePanel({
+  events,
+  totals,
+  streamStatus,
+  developer = false,
+}: TracePanelProps) {
   return (
     <section className="panel trace-panel" aria-labelledby="trace-title">
       <div className="panel-heading">
@@ -39,7 +45,7 @@ export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
           <p className="eyebrow">Observable, not hidden reasoning</p>
           <h2 id="trace-title">Execution trace</h2>
         </div>
-        {streamStatus !== 'idle' && (
+        {developer && streamStatus !== 'idle' && (
           <span className={`stream-state stream-${streamStatus}`}>
             {(streamStatus === 'streaming' || streamStatus === 'polling') && (
               <span className="live-dot" />
@@ -79,12 +85,12 @@ export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
                         {badgeTypes[event.type]}
                       </span>
                     )}
-                    {event.duration_ms != null && (
+                    {developer && event.duration_ms != null && (
                       <time>{event.duration_ms} ms</time>
                     )}
                   </div>
                   <p>{event.summary}</p>
-                  {event.input && (
+                  {developer && event.input && (
                     <details>
                       <summary>Technical details</summary>
                       <pre>
@@ -112,7 +118,7 @@ export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
         </ol>
       )}
 
-      {totals && (
+      {developer && totals && (
         <div className="run-totals" aria-label="Run totals">
           <div>
             <strong>{totals.steps}</strong>
