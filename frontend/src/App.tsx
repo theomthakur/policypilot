@@ -223,7 +223,7 @@ export function App() {
         >
           <div className="launch-brand">
             <div className="launch-logo" aria-hidden="true">
-              <AnimatedMark className="launch-mark" />
+              <AnimatedMark className="launch-mark" speed={1.1} />
             </div>
             <div className="launch-wordmark">PolicyPilot</div>
             <p>Evidence-grounded policy intelligence</p>

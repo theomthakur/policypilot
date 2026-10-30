@@ -1,5 +1,5 @@
 // The PolicyPilot flower traced into eight separate petals (from public/policy-pilot-mark.png) so the
-// petals can revolve around the logo's own center while the logo itself stays in place.
+// whole mark can turn smoothly around its own center while staying in place.
 const PETALS = [
   'M-53.1 -46.4 L-52.6 -35.6 L-52.1 -34.6 L-51.8 -31.4 L-49.1 -23.4 L-45.3 -17.4 L-39.8 -11.6 L-32.3 -6.6 L-22.1 -2.6 L-11.6 -0.6 L-7.3 -0.6 L-2.8 -1.4 L-3.3 -2.4 L-5.3 -3.4 L-8.8 -6.1 L-14.6 -12.1 L-19.3 -19.4 L-23.6 -28.4 L-27.3 -33.4 L-31.3 -37.4 L-36.3 -41.1 L-42.6 -44.4 L-48.8 -46.4 L-52.6 -46.9Z',
   'M-4.8 -70.4 L-9.3 -65.9 L-13.1 -61.1 L-17.1 -53.9 L-19.1 -48.1 L-19.8 -44.1 L-19.8 -35.4 L-17.8 -26.4 L-12.8 -15.9 L-8.8 -9.9 L-3.1 -3.1 L-2.8 -2.1 L-0.3 -0.6 L0.7 -0.6 L1.7 -3.4 L1.7 -4.6 L0.7 -8.1 L0.2 -8.1 L-0.1 -4.4 L-0.8 -3.9 L-1.3 -4.9 L-2.1 -10.6 L-2.1 -16.4 L-0.3 -26.4 L3.4 -36.9 L4.2 -42.6 L4.2 -48.4 L3.4 -54.1 L1.4 -60.9 L-2.3 -68.1 L-4.3 -70.4Z',
@@ -13,13 +13,13 @@ const PETALS = [
 
 interface AnimatedMarkProps {
   className?: string
-  /** Ripple duration for one petal-by-petal revolution, in seconds. */
+  /** Seconds for one full turn. */
   speed?: number
 }
 
 export function AnimatedMark({
   className = '',
-  speed = 1.2,
+  speed = 2.4,
 }: AnimatedMarkProps) {
   return (
     <svg
@@ -30,12 +30,7 @@ export function AnimatedMark({
     >
       <g fill="#57068c">
         {PETALS.map((d, index) => (
-          <path
-            key={index}
-            d={d}
-            className="animated-petal"
-            style={{ animationDelay: `${index * 0.09}s` }}
-          />
+          <path key={index} d={d} />
         ))}
       </g>
     </svg>

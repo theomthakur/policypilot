@@ -1,22 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
-import { evaluationCases, evaluationRun } from '../data/evaluation'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { evaluationCases } from '../data/evaluation'
 import './Pages.css'
-
-const TOTAL_TESTS = 71
 
 interface Slide {
   kicker: string
   title: string
   body: React.ReactNode
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="slide-stat">
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  )
 }
 
 function Card({
@@ -34,195 +23,252 @@ function Card({
   )
 }
 
-const flow = [
-  'Plan',
-  'Search',
-  'Judge the evidence',
-  'Search again or ask',
-  'Answer',
-  'Verify',
-]
+function Steps({ items }: { items: [string, string][] }) {
+  return (
+    <ol className="slide-steps">
+      {items.map(([title, detail], index) => (
+        <li key={title}>
+          <span>{index + 1}</span>
+          <strong>{title}</strong>
+          <em>{detail}</em>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 const agentPassed = evaluationCases.filter((c) => c.agent === 'pass').length
-const baselineRun = evaluationCases.filter((c) => c.baseline !== 'n/a')
-const baselinePassed = baselineRun.filter((c) => c.baseline === 'pass').length
+const simpleCases = evaluationCases.filter((c) => c.baseline !== 'n/a')
+const simplePassed = simpleCases.filter((c) => c.baseline === 'pass').length
 
 const slides: Slide[] = [
   {
-    kicker: 'NYU IT · AI Engineer take-home',
-    title: 'Policy answers you can check.',
+    kicker: 'PolicyPilot',
+    title: 'Ask a question about your policies. Get an answer you can check.',
     body: (
-      <>
-        <p className="slide-lead">
-          PolicyPilot answers questions about policy PDFs. It plans, searches,
-          searches again when the evidence is thin, asks when a question is
-          ambiguous, and shows only citations it has verified against the page.
-        </p>
-        <div className="slide-stats">
-          <Stat value="10" label="policy PDFs" />
-          <Stat value="4" label="read-only tools" />
-          <Stat value={String(TOTAL_TESTS)} label="backend tests" />
-          <Stat value="0" label="actions taken" />
-        </div>
-      </>
+      <p className="slide-lead">
+        An assistant that reads policy documents, answers in plain language, and
+        shows the exact page behind every claim.
+      </p>
     ),
   },
   {
-    kicker: '01 · Problem',
-    title: 'A wrong answer with a real citation still looks right.',
+    kicker: 'The problem',
+    title:
+      'Policies are long, and an answer is only useful if you can trust it.',
     body: (
       <div className="slide-cards">
-        <Card title="It drifts from the source">
-          A fluent summary can be close to the policy and still wrong on the one
-          number that matters.
+        <Card title="Hard to find">
+          The answer is on one page of one document, among dozens of pages.
         </Card>
-        <Card title="It depends on who asks">
-          Retention, renewal and access rules differ by role or data level. One
-          answer for everyone is a guess.
+        <Card title="Depends on who asks">
+          Students, staff and guests can follow different rules for the same
+          question.
         </Card>
-        <Card title="Policies are replaced">
-          A 2023 rule and a 2025 standard can disagree. Both are in the folder;
-          only one is current.
+        <Card title="Rules get replaced">
+          An old policy and a newer one can both be in the folder. Only one is
+          current.
         </Card>
       </div>
     ),
   },
   {
-    kicker: '02 · How it works',
-    title: 'The model decides the next step. Code decides the limits.',
+    kicker: 'What we built',
+    title:
+      'An assistant that reads the documents, checks itself, and shows its work.',
+    body: (
+      <div className="slide-cards">
+        <Card title="It reads">
+          Ten policy PDFs are split into small pieces and indexed, so the right
+          passage can be found fast.
+        </Card>
+        <Card title="It decides what to do next">
+          It can search again, read a whole page, or ask you a question when
+          yours is unclear.
+        </Card>
+        <Card title="It proves it">
+          Every quote in the answer is checked against the page it came from
+          before you see it.
+        </Card>
+      </div>
+    ),
+  },
+  {
+    kicker: 'Walk through one question',
+    title: '"What bandwidth limit applies to guests on the campus wifi?"',
+    body: (
+      <Steps
+        items={[
+          ['Understand', 'It breaks the question into what it needs to find.'],
+          [
+            'Search',
+            'It looks through all ten documents for the best matching passages.',
+          ],
+          [
+            'Judge',
+            'It asks itself: is this enough? If not, it searches again with different words.',
+          ],
+          [
+            'Ask if unsure',
+            'If the answer depends on something you did not say, it asks you.',
+          ],
+          [
+            'Answer',
+            'It writes a short answer and attaches the quote and page for each claim.',
+          ],
+          [
+            'Check',
+            'Each quote must appear word for word on that page, or the claim is removed.',
+          ],
+        ]}
+      />
+    ),
+  },
+  {
+    kicker: 'You can watch it work',
+    title: 'Every search and decision is listed as it happens.',
+    body: (
+      <div className="slide-cards">
+        <Card title="Nothing hidden">
+          The side panel shows each search, what came back, and why it searched
+          again.
+        </Card>
+        <Card title="Click a citation">
+          Opens the real page so you can read the passage in context.
+        </Card>
+        <Card title="Limits you can see">
+          If it runs out of time or steps, it says so and gives what it found,
+          instead of freezing.
+        </Card>
+      </div>
+    ),
+  },
+  {
+    kicker: 'Why you can trust it',
+    title: 'It would rather say "I did not find it" than guess.',
+    body: (
+      <div className="slide-cards">
+        <Card title="Quotes must be real">
+          If a quote is not on the page it points to, that claim is thrown away.
+        </Card>
+        <Card title="Honest about gaps">
+          When the documents do not cover a question, the answer says exactly
+          that.
+        </Card>
+        <Card title="Documents cannot give orders">
+          Text inside a document that says "ignore your rules" is treated as
+          plain text, never as a command.
+        </Card>
+      </div>
+    ),
+  },
+  {
+    kicker: 'What is under the hood',
+    title: 'Five parts, each with one job.',
     body: (
       <>
-        <ol className="slide-flow">
-          {flow.map((step, index) => (
-            <li key={step}>
+        <ol className="slide-parts">
+          {[
+            ['What you see', 'The web page', ['react']],
+            [
+              'The front door',
+              'Delivers the page, adds HTTPS',
+              ['nginx', 'caddy'],
+            ],
+            [
+              'The application',
+              'Handles requests, passcode, limits',
+              ['fastapi'],
+            ],
+            ['The assistant', 'Plans, searches, checks', ['python']],
+            [
+              'Memory and AI',
+              'Documents, speed-ups, the language model',
+              ['postgresql', 'redis', 'openrouter'],
+            ],
+          ].map(([name, detail, logos], index) => (
+            <li key={String(name)}>
               <span>{index + 1}</span>
-              {step}
+              <strong>{name as string}</strong>
+              <em>{detail as string}</em>
+              <div>
+                {(logos as string[]).map((logo) => (
+                  <img key={logo} src={`/logos/${logo}.svg`} alt={logo} />
+                ))}
+              </div>
             </li>
           ))}
         </ol>
-        <p className="slide-note">
-          Eight steps, six tool calls, 60 seconds and 25,000 tokens at most. A
-          repeated call is blocked, a timeout is retried once, and hitting a
-          limit returns a partial answer instead of hanging.
-        </p>
       </>
     ),
   },
   {
-    kicker: '03 · System design',
-    title: 'Five layers, one source of truth.',
+    kicker: 'How we know it works',
+    title: `We asked 11 test questions. The assistant fully passed ${agentPassed}; the simple version passed ${simplePassed} of ${simpleCases.length}.`,
     body: (
       <>
-        <div className="slide-stack">
-          {[
-            ['Browser', 'React, live trace over SSE'],
-            ['Edge', 'Caddy and nginx'],
-            ['API', 'FastAPI, passcode, session ownership'],
-            ['Agent', 'State machine, tools, verifier'],
-            ['Data', 'Postgres + pgvector, Redis, OpenRouter'],
-          ].map(([name, detail], index) => (
-            <div key={name}>
-              <span>{index + 1}</span>
-              <strong>{name}</strong>
-              <em>{detail}</em>
-            </div>
-          ))}
-        </div>
-        <div className="slide-logos" aria-label="Technologies used">
-          {[
-            'react',
-            'nginx',
-            'fastapi',
-            'postgresql',
-            'redis',
-            'openrouter',
-            'docker',
-          ].map((logo) => (
-            <img key={logo} src={`/logos/${logo}.svg`} alt={logo} height="30" />
-          ))}
-        </div>
-      </>
-    ),
-  },
-  {
-    kicker: '04 · Trust',
-    title: 'A citation is shown only if its quote is on the page.',
-    body: (
-      <div className="slide-cards">
-        <Card title="1 · Provenance">
-          The evidence ID must come from a tool call in this turn.
-        </Card>
-        <Card title="2 · Location">
-          The quote must be literal text on the cited document page.
-        </Card>
-        <Card title="3 · Or it is dropped">
-          One repair attempt. Unsupported claims are removed, and the answer
-          says what is missing.
-        </Card>
-      </div>
-    ),
-  },
-  {
-    kicker: '05 · Evidence',
-    title: `The agent passed ${agentPassed} of ${evaluationCases.length} cases; the one-pass baseline ${baselinePassed} of ${baselineRun.length}.`,
-    body: (
-      <>
-        <ul className="slide-results" aria-label="Evaluation results by case">
+        <ul className="slide-results" aria-label="Results by test question">
           {evaluationCases.map((c) => (
             <li key={c.id}>
               <span>{c.label}</span>
               <b className={`res-${c.agent === 'pass' ? 'pass' : 'fail'}`}>
-                {c.agent}
+                {c.agent === 'pass' ? 'passed' : 'missed'}
               </b>
               <b
                 className={`res-${c.baseline === 'pass' ? 'pass' : c.baseline === 'n/a' ? 'na' : 'fail'}`}
               >
-                {c.baseline}
+                {c.baseline === 'pass'
+                  ? 'passed'
+                  : c.baseline === 'n/a'
+                    ? 'not tested'
+                    : 'missed'}
               </b>
             </li>
           ))}
         </ul>
         <p className="slide-note">
-          Columns: agent, baseline. Deterministic checks on openai/gpt-4o-mini,{' '}
-          {evaluationRun}. The four agent failures are listed openly; a manual
-          page review is still to be done.
+          Columns: the assistant, then the simple version that searches once and
+          answers once. The assistant tuned to these same questions, so a fresh
+          set would be the honest next test.
         </p>
       </>
     ),
   },
   {
-    kicker: '06 · Engineering',
-    title: 'Every retrieval choice was measured, not assumed.',
-    body: (
-      <>
-        <div className="slide-stats">
-          <Stat value="0.80 → 0.87" label="recall, top 3 pages" />
-          <Stat value="0.87 → 0.93" label="recall, top 5 pages" />
-          <Stat value="0.76 → 0.88" label="first-hit rank (MRR)" />
-        </div>
-        <p className="slide-note">
-          200-token chunks beat 350 and 500. Hybrid search beat vector-only. A
-          cross-encoder reranker and a larger embedding model did not help, so
-          neither shipped. Gold pages come from the evaluation cases.
-        </p>
-      </>
-    ),
-  },
-  {
-    kicker: '07 · Next',
-    title: 'Built to be deployed, honest about what is left.',
+    kicker: 'What we learned by measuring',
+    title: 'We tested each choice instead of trusting guesses.',
     body: (
       <div className="slide-cards">
-        <Card title="Protected">
-          Passcode, rate limit, daily budget cap, and one session can never read
-          another.
+        <Card title="Smaller pieces work better">
+          Splitting documents into 200-word pieces found the right page more
+          often than larger pieces.
         </Card>
-        <Card title="Still open">
-          Older-vs-newer policy detection, ambiguity questions and weak-search
-          detection are not reliable yet.
+        <Card title="Two kinds of search beat one">
+          Matching by meaning and by exact words together beat either alone.
         </Card>
-        <Card title="At scale">
-          Queue workers, object storage, a reranker only if it wins, SSO and
-          tracing.
+        <Card title="Some ideas did not help">
+          An extra re-ranking step and a bigger model made no difference here,
+          so we left them out.
+        </Card>
+      </div>
+    ),
+  },
+  {
+    kicker: 'What is next',
+    title: 'Ready to share, and honest about what is left.',
+    body: (
+      <div className="slide-cards">
+        <Card title="Safe to share">
+          A passcode, request limits, a daily spending cap, and each visitor
+          sees only their own work.
+        </Card>
+        <Card title="Not solved yet">
+          Spotting that a newer policy replaced an old one, and asking the right
+          clarifying question every time.
+        </Card>
+        <Card title="If it grew">
+          Background processing for large uploads, cloud file storage, company
+          sign-in and monitoring.
         </Card>
       </div>
     ),
@@ -231,6 +277,9 @@ const slides: Slide[] = [
 
 export function PresentationPage({ onBack }: { onBack: () => void }) {
   const [index, setIndex] = useState(0)
+  const [full, setFull] = useState(false)
+  const deck = useRef<HTMLElement>(null)
+
   const go = useCallback(
     (delta: number) =>
       setIndex((current) =>
@@ -238,34 +287,51 @@ export function PresentationPage({ onBack }: { onBack: () => void }) {
       ),
     [],
   )
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) void document.exitFullscreen()
+    else void deck.current?.requestFullscreen?.()
+  }, [])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowRight' || event.key === ' ') {
+      if (
+        event.key === 'ArrowRight' ||
+        event.key === ' ' ||
+        event.key === 'PageDown'
+      ) {
         event.preventDefault()
         go(1)
-      } else if (event.key === 'ArrowLeft') {
+      } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
         go(-1)
       } else if (event.key.toLowerCase() === 'f') {
-        if (document.fullscreenElement) void document.exitFullscreen()
-        else void document.documentElement.requestFullscreen?.()
+        toggleFullscreen()
       }
     }
+    const onChange = () => setFull(Boolean(document.fullscreenElement))
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [go])
+    document.addEventListener('fullscreenchange', onChange)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('fullscreenchange', onChange)
+    }
+  }, [go, toggleFullscreen])
 
   const slide = slides[index]
   const pad = (n: number) => String(n).padStart(2, '0')
   return (
-    <main className="page deck">
+    <main className={`deck${full ? ' deck-full' : ''}`} ref={deck}>
       <div className="deck-bar">
-        <button className="page-back" type="button" onClick={onBack}>
-          <span aria-hidden="true">←</span> Back to workspace
-        </button>
+        {!full && (
+          <button className="page-back" type="button" onClick={onBack}>
+            <span aria-hidden="true">←</span> Back to workspace
+          </button>
+        )}
         <span className="deck-hint">
           ← → or Space to move · F for fullscreen
         </span>
+        <button className="page-back" type="button" onClick={toggleFullscreen}>
+          {full ? 'Exit fullscreen' : 'Fullscreen'}
+        </button>
       </div>
       <section
         className="deck-slide"
