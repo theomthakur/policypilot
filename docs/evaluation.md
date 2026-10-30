@@ -2,7 +2,9 @@
 
 ## Status
 
-The 11-case dataset and API-only runner are implemented and contract-validated. Final agent/baseline numbers remain **pending** until WS1's complete ingestion, retrieval, agent, and baseline API is integrated. No results are fabricated in this document.
+The 11 frozen cases were run against the integrated stack with a real model (`openai/gpt-4o-mini` through OpenRouter, temperature 0, seed 42, prompt v3). The reference run is `eval/results/run-2026-10-29-gpt-4o-mini-r5/`. Results are deterministic-check results only; the manual page review below is **not done yet**.
+
+**Read this as a development measurement.** The system prompt and the citation-snapping rule were tuned against these same 11 cases (see the run history). A held-out set of new questions would be the honest next test.
 
 ## Method
 
@@ -36,19 +38,36 @@ Deterministic string/regex checks are transparent and repeatable but incomplete.
 | CASE-10 | Multi-part, one document | Incident Response, pp. 1 and 3 | Applicable |
 | CASE-11 | Pronoun-resolving follow-up | Incident Response, p. 3 | Applicable |
 
-## Required final comparison
+## Final comparison (run r5)
 
-Replace “pending” only from a committed evaluator output.
+The baseline is not applicable to CASE-4 (clarification) and CASE-8 (retry), so it covers 9 cases. The agent column is shown for all 11 cases and, in brackets, for the same 9 cases as the baseline.
 
 | Metric | Adaptive agent | Baseline |
 |---|---:|---:|
-| Correctness | pending | pending |
-| Citation support | pending | pending |
-| Task completion | pending | pending |
-| Mean tool calls | pending | pending |
-| Mean latency | pending | pending |
-| Total tokens | pending | pending |
-| Estimated cost | pending | pending |
+| Cases passed (all deterministic checks) | 7 of 11 (6 of 9) | 6 of 9 |
+| Correctness (mean of fact and behavior checks) | 0.86 (0.86) | 0.84 |
+| Citation support (quote literally on the cited page) | 15 of 15 | 11 of 11 |
+| Task completion (mean) | 0.90 (0.91) | 0.87 |
+| Mean tool calls | 4.3 | 1.1 |
+| Mean latency | 8.2 s | 2.7 s |
+| Tokens (prompt + completion), all cases | 222,616 | 20,501 |
+| Estimated cost, all cases | $0.036 | $0.004 |
+
+Per case (agent, baseline): CASE-1 pass, pass. CASE-2 pass, pass. CASE-3 fail, pass. CASE-4 fail, n/a. CASE-5 pass, pass. CASE-6 fail, fail. CASE-7 pass, pass. CASE-8 pass, n/a. CASE-9 fail, fail. CASE-10 pass, pass. CASE-11 pass, fail.
+
+**What this shows.** On the 9 shared cases the agent and the baseline are close on correctness; the agent costs about ten times as much and is three times slower. The agent wins where iteration is the point: the follow-up that needs the previous turn (CASE-11) and the timed-out tool (CASE-8, which the baseline cannot handle). The baseline wins CASE-3, where the extra searching did not help. Citation support is 100 percent for both because a citation that fails the literal-quote check is never shown.
+
+## Run history (same corpus, same model, same 11 cases)
+
+| Run | Change since the previous run | Agent passed | Baseline passed (of 9) |
+|---|---|---:|---:|
+| r1 | First real-model run | 0 of 11 | 2 |
+| r2 | Citation quotes stored as the literal page span | 4 | 3 |
+| r3 | Inexact quotes snap to the page sentence; search before answering; every follow-up search traced | 7 | 5 |
+| r4 | Prompt v2: ask for clarification before searching (too eager, asked on most questions) | 4 | 6 |
+| r5 | Prompt v3: clarify only after a first search; code rejects an early clarification | 7 | 6 |
+
+r1 failed almost entirely because the model wrapped quotes in quotation marks, which the verifier accepted but the evaluator (correctly) did not. r4 is kept as evidence that a prompt change can make things worse.
 
 ## Manual citation check log
 
@@ -76,6 +95,18 @@ For each system/case, open the generated PDF and verify that the cited passage s
 | CASE-10 | baseline | pending | pending | | |
 | CASE-11 | agent | pending | pending | | |
 | CASE-11 | baseline | pending | pending | | |
+
+## Failure analysis (run r5)
+
+These causes come from the failed check names and the saved traces. They are not yet confirmed by a manual read of every trace.
+
+- **CASE-3, agent (baseline passes).** Both documents were found and cited; the answer did not state the "one hour" reporting deadline in the form the check requires. Cause: answer composition. A retry may change it; the change would be a prompt rule to quote deadlines verbatim, with a risk of longer answers.
+- **CASE-4, agent.** The agent searched, then answered for every account type instead of asking which one applies, and the follow-up turn then did not reach the sponsored-account rule. Cause: agent planning. The search-first clarification rule (v3) is not reliable with this model; a stronger model or a structured "needs clarification" field in the plan would be the next step.
+- **CASE-6, agent and baseline.** Only the 2023 password policy was retrieved; the 2025 standard that supersedes it was never found. Cause: retrieval plus planning. The question's wording matches the old policy, and nothing in the first results hints that a newer standard exists. A "check for a newer version" step helped in some runs and cost tool calls in others.
+- **CASE-9, agent and baseline.** The answer cited related pages, not the expected Data Classification and Approved Cloud Services pages. Cause: retrieval. The question uses everyday wording ("internet-hosted file repository") and the policy uses its own terms; neither system bridged the vocabulary. Similarity scores cannot flag this as weak evidence (see ADR 0005).
+- **CASE-11, baseline.** A single retrieval cannot resolve "her" from the previous turn. This is the intended weakness of the baseline.
+
+**Evaluator limits.** The checks are string and regular-expression checks. They can fail an answer that is correct in different words and pass one that is wrong but contains the right words. The manual log above is the real check.
 
 ## Failure analysis template
 
