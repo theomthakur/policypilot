@@ -49,8 +49,9 @@ if (args.ask) {
   log('answer: ' + text.replace(/\s+/g, ' ').slice(0, 220))
   log('citations: ' + (await page.locator('.citation-chip').count()))
 }
+await page.waitForTimeout(2500) // let the document list refresh after the conversation attaches
 const names = await page.locator('.document-details strong').allInnerTexts()
-log(`documents visible: ${names.length}`)
+log(`documents visible: ${names.length}; not from the shared corpus: ${names.filter((n) => !/^(NIST|Acceptable|Data|Generative|Password|Identity|Cybersecurity|Remote|Account|Research|Approved)/.test(n)).join(', ') || 'none'}`)
 if (args['expect-doc']) {
   if (!names.some((n) => n.includes(args['expect-doc']))) throw new Error('expected document missing: ' + args['expect-doc'])
   log('can see ' + args['expect-doc'])

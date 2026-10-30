@@ -214,6 +214,8 @@ export function App() {
         void queryClient.invalidateQueries({
           queryKey: ['session', response.session_id],
         })
+        // Private uploads are listed per conversation, so the list changes when the conversation does.
+        void queryClient.invalidateQueries({ queryKey: ['documents'] })
       } finally {
         creatingSession.current = false
       }
