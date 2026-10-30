@@ -3769,3 +3769,33 @@ th {
 .history-item:focus-within {
   box-shadow: inset 0 0 0 1.5px var(--violet-text);
 }
+
+/* Collapsed sidebar: a slimmer rail */
+.workspace.no-sidebar,
+.workspace.no-sidebar.no-documents,
+.workspace.no-sidebar.no-trace {
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+.pane-sidebar.is-collapsed .sidebar-logo {
+  width: 36px;
+  height: 36px;
+}
+.pane-sidebar.is-collapsed .sidebar-mark {
+  width: 24px;
+  height: 24px;
+}
+.pane-sidebar.is-collapsed .sidebar-nav button,
+.pane-sidebar.is-collapsed .sidebar-new,
+.pane-sidebar.is-collapsed .sidebar-link {
+  min-height: 36px;
+  padding: 0;
+}
+.pane-sidebar.is-collapsed .tool-button {
+  width: 34px;
+  height: 34px;
+}
+@media (max-width: 980px) {
+  .workspace.no-sidebar {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+}
