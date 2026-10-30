@@ -68,7 +68,8 @@ cases:
       - document_file: 08-account-lifecycle.pdf
         page: 4
     checks:
-      required_facts: ["sponsor", "14 business days", "six (6) months|six months"]
+      legacy_required_facts: ["six (6) months|six months"]
+      required_facts: ["sponsor", "14 business days"]
       expect_stop_reason: answered
       expect_clarification: true
       min_distinct_documents_cited: 1

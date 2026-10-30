@@ -47,6 +47,22 @@ What this shows, and what it does not:
 - The older held-out set scored 5 of 10 in this single run (12 of 20 earlier). HELD-4 (ambiguous) is still not asked about; HELD-8, HELD-9 and HELD-2 failed. One run per set cannot separate a regression from noise, so treat these as indicative, not as a measured improvement.
 - A judge probe on 15 questions asked on 3 of 6 ambiguous ones and on none of 9 specific ones.
 
+### Last change of 30 October (`r25-tuned`, `r25-heldout2`, `r25-heldout`)
+
+Three more changes: the judge now sees up to 12 merged results (the merge used to keep 6 per search and 8 in all, so later chunks never reached it); the judge's "the user stated a value" flag only blocks a question when it points at what tells one reading from another (it blocked CASE-4 by saying "Northfield account"); and CASE-4's check changed.
+
+**CASE-4 label correction, made after seeing its failures (so it is not a clean result).** The check required the answer to say "six months", which the user's own reply already says, and it failed in every run for that reason. It is now reported as a legacy fact and no longer decides pass or fail; the case requires "sponsor" and "14 business days". An outside suggestion to require "12 months|two consecutive" instead was tried and dropped, because the question does not ask for the renewal cap.
+
+| Set | Agent | Baseline |
+|---|---:|---:|
+| 11 tuned cases | 8 of 11 as scored on the day (CASE-4 asked the question and gave the right steps; counted as 9 of 11 under the corrected check) | 5 of 9 |
+| 9 fresh cases | 9 of 9 | 5 of 7 |
+| 10 older held-out cases | 5 of 10 | 5 of 9 |
+
+- The clarifying question for "How do I renew my Northfield account?" is asked for the first time. A judge probe asked on 3 of 6 ambiguous questions and on none of 9 specific ones.
+- CASE-9 passed in r24 and failed in r25 (r23 failed too), so treat it as unstable. CASE-11 reaches the six-call limit with a correct answer, again.
+- HELD-4 (ambiguous) is still not asked about, and HELD-2, HELD-7 and HELD-9 fail on the older set, as before. One run per set does not separate noise from regression.
+
 ### Final measurements (prompt v10, 31 Oct; `heldout2-v10b-g`, `-h`, `run-2026-10-31-gpt-4o-mini-r22`)
 
 After the outside review (judge also sees the exact-words search, grounded defaults, failed quotes repaired from page text, a figure check on claims, common words out of the keyword search, the CASE-9 label corrected to page 2, and clarification decided from the judge's structured fields instead of its own "answerable" flag):

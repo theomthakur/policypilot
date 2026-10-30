@@ -160,12 +160,12 @@ def _sentences(text: str) -> list[str]:
 
 
 def _merge_hits(
-    first: list[dict[str, Any]], second: list[dict[str, Any]], limit: int = 8
+    first: list[dict[str, Any]], second: list[dict[str, Any]], limit: int = 12
 ) -> list[dict[str, Any]]:
     """Alternate between two ranked lists, without repeating a chunk."""
     merged: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for pair in zip(*[iter(first[:6] + [None] * 8), iter(second[:6] + [None] * 8)], strict=False):
+    for pair in zip(*[iter(first[:10] + [None] * 12), iter(second[:10] + [None] * 12)], strict=False):
         for hit in pair:
             if hit and hit.get("chunk_id") not in seen:
                 seen.add(str(hit.get("chunk_id")))
@@ -912,12 +912,14 @@ class AgentRun:
             default = ""  # a default has to be backed by words from the results, not asserted
         # The decision is made here from the structured fields, not from the model's own "answerable" flag
         # (a judge that lists four quoted variants and then says "answerable" contradicts itself).
-        ask = (
-            verdict.answers_differ
-            and not (verdict.value_in_question or "").strip()
-            and not default
-            and len(options) >= 2
-        )
+        label_tokens = [_tokens(d["label"]) for d in variants.details]
+        shared = set.intersection(*label_tokens) if label_tokens else set()
+        value_named = bool(
+            _tokens(verdict.value_in_question or "") & (set().union(*label_tokens) - shared)
+            if label_tokens
+            else (verdict.value_in_question or "").strip()
+        )  # the judge's "the user stated a value" counts only if it points at one of the readings
+        ask = verdict.answers_differ and not value_named and not default and len(options) >= 2
         mentions = verdict.clarification_question.strip().lower()
         dropped = [d["label"].lower() for d in variants.details if d.get("status") != "verified"]
         if ask and not (
