@@ -4,6 +4,8 @@ import { adaptEvent } from '../api/adapt'
 import type { AnswerPayload, RunTotals, TraceEvent } from '../api/types'
 
 interface TurnStreamState {
+  /** The turn this state belongs to; a different turn id means the state is stale. */
+  turnId: string | null
   events: TraceEvent[]
   answer: AnswerPayload | null
   totals: RunTotals | null
@@ -12,6 +14,7 @@ interface TurnStreamState {
 }
 
 const initialState: TurnStreamState = {
+  turnId: null,
   events: [],
   answer: null,
   totals: null,
@@ -99,6 +102,7 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
         const turn = await api.getTurn(turnId)
         if (cancelled) return
         setState((current) => ({
+          turnId: current.turnId,
           events: turn.trace.length > 0 ? turn.trace : current.events,
           answer: turn.answer ?? current.answer,
           totals: turn.totals ?? current.totals,
@@ -131,7 +135,7 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
       }
     }
 
-    setState({ ...initialState, status: 'streaming' })
+    setState({ ...initialState, turnId, status: 'streaming' })
     source = new EventSource(turnEventsUrl(turnId), { withCredentials: true })
     eventNames.forEach((name) =>
       source?.addEventListener(name, onEvent as EventListener),
@@ -148,5 +152,8 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
     }
   }, [turnId])
 
-  return state
+  // Right after a new turn id arrives, state still belongs to the previous turn for one render. Showing
+  // it would attach the previous answer to the new question, so a mismatch reads as a fresh turn.
+  if (state.turnId === turnId) return state
+  return turnId ? { ...initialState, turnId, status: 'streaming' } : initialState
 }
