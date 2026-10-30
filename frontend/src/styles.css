@@ -3799,3 +3799,106 @@ th {
     grid-template-columns: 44px minmax(0, 1fr);
   }
 }
+
+/* ===== Own identity: IBM Plex type, warm paper surfaces, no copy of a chat app's look ===== */
+:root {
+  --font-sans: 'IBM Plex Sans', 'Avenir Next', 'Segoe UI', system-ui,
+    -apple-system, sans-serif;
+  --font-serif: 'Source Serif 4', 'Iowan Old Style', Palatino, Georgia, serif;
+  font-family: var(--font-sans);
+}
+:root:not([data-theme='dark']) {
+  --bg: #f2eef7;
+  --surface: #fffcf8;
+  --surface-soft: #faf6f1;
+  --t-bg-fff: #fffcf8;
+}
+.welcome-row h3,
+.page-head h1,
+.deck-slide h1 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.welcome-row h3 {
+  font-size: 30px;
+  line-height: 1.25;
+}
+.page-head h1 {
+  font-size: clamp(26px, 3.4vw, 34px);
+}
+.sidebar-name,
+.topbar .brand strong {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 17px;
+  letter-spacing: 0;
+}
+@media (max-width: 700px) {
+  .welcome-row h3 {
+    font-size: 23px;
+  }
+}
+
+/* Answers read like prose: the serif carries the text, the sans carries the interface */
+.answer-bubble,
+.answer-view p,
+.answer-view li,
+.message-user .message-content > p {
+  font-family: var(--font-serif);
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+.welcome-row h3 {
+  font-weight: 400;
+}
+
+/* One simple sans everywhere: no serif */
+:root {
+  --font-serif: var(--font-sans);
+}
+.welcome-row h3,
+.page-head h1,
+.deck-slide h1,
+.sidebar-name,
+.topbar .brand strong {
+  font-family: var(--font-sans);
+}
+.welcome-row h3 {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+.page-head h1,
+.deck-slide h1 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.sidebar-name,
+.topbar .brand strong {
+  font-weight: 600;
+  font-size: 16px;
+}
+.answer-bubble,
+.answer-view p,
+.answer-view li,
+.message-user .message-content > p {
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+/* Surfaces take their tint from the brand violet instead of plain white */
+:root:not([data-theme='dark']) {
+  --bg: #ebe4f4;
+  --surface: #f9f6fd;
+  --surface-soft: #f3eefa;
+  --t-bg-fff: #f9f6fd;
+  --line: #dcd2ea;
+}
+.composer,
+.sidebar-new,
+.answer-bubble,
+.suggestions button {
+  background-color: var(--surface);
+}

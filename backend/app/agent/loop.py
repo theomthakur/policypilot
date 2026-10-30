@@ -257,12 +257,9 @@ class AgentRun:
         return self.settings.agent_turn_timeout_s - (time.monotonic() - self.started)
 
     def _tokens_used(self) -> int:
-        return (
-            self.totals.prompt_tokens
-            + self.totals.completion_tokens
-            + self.totals.assess_prompt_tokens
-            + self.totals.assess_completion_tokens
-        )
+        # The agent's own reading budget. The one-off ambiguity check has a fixed size and is priced
+        # separately (it still counts toward the daily budget), so it must not use up the agent's tokens.
+        return self.totals.prompt_tokens + self.totals.completion_tokens
 
     async def _model_call(
         self, messages: list[dict[str, Any]], force_tool: str | None = None
