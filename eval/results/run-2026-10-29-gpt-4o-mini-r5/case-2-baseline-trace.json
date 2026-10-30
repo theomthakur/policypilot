@@ -1,0 +1,78 @@
+[
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 0,
+    "ts": "2026-10-30T00:04:49.132205+00:00",
+    "type": "turn_started",
+    "state": "PLAN",
+    "status": "info",
+    "summary": "Baseline: retrieve once, generate once."
+  },
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 1,
+    "ts": "2026-10-30T00:04:49.133948+00:00",
+    "type": "tool_call",
+    "tool": "search_documents",
+    "input": {
+      "query": "A researcher has Level 3 confidential pre-publication data. What encryption is required at rest, and may the researcher paste it into a public consumer AI tool?",
+      "top_k": 5
+    },
+    "state": "ACT",
+    "status": "ok",
+    "attempt": 1,
+    "summary": "Calling search_documents."
+  },
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 2,
+    "ts": "2026-10-30T00:04:49.163440+00:00",
+    "type": "tool_result",
+    "tool": "search_documents",
+    "state": "OBSERVE",
+    "status": "ok",
+    "attempt": 1,
+    "summary": "5 hits: Approved Cloud Services Registry p.2, Data Classification and Handling Standard p.5, Data Classification and Handling Standard p.7, Generative AI and Large Language Model Usage Guidance p.2",
+    "duration_ms": 29
+  },
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 3,
+    "ts": "2026-10-30T00:04:52.377803+00:00",
+    "type": "evaluate",
+    "state": "EVALUATE",
+    "status": "info",
+    "tokens": "[REDACTED]",
+    "summary": "Model produced the answer.",
+    "duration_ms": 3211
+  },
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 4,
+    "ts": "2026-10-30T00:04:52.394682+00:00",
+    "type": "verify",
+    "state": "VERIFY",
+    "status": "ok",
+    "summary": "All citations verified."
+  },
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 5,
+    "ts": "2026-10-30T00:04:52.397134+00:00",
+    "type": "answer",
+    "state": "EMIT",
+    "status": "ok",
+    "summary": "A researcher with Level 3 confidential pre-publication data must ensure that the data is encrypted at rest using AES-256 or an equivalent encryption method. Additionally, the researcher is prohibited from pasting this data into any public consumer AI tool, as it violates data handling policies.",
+    "stop_reason": "answered"
+  },
+  {
+    "turn_id": "b8c9ac60-4438-4ecd-9472-676e69f8d834",
+    "seq": 6,
+    "ts": "2026-10-30T00:04:52.398780+00:00",
+    "type": "turn_completed",
+    "status": "info",
+    "summary": "Finished: answered.",
+    "duration_ms": 3269,
+    "stop_reason": "answered"
+  }
+]
