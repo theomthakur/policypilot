@@ -3523,3 +3523,141 @@ th {
     display: none;
   }
 }
+
+/* History */
+.history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history-group {
+  display: block;
+  padding: 10px 8px 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+}
+.history-item:hover,
+.history-item.active {
+  background: var(--violet-soft);
+}
+.history-open {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-item.active .history-open {
+  color: var(--violet-text);
+  font-weight: 500;
+}
+.history-delete {
+  width: 26px;
+  height: 26px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0;
+}
+.history-item:hover .history-delete,
+.history-delete:focus-visible {
+  opacity: 1;
+}
+.history-delete:hover {
+  color: var(--violet-text);
+}
+.history-empty {
+  margin: 14px 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Your message gets the same outline as PolicyPilot's reply, in light and dark */
+.message-user .message-content > p {
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px 4px 18px 18px;
+  background: var(--violet-soft);
+  box-shadow: 0 1px 2px rgba(63, 28, 87, 0.05);
+}
+
+/* System design and Presentation: the same calm weights as the chat */
+.page-head h1 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.deck-slide h1 {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.page-decisions h2,
+.hld h2,
+.hld-chips-block h2,
+.hld-flow-section > div:first-child h2 {
+  font-weight: 600;
+}
+
+/* Close buttons: the cross is an icon, centred in its circle */
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  line-height: 0;
+}
+.history-delete {
+  display: inline-grid;
+  place-items: center;
+  line-height: 0;
+}
+
+/* Greeting: regular weight, like a chat app */
+.welcome-row h3 {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+@media (max-width: 700px) {
+  .welcome-row h3 {
+    font-size: 22px;
+  }
+}
+
+/* Composer: text and send button centred on the same line */
+.composer {
+  align-items: center;
+  padding: 8px 8px 8px 18px;
+}
+.composer textarea {
+  min-height: 0;
+  max-height: 140px;
+  padding: 7px 0;
+  line-height: 24px;
+  overflow-y: auto;
+}
+.send-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  line-height: 1;
+}

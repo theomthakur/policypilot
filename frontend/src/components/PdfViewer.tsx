@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { CloseIcon } from './CloseIcon'
 import { documentFileUrl } from '../api/client'
 
 export interface ViewerTarget {
@@ -54,7 +55,7 @@ export function PdfViewer({
               onClick={onClose}
               aria-label="Close PDF"
             >
-              ×
+              <CloseIcon />
             </button>
           </div>
         </header>

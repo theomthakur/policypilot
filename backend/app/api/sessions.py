@@ -55,9 +55,11 @@ def _set_cookie(response: Response, session_id: uuid.UUID) -> None:
 async def resume_session(
     session_id: uuid.UUID, response: Response, db: DbSession, user: CurrentUser
 ) -> dict[str, str]:
-    """Pick a conversation back up after signing in again. Only its owner can."""
+    """Pick a conversation back up (after signing in again, or from the history list). Only its owner can: a
+    signed-in user must own it, and without sign-in only a session that has no owner can be resumed."""
     session = await db.get(Session, session_id)
-    if user is None or session is None or session.owner_user_id != user.id:
+    owner = user.id if user else None
+    if session is None or session.owner_user_id != owner:
         raise ApiError(404, "NOT_FOUND", "Session not found.")
     _set_cookie(response, session.id)
     return {"session_id": str(session.id)}

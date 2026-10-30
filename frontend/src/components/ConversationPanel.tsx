@@ -183,6 +183,14 @@ export function ConversationPanel({
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [busy, streamLabel])
 
+  // The box is one line tall and grows with what is typed, so the text and the send button stay centred.
+  useLayoutEffect(() => {
+    const box = inputRef.current
+    if (!box) return
+    box.style.height = 'auto'
+    box.style.height = `${Math.min(box.scrollHeight, 140)}px`
+  }, [content])
+
   const submit = () => {
     const value = content.trim()
     if (!value || busy || !sessionReady) return
@@ -356,7 +364,7 @@ export function ConversationPanel({
           <textarea
             ref={inputRef}
             id="question"
-            rows={2}
+            rows={1}
             value={content}
             disabled={busy || !sessionReady}
             placeholder={

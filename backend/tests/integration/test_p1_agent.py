@@ -1048,3 +1048,12 @@ def test_a_word_shared_by_some_labels_does_not_count_as_naming_one() -> None:
     assert not broad.named and len(broad.options) == 3
     run.question = "How much scratch space do I get?"
     assert run._backed_variants(verdict, hits).named
+
+
+def test_an_unowned_session_can_be_resumed_from_a_history_list(client: Any) -> None:
+    first = client.post("/api/v1/sessions").json()["session_id"]
+    second = client.post("/api/v1/sessions").json()["session_id"]
+    assert client.cookies["pp_session"] == second
+    resumed = client.post(f"/api/v1/sessions/{first}/resume")
+    assert resumed.status_code == 200 and client.cookies["pp_session"] == first
+    assert client.post(f"/api/v1/sessions/{uuid.uuid4()}/resume").status_code == 404

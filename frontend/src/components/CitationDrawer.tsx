@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { CloseIcon } from './CloseIcon'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage } from '../api/client'
 import type { Citation } from '../api/types'
@@ -89,7 +90,7 @@ export function CitationDrawer({
             onClick={onClose}
             aria-label="Close citation"
           >
-            ×
+            <CloseIcon />
           </button>
         </header>
         <div

@@ -13,6 +13,7 @@ import {
   ConversationPanel,
   type DisplayMessage,
 } from './components/ConversationPanel'
+import { HistoryPanel, type HistoryItem } from './components/HistoryPanel'
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PdfViewer, type ViewerTarget } from './components/PdfViewer'
 import { PasscodeDialog } from './components/PasscodeDialog'
@@ -29,6 +30,24 @@ import { TracePanel } from './components/TracePanel'
 import { useTurnStream } from './hooks/useTurnStream'
 
 const SESSION_KEY = 'policypilot_session_id'
+const HISTORY_KEY = 'pp_session_history'
+
+function readHistory(): HistoryItem[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed.slice(0, 50) : []
+  } catch {
+    return []
+  }
+}
+
+function saveHistory(items: HistoryItem[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 50)))
+  } catch {
+    // History is a convenience; the conversation itself is stored on the server.
+  }
+}
 type MobilePanel = 'documents' | 'conversation' | 'trace'
 function describeRun(
   mode: 'agent' | 'baseline',
@@ -81,6 +100,25 @@ function IconActivity() {
       aria-hidden="true"
     >
       <path d="M3 12h4l3-8 4 16 3-8h4" />
+    </svg>
+  )
+}
+
+function IconClock() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   )
 }
@@ -233,9 +271,10 @@ export function App() {
   const [viewer, setViewer] = useState<ViewerTarget | null>(null)
   // Panels always start visible: hiding one is a temporary choice and is never remembered.
   const [showSidebar, setShowSidebar] = useState(true)
-  const [sidebarTab, setSidebarTab] = useState<'documents' | 'activity'>(
-    'documents',
-  )
+  const [sidebarTab, setSidebarTab] = useState<
+    'documents' | 'activity' | 'history'
+  >('documents')
+  const [history, setHistory] = useState<HistoryItem[]>(readHistory)
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
   const [appView, setAppView] = useState<AppView>(viewFromHash)
@@ -377,9 +416,17 @@ export function App() {
 
   // A saved session id can outlive its cookie or database; start a fresh session instead of failing forever.
   useEffect(() => {
-    if (session.error instanceof ApiError && session.error.status === 404)
+    if (session.error instanceof ApiError && session.error.status === 404) {
+      if (sessionId) {
+        setHistory((current) => {
+          const next = current.filter((item) => item.id !== sessionId)
+          saveHistory(next)
+          return next
+        })
+      }
       void createSession().catch(() => undefined)
-  }, [createSession, session.error])
+    }
+  }, [createSession, session.error, sessionId])
 
   useEffect(() => {
     if (!session.data || messages.length > 0) return
@@ -416,6 +463,49 @@ export function App() {
     ])
   }, [activeTurnId, turn.answer, turn.status, turn.totals])
 
+  const recordHistory = (id: string, question: string) => {
+    setHistory((current) => {
+      const existing = current.find((item) => item.id === id)
+      const title =
+        existing?.title ?? question.replace(/\s+/g, ' ').slice(0, 70)
+      const next = [
+        { id, title, at: Date.now() },
+        ...current.filter((item) => item.id !== id),
+      ]
+      saveHistory(next)
+      return next
+    })
+  }
+
+  const removeHistory = (id: string) => {
+    setHistory((current) => {
+      const next = current.filter((item) => item.id !== id)
+      saveHistory(next)
+      return next
+    })
+  }
+
+  const openSession = async (id: string) => {
+    navigateTo('workspace')
+    if (busy || id === sessionId) return
+    try {
+      await api.resumeSession(id)
+    } catch {
+      removeHistory(id)
+      setSendError('That conversation is no longer available.')
+      return
+    }
+    setSendError(null)
+    localStorage.setItem(SESSION_KEY, id)
+    setSessionId(id)
+    setMessages([])
+    setActiveTurnId(null)
+    completedTurn.current = null
+    clarificationTurn.current = null
+    void queryClient.invalidateQueries({ queryKey: ['session', id] })
+    void queryClient.invalidateQueries({ queryKey: ['documents'] })
+  }
+
   const sendMessage = async (content: string, replyToClarification = false) => {
     if (!sessionId || busy) return
     setSendError(null)
@@ -434,6 +524,7 @@ export function App() {
       clarificationTurn.current = null
       completedTurn.current = null
       setActiveTurnId(response.turn_id)
+      recordHistory(sessionId, content)
       setMobilePanel('conversation')
       setSidebarTab('activity')
     } catch (error) {
@@ -533,6 +624,7 @@ export function App() {
           [
             ['documents', 'Knowledge base', <IconBook key="b" />],
             ['activity', 'Agent activity', <IconActivity key="a" />],
+            ['history', 'History', <IconClock key="h" />],
           ] as const
         ).map(([key, label, icon]) => (
           <button
@@ -562,7 +654,15 @@ export function App() {
         className="sidebar-content"
         hidden={!showSidebar || appView !== 'workspace'}
       >
-        {sidebarTab === 'documents' ? (
+        {sidebarTab === 'history' ? (
+          <HistoryPanel
+            items={history}
+            currentId={sessionId}
+            disabled={busy}
+            onOpen={(id) => void openSession(id)}
+            onDelete={removeHistory}
+          />
+        ) : sidebarTab === 'documents' ? (
           <DocumentsPanel
             onView={(document) =>
               setViewer({ id: document.id, title: document.title })
