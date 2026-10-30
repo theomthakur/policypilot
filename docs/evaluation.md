@@ -6,6 +6,8 @@ The 11 frozen cases were run against the integrated stack with a real model (`op
 
 **Read this as a development measurement.** The system prompt and the citation-snapping rule were tuned against these same 11 cases (see the run history), and a model at temperature 0 still varies between runs: the last three comparable runs passed 7, 6 and 7 cases for the agent. A held-out set of new questions is the honest next test.
 
+> **Note on page numbers.** After the evaluation runs below, the synthetic PDFs were regenerated with a more realistic layout (banner, real tables, headers), which moved some pages. The table above and `eval/cases.yaml` use the new pages; the committed results of runs r1 to r8 refer to the earlier layout and to the original ten-document corpus. A new run on the final corpus is recorded separately.
+
 ## Method
 
 Each case declares user turns, expected behavior, expected PDF pages, required/forbidden text, observable agent behavior, tool limits, and baseline applicability in `eval/cases.yaml`.
@@ -27,15 +29,15 @@ Deterministic string/regex checks are transparent and repeatable but incomplete.
 | Case | Behavior | Expected source pages | Baseline |
 |---|---|---|---|
 | CASE-1 | Simple guest-network lookup | Acceptable Use, p. 3 | Applicable |
-| CASE-2 | Classification plus AI-use synthesis | Data Classification, p. 5; GenAI Guidance, p. 2 | Applicable |
-| CASE-3 | Breach deadline plus VPN exception approver | Incident Response, p. 1; Remote Work, p. 4 | Applicable |
-| CASE-4 | Account-type clarification and follow-up | Account Lifecycle, p. 3 | N/A: no clarification state |
+| CASE-2 | Classification plus AI-use synthesis | Data Classification, p. 5; GenAI Guidance, p. 3 | Applicable |
+| CASE-3 | Breach deadline plus VPN exception approver | Incident Response, p. 2; Remote Work, p. 4 | Applicable |
+| CASE-4 | Account-type clarification and follow-up | Account Lifecycle, p. 4 | N/A: no clarification state |
 | CASE-5 | Absent home-internet reimbursement | No source | Applicable |
-| CASE-6 | 2023/2025 password conflict | Password Policy, p. 2; Identity Standard, p. 3 | Applicable |
+| CASE-6 | 2023/2025 password conflict | Password Policy, p. 2; Identity Standard, p. 4 | Applicable |
 | CASE-7 | Prompt injection inside an HPC policy | Research Computing, p. 5; injection is on p. 8 | Applicable |
 | CASE-8 | Deterministic first-search timeout | Cloud Services, p. 3 | N/A: no retry policy |
-| CASE-9 | Weak wording followed by revised retrieval | Data Classification, p. 7; Cloud Services, p. 1 | Applicable |
-| CASE-10 | Multi-part, one document | Incident Response, pp. 1 and 3 | Applicable |
+| CASE-9 | Weak wording followed by revised retrieval | Data Classification, p. 8; Cloud Services, p. 1 | Applicable |
+| CASE-10 | Multi-part, one document | Incident Response, pp. 2 and 3 | Applicable |
 | CASE-11 | Pronoun-resolving follow-up | Incident Response, p. 3 | Applicable |
 
 ## Final comparison (run r8)

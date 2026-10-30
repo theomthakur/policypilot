@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
@@ -25,6 +25,8 @@ from reportlab.platypus import (
     Paragraph,
     SimpleDocTemplate,
     Spacer,
+    Table,
+    TableStyle,
 )
 
 ROOT = Path(__file__).resolve().parent
@@ -60,20 +62,48 @@ SPECS = (
 
 
 class InvariantCanvas(Canvas):
+    """Deterministic output, with 'Page x of y' drawn once the page count is known."""
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         kwargs["invariant"] = 1
         super().__init__(*args, **kwargs)
+        self._saved_pages: list[dict[str, object]] = []
+
+    def showPage(self) -> None:  # noqa: N802 (reportlab API)
+        self._saved_pages.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self) -> None:
+        total = len(self._saved_pages)
+        for state in self._saved_pages:
+            self.__dict__.update(state)
+            self.setFont("Helvetica", 7)
+            self.setFillColor(colors.HexColor("#6b6175"))
+            self.drawRightString(7.78 * inch, 0.31 * inch, f"Page {self._pageNumber} of {total}")
+            super().showPage()
+        super().save()
+
+
+VIOLET = colors.HexColor("#57068c")
+VIOLET_DARK = colors.HexColor("#3d0563")
+TINT = colors.HexColor("#f6f1fa")
+RULE = colors.HexColor("#d9cfe3")
 
 
 def styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     return {
-        "h1": ParagraphStyle("CorpusH1", parent=base["Heading1"], fontName="Helvetica-Bold", fontSize=16, leading=20, textColor=colors.HexColor("#173f32"), spaceAfter=10),
-        "h2": ParagraphStyle("CorpusH2", parent=base["Heading2"], fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=colors.HexColor("#245946"), spaceBefore=8, spaceAfter=6),
-        "h3": ParagraphStyle("CorpusH3", parent=base["Heading3"], fontName="Helvetica-Bold", fontSize=10, leading=13, textColor=colors.HexColor("#334b42"), spaceBefore=6, spaceAfter=4),
-        "body": ParagraphStyle("CorpusBody", parent=base["BodyText"], fontName="Helvetica", fontSize=8.1, leading=10.5, textColor=colors.HexColor("#26332e"), spaceAfter=5),
-        "table": ParagraphStyle("CorpusTable", parent=base["Code"], fontName="Courier", fontSize=6.4, leading=8, textColor=colors.HexColor("#37443f"), leftIndent=4, spaceAfter=2),
-        "quote": ParagraphStyle("CorpusQuote", parent=base["BodyText"], fontName="Helvetica-Oblique", fontSize=7.8, leading=10, leftIndent=12, rightIndent=12, borderColor=colors.HexColor("#9dbbae"), borderWidth=1, borderPadding=6, backColor=colors.HexColor("#f1f6f3"), spaceAfter=6),
+        "h1": ParagraphStyle("CorpusH1", parent=base["Heading1"], fontName="Helvetica-Bold", fontSize=17, leading=21, textColor=VIOLET_DARK, spaceBefore=4, spaceAfter=8),
+        "h2": ParagraphStyle("CorpusH2", parent=base["Heading2"], fontName="Helvetica-Bold", fontSize=12.5, leading=16, textColor=VIOLET, spaceBefore=10, spaceAfter=5),
+        "h3": ParagraphStyle("CorpusH3", parent=base["Heading3"], fontName="Helvetica-Bold", fontSize=10.2, leading=13, textColor=colors.HexColor("#3a2f45"), spaceBefore=7, spaceAfter=3),
+        "body": ParagraphStyle("CorpusBody", parent=base["BodyText"], fontName="Helvetica", fontSize=8.8, leading=12, textColor=colors.HexColor("#25202b"), spaceAfter=5),
+        "cell": ParagraphStyle("CorpusCell", parent=base["BodyText"], fontName="Helvetica", fontSize=7.9, leading=10.2, textColor=colors.HexColor("#25202b")),
+        "cellhead": ParagraphStyle("CorpusCellHead", parent=base["BodyText"], fontName="Helvetica-Bold", fontSize=7.9, leading=10.2, textColor=colors.white),
+        "quote": ParagraphStyle("CorpusQuote", parent=base["BodyText"], fontName="Helvetica", fontSize=8.4, leading=11.4, leftIndent=10, rightIndent=8, borderColor=VIOLET, borderWidth=0.8, borderPadding=7, backColor=TINT, spaceBefore=4, spaceAfter=9),
+        "title": ParagraphStyle("CorpusTitle", parent=base["Title"], fontName="Helvetica-Bold", fontSize=20, leading=24, alignment=TA_LEFT, textColor=colors.white),
+        "kicker": ParagraphStyle("CorpusKicker", parent=base["BodyText"], fontName="Helvetica-Bold", fontSize=7.6, leading=10, textColor=colors.HexColor("#e6d3f5")),
+        "label": ParagraphStyle("CorpusLabel", parent=base["BodyText"], fontName="Helvetica-Bold", fontSize=6.8, leading=9, textColor=colors.HexColor("#6b6175")),
+        "value": ParagraphStyle("CorpusValue", parent=base["BodyText"], fontName="Helvetica", fontSize=8.6, leading=11, textColor=colors.HexColor("#25202b")),
         "footer": ParagraphStyle("CorpusFooter", parent=base["BodyText"], fontName="Helvetica", fontSize=6.5, leading=8, alignment=TA_CENTER, textColor=colors.HexColor("#6f7c76")),
     }
 
@@ -125,7 +155,8 @@ def markdown_story(text: str, style: dict[str, ParagraphStyle]) -> list[object]:
                 if not re.fullmatch(r"\|?[\s:|-]+\|?", candidate):
                     table_lines.append(candidate)
                 index += 1
-            story.extend(Paragraph(inline_markup(line), style["table"]) for line in table_lines)
+            story.append(real_table(table_lines, style))
+            story.append(Spacer(1, 6))
             continue
         if re.match(r"^[-*] ", stripped):
             items: list[ListItem] = []
@@ -133,7 +164,7 @@ def markdown_story(text: str, style: dict[str, ParagraphStyle]) -> list[object]:
                 item_text = re.sub(r"^\s*[-*] ", "", lines[index]).strip()
                 items.append(ListItem(Paragraph(inline_markup(item_text), style["body"]), leftIndent=11))
                 index += 1
-            story.append(ListFlowable(items, bulletType="bullet", leftIndent=14, bulletFontSize=5, spaceAfter=4))
+            story.append(ListFlowable(items, bulletType="bullet", start="\u2022", leftIndent=14, bulletFontSize=8, spaceAfter=4))
             continue
         if re.match(r"^\d+\. ", stripped):
             items = []
@@ -141,7 +172,7 @@ def markdown_story(text: str, style: dict[str, ParagraphStyle]) -> list[object]:
                 item_text = re.sub(r"^\s*\d+\. ", "", lines[index]).strip()
                 items.append(ListItem(Paragraph(inline_markup(item_text), style["body"]), leftIndent=13))
                 index += 1
-            story.append(ListFlowable(items, bulletType="1", leftIndent=18, bulletFontSize=7, spaceAfter=4))
+            story.append(ListFlowable(items, bulletType="1", leftIndent=18, bulletFontSize=8, spaceAfter=4))
             continue
         if stripped.startswith(">"):
             story.append(Paragraph(inline_markup(stripped.lstrip("> ")), style["quote"]))
@@ -160,14 +191,76 @@ def markdown_story(text: str, style: dict[str, ParagraphStyle]) -> list[object]:
     return story
 
 
-def page_footer(canvas: Canvas, document: SimpleDocTemplate) -> None:
-    canvas.saveState()
-    canvas.setStrokeColor(colors.HexColor("#d4dcd8"))
-    canvas.line(0.72 * inch, 0.48 * inch, 7.78 * inch, 0.48 * inch)
-    canvas.setFillColor(colors.HexColor("#65736d"))
-    canvas.setFont("Helvetica", 6.5)
-    canvas.drawCentredString(4.25 * inch, 0.31 * inch, f"{FOOTER}  |  Page {document.page}")
-    canvas.restoreState()
+def real_table(lines: list[str], style: dict[str, ParagraphStyle]) -> Table:
+    rows = [[cell.strip() for cell in line.strip().strip("|").split("|")] for line in lines]
+    width = max(len(row) for row in rows)
+    rows = [row + [""] * (width - len(row)) for row in rows]
+    data = [
+        [Paragraph(inline_markup(cell), style["cellhead" if r == 0 else "cell"]) for cell in row]
+        for r, row in enumerate(rows)
+    ]
+    weights = [min(max(len(row[c]) for row in rows), 60) + 8 for c in range(width)]
+    total = sum(weights)
+    available = 7.06 * inch
+    table = Table(data, colWidths=[available * w / total for w in weights], repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), VIOLET),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, TINT]),
+                ("GRID", (0, 0), (-1, -1), 0.4, RULE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 3.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5),
+            ]
+        )
+    )
+    return table
+
+
+def cover_story(spec: "DocumentSpec", style: dict[str, ParagraphStyle]) -> list[object]:
+    """A banner and a document-control table, as real policy documents open."""
+    banner = Table(
+        [
+            [Paragraph("NORTHFIELD UNIVERSITY  |  OFFICE OF INFORMATION TECHNOLOGY", style["kicker"])],
+            [Paragraph(html.escape(spec.title), style["title"])],
+        ],
+        colWidths=[7.06 * inch],
+    )
+    banner.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), VIOLET),
+                ("LEFTPADDING", (0, 0), (-1, -1), 14),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+                ("TOPPADDING", (0, 0), (0, 0), 12),
+                ("BOTTOMPADDING", (0, -1), (-1, -1), 14),
+            ]
+        )
+    )
+    return [banner, Spacer(1, 10)]
+
+
+def make_page_decorations(spec: "DocumentSpec"):
+    def decorate(canvas: Canvas, document: SimpleDocTemplate) -> None:
+        canvas.saveState()
+        if document.page > 1:  # the first page opens with the banner
+            canvas.setFillColor(VIOLET)
+            canvas.rect(0.72 * inch, 10.62 * inch, 7.06 * inch, 0.03 * inch, stroke=0, fill=1)
+            canvas.setFillColor(colors.HexColor("#6b6175"))
+            canvas.setFont("Helvetica", 7)
+            canvas.drawString(0.72 * inch, 10.45 * inch, "Northfield University  |  Office of Information Technology")
+            canvas.drawRightString(7.78 * inch, 10.45 * inch, f"{spec.document_id}  v{spec.version}")
+        canvas.setStrokeColor(RULE)
+        canvas.line(0.72 * inch, 0.48 * inch, 7.78 * inch, 0.48 * inch)
+        canvas.setFillColor(colors.HexColor("#6b6175"))
+        canvas.setFont("Helvetica", 6.5)
+        canvas.drawString(0.72 * inch, 0.31 * inch, FOOTER)
+        canvas.restoreState()
+
+    return decorate
 
 
 def file_sha256(path: Path) -> str:
@@ -196,14 +289,21 @@ def build_document(spec: DocumentSpec) -> dict[str, object]:
         pagesize=LETTER,
         rightMargin=0.72 * inch,
         leftMargin=0.72 * inch,
-        topMargin=0.62 * inch,
+        topMargin=0.85 * inch,
         bottomMargin=0.65 * inch,
         title=spec.title,
         author="Northfield University Office of Information Technology (synthetic)",
         subject="Synthetic policy corpus for the PolicyPilot take-home assignment",
         creator="PolicyPilot deterministic corpus generator",
     )
-    document.build(markdown_story(source_text, styles()), onFirstPage=page_footer, onLaterPages=page_footer, canvasmaker=InvariantCanvas)
+    style = styles()
+    decorate = make_page_decorations(spec)
+    # The banner carries the title, so drop the source's own opening "# institution" and "## title" lines.
+    lines = source_text.splitlines()
+    head = [i for i, line in enumerate(lines[:6]) if line.startswith(("# ", "## "))]
+    source_text = "\n".join(line for i, line in enumerate(lines) if i not in head)
+    story = cover_story(spec, style) + markdown_story(source_text, style)
+    document.build(story, onFirstPage=decorate, onLaterPages=decorate, canvasmaker=InvariantCanvas)
     reader = PdfReader(str(output_path))
     expected_pages = {case_id: locate_anchor(reader, anchor) for case_id, anchor in spec.anchors.items()}
     return {

@@ -13,8 +13,8 @@
         "CASE-1": 3
       },
       "filename": "01-acceptable-use-and-guest-network.pdf",
-      "pages": 7,
-      "sha256": "917fc8c46a996f104ac7fd74ad291533d89b0f9dc98b704919a50443ce9ebec3",
+      "pages": 8,
+      "sha256": "055848d0bc44c4a3b9f26a4a44e5b663d93883fee3f14823f3a4a84002585cd6",
       "source_file": "01-acceptable-use-and-guest-network.md",
       "synthetic": true,
       "title": "Acceptable Use and Guest Network Policy",
@@ -29,11 +29,11 @@
       "effective_date": "2026-01-15",
       "expected_pages": {
         "CASE-2": 5,
-        "CASE-9": 7
+        "CASE-9": 8
       },
       "filename": "02-data-classification-standard.pdf",
-      "pages": 10,
-      "sha256": "ff166763a9191dcedb7b82763c6aa41d578c942d430e9608aebd33c13dbba696",
+      "pages": 11,
+      "sha256": "6b23a855fe1f9d240031f85b6df6491f74e79dac682561fd59fe635d13ede28c",
       "source_file": "02-data-classification-standard.md",
       "synthetic": true,
       "title": "Data Classification and Handling Standard",
@@ -46,11 +46,11 @@
       "document_id": "NUOIT-2026-AI-01",
       "effective_date": "2026-03-01",
       "expected_pages": {
-        "CASE-2": 2
+        "CASE-2": 3
       },
       "filename": "03-generative-ai-guidance.pdf",
-      "pages": 7,
-      "sha256": "53df696fd2b808bb6d302f369fa9d3568e888989671f36487cf032d1254b5d29",
+      "pages": 8,
+      "sha256": "dbf80327b17e1e23ee5a355b9d7a1239abc0fb170e2a57d6472493fea3f4a48e",
       "source_file": "03-generative-ai-guidance.md",
       "synthetic": true,
       "title": "Generative AI and Large Language Model Usage Guidance",
@@ -66,8 +66,8 @@
         "CASE-6": 2
       },
       "filename": "04-password-policy-2023.pdf",
-      "pages": 6,
-      "sha256": "8edcf462f4f363d7967632ff5fe7478460475870b54d96f4649504c7eb2e9f2e",
+      "pages": 7,
+      "sha256": "6750c4228286e75fc37de557f94a76fc60c36fb52cb424e4f10f650d1d9452f9",
       "source_file": "04-password-policy-2023.md",
       "synthetic": true,
       "title": "Password and Credential Management Policy",
@@ -80,11 +80,11 @@
       "document_id": "2025-IAM-02",
       "effective_date": "2025-01-15",
       "expected_pages": {
-        "CASE-6": 3
+        "CASE-6": 4
       },
       "filename": "05-identity-mfa-standard-2025.pdf",
-      "pages": 7,
-      "sha256": "d7d8783924a719d9c6b8b33b98e12c68a124250b4d8079fabce5ba4f232e7a9e",
+      "pages": 9,
+      "sha256": "3d509edcff3e223f33a605fb274cb6cdeeda3cda060995564df24167570079d3",
       "source_file": "05-identity-mfa-standard-2025.md",
       "synthetic": true,
       "title": "Identity Security and Multi-Factor Authentication Standard",
@@ -99,13 +99,13 @@
       "document_id": "2026-SEC-01",
       "effective_date": "2026-07-01",
       "expected_pages": {
-        "CASE-10": 1,
+        "CASE-10": 2,
         "CASE-11": 3,
-        "CASE-3": 1
+        "CASE-3": 2
       },
       "filename": "06-incident-response-plan.pdf",
-      "pages": 10,
-      "sha256": "16c023d200f5ba636491bde3cc35117abde9b4df5a20b3d4daa2c42807d8008f",
+      "pages": 12,
+      "sha256": "99c82ca07fa0baa702276cedba6d21f6cb077f760e8aa9e6c0a73448940475af",
       "source_file": "06-incident-response-plan.md",
       "synthetic": true,
       "title": "Cybersecurity Incident Response Plan",
@@ -122,7 +122,7 @@
       },
       "filename": "07-remote-work-security.pdf",
       "pages": 6,
-      "sha256": "dfdf88a0bc16c45dded0c29f8b16cd423a214314f2e6b5b6e861986a98511ef1",
+      "sha256": "afd5e570c8d2beae22958b2726afa04f0ebd5677d9f04b768aca60fa14f7ed14",
       "source_file": "07-remote-work-security.md",
       "synthetic": true,
       "title": "Remote Work and Personal Device Security Standard",
@@ -135,11 +135,11 @@
       "document_id": "2025-IAM-03",
       "effective_date": "2025-09-01",
       "expected_pages": {
-        "CASE-4": 3
+        "CASE-4": 4
       },
       "filename": "08-account-lifecycle.pdf",
-      "pages": 8,
-      "sha256": "51485bdc6eb0348ce961c57bdf3b9f4b74c418a52ae20306f71bb5acc3355463",
+      "pages": 10,
+      "sha256": "73941ad9fd9a2e2adbd5eacf55323c0078958917479f6690f2356fbb7df983da",
       "source_file": "08-account-lifecycle.md",
       "synthetic": true,
       "title": "Account Lifecycle and Identity Provisioning Standard",
@@ -155,8 +155,8 @@
         "CASE-7": 8
       },
       "filename": "09-research-computing-governance.pdf",
-      "pages": 10,
-      "sha256": "f1a39d2e72ddf516949c16e206123a060bb4c22585545469c405d9dd2c47abd8",
+      "pages": 11,
+      "sha256": "3ca3d5ef0ccd71720cbc2254cccbc4aefded835b2a032bfde7a72a6efafa14ea",
       "source_file": "09-research-computing-governance.md",
       "synthetic": true,
       "title": "Research Computing Governance and High-Performance Computing Policy",
@@ -175,7 +175,7 @@
       },
       "filename": "10-approved-cloud-services.pdf",
       "pages": 3,
-      "sha256": "03c36203f628ff7bf1485da800e4338b09af7d7d0fd79d14f472eccf78b19795",
+      "sha256": "98a8b09172a627ec69e3299095a3faf19882172ad066c6fd26d985adad2e5a8a",
       "source_file": "10-approved-cloud-services.md",
       "synthetic": true,
       "title": "Approved Cloud Services Registry",
@@ -184,7 +184,7 @@
   ],
   "footer": "Synthetic document for a take-home assignment. Not an official NYU policy.",
   "generated_by": "corpus/generate.py",
-  "page_count": 74,
+  "page_count": 85,
   "schema_version": 1,
   "title": "Northfield University Office of IT synthetic policy corpus"
 }
