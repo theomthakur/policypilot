@@ -178,7 +178,7 @@ POLICYPILOT_BASE_URL=http://localhost:8080/api/v1 python eval/run.py --output-di
 
 Reference runs (`openai/gpt-4o-mini`, prompt v9, 14-document library), three repeats of the 11 tuned cases (r15 to r17) and two runs of 10 held-out questions:
 
-- Tuned cases: the agent passed **24 of 33** case-runs, the baseline **15 of 27**. Six of the eight required scenarios pass every time; the ambiguity case passes 0 of 3 and the conflict case 1 of 3.
+- Tuned cases: the agent passed **24 of 33** case-runs, the baseline **15 of 27**. Before the last changes six of the eight required scenarios passed every time, with the ambiguity case at 0 of 3 and the conflict case at 1 of 3; after them the conflict case passes 3 of 3 and the ambiguity case still misses the renewal question.
 - Held-out questions, never used for tuning: the agent **12 of 20**, the baseline **10 of 18**. This is the figure to trust for generalization.
 - The agent costs about ten times the tokens of the baseline and takes about three and a half times as long; it is better on cross-document, follow-up and vocabulary-mismatch questions and no better on direct lookups.
 - A manual citation review of the last run found every number and term in every claim on its cited page; it was done by the assistant that built the system, so please spot-check, and the verifier does not check every sentence of an answer's prose.

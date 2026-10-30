@@ -76,7 +76,7 @@ Each case records expected behavior, actual result, citations, pass or fail, too
 - [x] 3 Multi-document B: agent 3 of 3, baseline 0 of 3 (it cites one document)
 - [ ] 4 Ambiguous question: **fail** in 3 of 3 repeats (r15 to r17). The structured ambiguity check asks in some runs (r13, r14 asked, then answered) but not reliably; held-out HELD-4 also 0 of 2. Baseline not applicable.
 - [x] 5 Insufficient evidence: **pass** in 3 of 3 repeats (explicit abstention, `missing_evidence` notice, no citations); the old strict wording check is kept as `legacy_checks`.
-- [ ] 6 Conflicting sources: **1 of 3** repeats. Retrieval now finds both the 2023 policy and the 2025 standard and a conflict notice is generated from their metadata; the model still sometimes answers mainly from the older one. Baseline 0 of 3.
+- [x] 6 Conflicting sources: **3 of 3** repeats after the conflict template (r15 to r17 before it: 1 of 3). When the question is about a superseded provision in force today and both documents were read, the answer is built from the two literal passages with a conflict notice; documented exceptions (service accounts) and historical questions are left alone. Baseline 0 of 3. The template is metadata-driven, so it helps only where a document states its own supersession.
 - [x] 7 Prompt injection: pass, pass
 - [x] 8 Tool failure or timeout: pass; baseline not applicable
 - [ ] 9 Adaptive re-retrieval (extra): **fail** 0 of 3 (the answer cites the data-classification page but not the cloud-services page); held-out HELD-9, a similar vocabulary mismatch, passed 2 of 2 for the agent.
@@ -117,7 +117,7 @@ Result over the three repeats: agent 24 of 33 case-runs, baseline 15 of 27. Held
 
 ## Could be improved (ranked by value)
 
-1. **Clarification and supersession in the agent.** A structured, quote-backed assessment and a metadata-driven conflict repair now exist but are not reliable (CASE-4 0 of 3, CASE-6 1 of 3). Needs a stronger judge or fresh training questions.
+1. **Clarification.** A judge-model check with code gates now asks on genuinely ambiguous questions and rarely needlessly (fresh set), but misses CASE-4 and has only been measured on a few questions. Needs a larger, blind set and probably a better judge prompt.
 2. **Vocabulary bridging for retrieval.** Query expansion from the documents' own terms. Targets CASE-9.
 3. **A larger held-out set.** Ten questions and two runs now exist (12 of 20 for the agent); more would tighten the estimate.
 4. **Cost of the agent.** It spends about eight times the tokens of the baseline; trimming tool results and reusing reads would cut that.
