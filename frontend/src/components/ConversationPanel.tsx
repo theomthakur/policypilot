@@ -5,6 +5,7 @@ import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
 import { PolicyPilotMark } from './PolicyPilotMark'
+import { greeting } from '../api/greeting'
 
 export interface DisplayMessage {
   id: string
@@ -24,10 +25,8 @@ interface ConversationPanelProps {
   onModeChange: (mode: 'agent' | 'baseline') => void
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
-  showDocuments: boolean
-  showTrace: boolean
-  onToggleDocuments: () => void
-  onToggleTrace: () => void
+  showSidebar: boolean
+  onToggleSidebar: () => void
 }
 
 const examples = [
@@ -172,10 +171,8 @@ export function ConversationPanel({
   onModeChange,
   onSend,
   onCitationOpen,
-  showDocuments,
-  showTrace,
-  onToggleDocuments,
-  onToggleTrace,
+  showSidebar,
+  onToggleSidebar,
 }: ConversationPanelProps) {
   const [content, setContent] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
@@ -214,24 +211,14 @@ export function ConversationPanel({
           <p className="eyebrow">Grounded policy assistant</p>
           <h2 id="conversation-title">Conversation</h2>
         </div>
-        <div className="pane-toggles" aria-label="Panels">
-          <button
-            type="button"
-            className={showDocuments ? 'on' : ''}
-            aria-pressed={showDocuments}
-            onClick={onToggleDocuments}
-          >
-            {showDocuments ? 'Hide documents' : 'Show documents'}
-          </button>
-          <button
-            type="button"
-            className={showTrace ? 'on' : ''}
-            aria-pressed={showTrace}
-            onClick={onToggleTrace}
-          >
-            {showTrace ? 'Hide trace' : 'Show trace'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`sidebar-toggle${showSidebar ? ' on' : ''}`}
+          aria-pressed={showSidebar}
+          onClick={onToggleSidebar}
+        >
+          {showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+        </button>
         <div
           className={`mode-toggle${developer ? '' : ' is-hidden'}`}
           aria-label="Answer mode"
@@ -281,7 +268,7 @@ export function ConversationPanel({
               <PolicyPilotMark />
             </div>
             <p className="welcome-kicker">Policy intelligence, with evidence</p>
-            <h3>Ask across your policy library</h3>
+            <h3>{greeting()}. What would you like to know?</h3>
             <p>
               I will search the corpus, inspect evidence, and cite the pages
               that support the answer.

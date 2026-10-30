@@ -27,6 +27,7 @@ import { useTurnStream } from './hooks/useTurnStream'
 
 const SESSION_KEY = 'policypilot_session_id'
 type MobilePanel = 'documents' | 'conversation' | 'trace'
+type SidebarTab = 'documents' | 'activity'
 function describeRun(
   mode: 'agent' | 'baseline',
   searches: number,
@@ -57,8 +58,8 @@ export function App() {
   const [citation, setCitation] = useState<Citation | null>(null)
   const [viewer, setViewer] = useState<ViewerTarget | null>(null)
   // Panels always start visible: hiding one is a temporary choice and is never remembered.
-  const [showDocuments, setShowDocuments] = useState(true)
-  const [showTrace, setShowTrace] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(true)
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('documents')
   const [authRequired, setAuthRequired] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('conversation')
   const [appView, setAppView] = useState<AppView>(viewFromHash)
@@ -364,7 +365,11 @@ export function App() {
                   key={panel}
                   className={mobilePanel === panel ? 'active' : ''}
                   type="button"
-                  onClick={() => setMobilePanel(panel)}
+                  onClick={() => {
+                    setMobilePanel(panel)
+                    if (panel === 'documents') setSidebarTab('documents')
+                    if (panel === 'trace') setSidebarTab('activity')
+                  }}
                 >
                   {panel}
                   {panel === 'trace' && turn.events.length > 0 && (
@@ -375,18 +380,7 @@ export function App() {
             )}
           </nav>
 
-          <main
-            className={`workspace${showDocuments ? '' : ' no-documents'}${showTrace ? '' : ' no-trace'}`}
-          >
-            <div
-              className={`workspace-pane pane-documents ${mobilePanel === 'documents' ? 'mobile-active' : ''}`}
-            >
-              <DocumentsPanel
-                onView={(document) =>
-                  setViewer({ id: document.id, title: document.title })
-                }
-              />
-            </div>
+          <main className={`workspace${showSidebar ? '' : ' no-sidebar'}`}>
             <div
               className={`workspace-pane pane-conversation ${mobilePanel === 'conversation' ? 'mobile-active' : ''}`}
             >
@@ -400,22 +394,52 @@ export function App() {
                 onModeChange={setMode}
                 onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}
-                showDocuments={showDocuments}
-                showTrace={showTrace}
-                onToggleDocuments={() => setShowDocuments(!showDocuments)}
-                onToggleTrace={() => setShowTrace(!showTrace)}
+                showSidebar={showSidebar}
+                onToggleSidebar={() => setShowSidebar(!showSidebar)}
               />
             </div>
-            <div
-              className={`workspace-pane pane-trace ${mobilePanel === 'trace' ? 'mobile-active' : ''}`}
+            <aside
+              className={`workspace-pane pane-sidebar ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
+              aria-label="Knowledge base and agent activity"
             >
-              <TracePanel
-                events={turn.events}
-                totals={turn.totals}
-                streamStatus={turn.status}
-                developer={developer}
-              />
-            </div>
+              <div className="sidebar-tabs" role="tablist">
+                {(
+                  [
+                    ['documents', 'Knowledge base'],
+                    ['activity', 'Agent activity'],
+                  ] as const
+                ).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={sidebarTab === tab}
+                    className={sidebarTab === tab ? 'active' : ''}
+                    onClick={() => setSidebarTab(tab)}
+                  >
+                    {label}
+                    {tab === 'activity' && turn.events.length > 0 && (
+                      <span>{turn.events.length}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="sidebar-body" hidden={sidebarTab !== 'documents'}>
+                <DocumentsPanel
+                  onView={(document) =>
+                    setViewer({ id: document.id, title: document.title })
+                  }
+                />
+              </div>
+              <div className="sidebar-body" hidden={sidebarTab !== 'activity'}>
+                <TracePanel
+                  events={turn.events}
+                  totals={turn.totals}
+                  streamStatus={turn.status}
+                  developer={developer}
+                />
+              </div>
+            </aside>
           </main>
         </>
       ) : appView === 'architecture' ? (
