@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 
-from app.api.deps import CurrentSession, DbSession, Passcode
+from app.api.deps import Authenticated, CurrentSession, DbSession, Passcode
 from app.api.errors import ApiError
 from app.config import get_settings
 from app.db.models import Document, DocumentPage, IngestionRun
@@ -19,7 +19,7 @@ from app.ingest.pipeline import ingest_document
 from app.state import ingest_progress
 from app.state.corpus import get_corpus_version
 
-router = APIRouter(tags=["documents"])
+router = APIRouter(tags=["documents"], dependencies=[Authenticated])
 
 PDF_MAGIC = b"%PDF-"
 

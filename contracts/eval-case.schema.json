@@ -6,7 +6,7 @@
   "type": "object",
   "required": ["id", "category", "turns", "expected_behavior", "checks", "applies_to_baseline"],
   "properties": {
-    "id": { "type": "string", "pattern": "^CASE-[0-9]+$" },
+    "id": { "type": "string", "pattern": "^(CASE|HELD)-[0-9]+$" },
     "category": {
       "type": "string",
       "enum": ["simple_lookup", "multi_document", "ambiguous", "insufficient_evidence", "conflict", "prompt_injection", "tool_failure", "adaptive_retrieval", "single_document_multi_part", "follow_up"]
@@ -40,6 +40,8 @@
     "checks": {
       "type": "object",
       "properties": {
+        "abstention_wording": { "type": "string", "description": "Regex for an explicit statement that the documents lack the answer. Broad on purpose; structured checks (stop reason, notice, no citations) carry the weight." },
+        "legacy_required_facts": { "type": "array", "items": { "type": "string" }, "description": "Earlier stricter wording checks. Reported separately, never decide pass/fail." },
         "required_facts": { "type": "array", "items": { "type": "string" }, "description": "Case-insensitive substrings or regexes the answer must contain." },
         "forbidden_text": { "type": "array", "items": { "type": "string" }, "description": "Must not appear (e.g. the injected override code)." },
         "expect_stop_reason": { "type": "string" },

@@ -71,7 +71,58 @@ def _document_id(filename_part: str) -> str:
 # ---- P1-A: the code acts on a structured ambiguity assessment -------------------------------------
 
 
-def test_assessment_that_finds_a_missing_detail_makes_the_loop_ask(
+RENEWAL = [
+    "1. Account Renewal\n\nStudent accounts renew automatically each term without any form.\n\n"
+    "Sponsored guest accounts renew only when the sponsor submits the renewal form."
+]
+
+
+def _load_renewal(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.ingest.pipeline import ensure_corpus_loaded
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    make_pdf(RENEWAL, name="corpus/08-renewal.pdf")
+    make_pdf(REMOTE, name="corpus/02-remote.pdf")
+    clear_caches()
+    asyncio.run(ensure_corpus_loaded(corpus))
+    clear_caches()
+
+
+def _renewal_assessment(**overrides: Any) -> Any:
+    fields: dict[str, Any] = {
+        "missing_slot": "account type",
+        "interpretations": [
+            {"label": "Student account", "quote": "Student accounts renew automatically each term"},
+            {
+                "label": "Sponsored guest account",
+                "quote": "Sponsored guest accounts renew only when the sponsor",
+            },
+        ],
+        "clarification_question": "Which type of account do you want to renew?",
+    }
+    return _assess(False, **{**fields, **overrides})
+
+
+def test_parallel_cases_in_one_document_make_the_loop_ask(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel([respond(("search_documents", {"query": "renew account"})), _renewal_assessment()])
+    outcome, events = _run(model, "How do I renew my membership?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "clarification_needed"
+    assert outcome.clarification == {
+        "question": "Which type of account do you want to renew?",
+        "options": ["Student account", "Sponsored guest account"],
+    }
+    assessment = events.of("assessment")[0]["assessment"]
+    assert assessment["answerable"] is False and assessment["supported"] == 2
+    assert outcome.totals.model_requests == 2 and outcome.totals.steps == 1
+
+
+def test_variants_from_different_documents_are_not_one_ambiguity(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.llm.client import ScriptedModel, respond
@@ -79,24 +130,92 @@ def test_assessment_that_finds_a_missing_detail_makes_the_loop_ask(
     _load(make_pdf, tmp_path)
     model = ScriptedModel(
         [
-            respond(("search_documents", {"query": "renew account"})),
+            respond(("search_documents", {"query": "guest network bandwidth VPN exceptions approved"})),
             _assess(
                 False,
-                missing_slot="account type",
-                candidate_interpretations=["Student", "Sponsored guest"],
-                clarification_question="Which type of account do you want to renew?",
+                missing_slot="topic",
+                interpretations=[
+                    {"label": "Guest network", "quote": "limited to 10 Mbps download and 2 Mbps upload"},
+                    {
+                        "label": "VPN exceptions",
+                        "quote": "VPN exceptions are approved by the Chief Information",
+                    },
+                ],
+                clarification_question="Which one?",
             ),
+            _answer_step("Guest", 1, QUOTE_MBPS),
         ]
     )
-    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
-    assert outcome.stop_reason == "clarification_needed"
-    assert outcome.clarification == {
-        "question": "Which type of account do you want to renew?",
-        "options": ["Student", "Sponsored guest"],
-    }
-    assessment = events.of("assessment")[0]["assessment"]
-    assert assessment["answerable"] is False and assessment["missing_slot"] == "account type"
-    assert outcome.totals.model_requests == 2 and outcome.totals.steps == 1
+    outcome, events = _run(model, "q", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered" and not events.of("clarification_requested")
+
+
+def test_a_case_the_user_already_named_is_never_asked_about(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew sponsored guest account"})),
+            _renewal_assessment(),
+            respond(("final_answer", {"summary": "The documents do not contain this."})),
+        ]
+    )
+    outcome, events = _run(model, "How does a sponsored guest renew?", agent_assess_ambiguity=True)
+    assert not events.of("clarification_requested") and outcome.stop_reason != "clarification_needed"
+
+
+def test_a_label_that_is_not_about_its_passage_is_not_trusted(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew account"})),
+            _renewal_assessment(
+                interpretations=[
+                    {"label": "Alumni network", "quote": "Student accounts renew automatically each term"},
+                    {"label": "Contractors", "quote": "Sponsored guest accounts renew only when the sponsor"},
+                ]
+            ),
+            respond(("final_answer", {"summary": "The documents do not contain this."})),
+        ]
+    )
+    outcome, events = _run(model, "How do I renew my membership?", agent_assess_ambiguity=True)
+    assert (
+        outcome.stop_reason != "clarification_needed"
+        and events.of("assessment")[0]["assessment"]["supported"] == 0
+    )
+
+
+def test_interpretations_that_are_not_in_the_results_never_trigger_a_question(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth VPN exceptions approved"})),
+            _assess(
+                False,
+                missing_slot="user role",
+                interpretations=[
+                    {"label": "Faculty", "quote": "Faculty members receive unlimited bandwidth"},
+                    {"label": "Alumni", "quote": "Alumni may connect for one hour per day"},
+                ],
+                clarification_question="Which role are you?",
+            ),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "What is the guest bandwidth?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered" and not events.of("clarification_requested")
+    assert events.of("assessment")[0]["assessment"]["supported"] == 0
 
 
 def test_specific_question_is_not_interrupted_by_the_assessment(
@@ -127,7 +246,11 @@ def test_a_single_interpretation_never_triggers_a_question(
     model = ScriptedModel(
         [
             respond(("search_documents", {"query": "guest network bandwidth"})),
-            _assess(False, candidate_interpretations=["Only one"], clarification_question="Which?"),
+            _assess(
+                False,
+                interpretations=[{"label": "Only one", "quote": "limited to 10 Mbps"}],
+                clarification_question="Which?",
+            ),
             _answer_step("Guest", 1, QUOTE_MBPS),
         ]
     )
@@ -357,7 +480,9 @@ def test_follow_up_on_a_new_topic_falls_back_to_all_documents(
     assert outcome.totals.tool_calls == 1 and outcome.totals.tool_attempts == 2
 
 
-# ---- P1-F: truthful counters and the turn deadline ----------------------------------------------------------
+# ---- P1-F: truthful counters and the turn deadline ------------------------------------------------------
+
+# ---- P1-F: truthful counters and the turn deadline -----------------------------------------------------
 
 
 def test_counters_separate_logical_calls_attempts_retries_and_blocks(
@@ -388,7 +513,7 @@ def test_the_turn_deadline_caps_a_slow_tool_and_stops_retries(
     _load(make_pdf, tmp_path)
     model = ScriptedModel([respond(("search_documents", {"query": "guest network bandwidth"}))])
     began = time.monotonic()
-    outcome, events = _run(
+    outcome, _ = _run(
         model, "q", fault="search_documents:timeout:5", agent_tool_timeout_s=30.0, agent_turn_timeout_s=1.0
     )
     assert time.monotonic() - began < 5  # the 30 s tool timeout did not outlive the 1 s turn

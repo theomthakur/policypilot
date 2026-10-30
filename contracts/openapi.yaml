@@ -182,6 +182,63 @@ paths:
                 properties:
                   session_id: { type: string, format: uuid }
 
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Sign-in state. mode is off, oidc or test; user and latest_session_id are set when signed in.
+      operationId: getAuthState
+      responses:
+        "200":
+          description: Auth state
+          content:
+            application/json:
+              schema: { type: object }
+
+  /auth/login:
+    get:
+      tags: [auth]
+      summary: Start OpenID Connect sign-in (Authorization Code with PKCE). Redirects to the provider.
+      operationId: startLogin
+      responses:
+        "302": { description: Redirect to the identity provider }
+        "503": { description: Provider unavailable }
+
+  /auth/callback:
+    get:
+      tags: [auth]
+      summary: Provider redirect target. Validates state, nonce and the ID token, then sets the pp_auth cookie.
+      operationId: finishLogin
+      responses:
+        "303": { description: Redirect to the app }
+
+  /auth/test-login:
+    post:
+      tags: [auth]
+      summary: Test-only sign-in. Exists only when AUTH_MODE=test; refused in production.
+      operationId: testLogin
+      responses:
+        "200": { description: Signed in }
+        "404": { description: Not enabled }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke the login session and clear cookies.
+      operationId: logout
+      responses:
+        "204": { description: Signed out }
+
+  /sessions/{session_id}/resume:
+    post:
+      tags: [sessions]
+      summary: Pick up one of your own conversations after signing in again. Sets the pp_session cookie.
+      operationId: resumeSession
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200": { description: Conversation resumed }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /config:
     get:
       tags: [health]
@@ -319,7 +376,7 @@ components:
           properties:
             code:
               type: string
-              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, PASSCODE_REQUIRED, DEPENDENCY_UNAVAILABLE, INTERNAL]
+              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, PASSCODE_REQUIRED, AUTH_REQUIRED, AUTH_UNAVAILABLE, FORBIDDEN, DEPENDENCY_UNAVAILABLE, INTERNAL]
             message: { type: string }
             details: { type: object, additionalProperties: true }
 

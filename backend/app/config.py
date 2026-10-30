@@ -17,6 +17,18 @@ class Settings(BaseSettings):
     demo_passcode: str = ""
     session_cookie_secure: bool = False
 
+    # Authentication (docs/authentication.md). "off" keeps the shared-passcode demo gate only.
+    # "oidc" requires an OpenID Connect sign-in; "test" is a fake provider, refused in production.
+    auth_mode: Literal["off", "oidc", "test"] = "off"
+    oidc_issuer: str = ""  # e.g. http://localhost:8180/realms/policypilot
+    oidc_client_id: str = "policypilot"
+    oidc_client_secret: str = ""
+    oidc_redirect_uri: str = ""  # defaults to {public_origin}/api/v1/auth/callback
+    oidc_internal_issuer: str = ""  # optional: reach the provider by another hostname from inside a container
+    auth_secret_key: str = ""  # signs the short-lived login-flow cookie; required when auth is on
+    auth_session_ttl_seconds: int = 8 * 3600
+    auth_cookie_secure: bool = False
+
     # PostgreSQL
     postgres_host: str = "postgres"
     postgres_port: int = 5432

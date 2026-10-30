@@ -17,7 +17,7 @@ from sqlalchemy import select
 
 from app.agent import prompts
 from app.agent.state import Emitter, Outcome, QuestionContext, RunState, Totals
-from app.agent.verifier import PageText, sanitize_final_answer, verify_answer
+from app.agent.verifier import PageText, check_quote, sanitize_final_answer, verify_answer
 from app.config import Settings
 from app.db.models import Document
 from app.db.session import get_sessionmaker
@@ -75,6 +75,18 @@ def build_user_message(ctx: QuestionContext) -> str:
             "nothing more, say so in one sentence."
         )
     return "\n\n".join(parts)
+
+
+_GENERIC = frozenset(
+    {"account", "accounts", "type", "types", "user", "users", "northfield", "university", "with", "that"}
+    | {"this", "from", "have", "what", "when", "where", "which", "does", "need", "your", "about", "their"}
+)
+
+
+def _content_words(text: str) -> set[str]:
+    """Distinctive lowercase words (4+ letters, plural stripped) used to compare labels and questions."""
+    words = re.findall(r"[a-z]{4,}", text.lower())
+    return {w.rstrip("s") for w in words if w not in _GENERIC}
 
 
 def _args_hash(name: str, args: dict[str, Any]) -> str:
@@ -623,6 +635,31 @@ class AgentRun:
             return False
         return bool((result.data or {}).get("hits"))
 
+    def _backed_variants(
+        self, verdict: AssessQuestionInput, hits: list[dict[str, Any]]
+    ) -> tuple[list[str], bool]:
+        """Variants that are real, parallel cases. Returns (labels to offer, user already named one)."""
+        question_words = _content_words(self.question)
+        per_document: dict[str, dict[str, str]] = {}
+        named = False
+        for item in verdict.interpretations:
+            label_words = _content_words(item.label)
+            if label_words & question_words:
+                named = True  # the user already said which case applies
+                continue
+            for hit in hits:
+                excerpt = str(hit["excerpt"])
+                if check_quote(item.quote, excerpt) == "failed":
+                    continue
+                if label_words and not label_words & _content_words(excerpt):
+                    break  # the label is not even about this passage
+                per_document.setdefault(str(hit["document_id"]), {}).setdefault(
+                    item.label.strip().lower(), item.label.strip()
+                )
+                break
+        best = max(per_document.values(), key=len, default={})
+        return list(best.values())[:5], named
+
     async def _assess(self, result: ToolResult) -> Outcome | None:
         """One structured check after the first search: does the answer depend on a detail the user left out?
         The loop, not the model's free text, decides whether to ask."""
@@ -631,7 +668,7 @@ class AgentRun:
         evidence = "\n".join(
             f"- {h['title']} p.{h['page']}"
             + (f" ({h['section']})" if h.get("section") else "")
-            + f": {str(h['excerpt'])[:350]}"
+            + f": {str(h['excerpt'])[:450]}"
             for h in hits
         )
         messages = [
@@ -653,7 +690,11 @@ class AgentRun:
             return None
         if verdict is None:
             return None
-        options = [o.strip() for o in verdict.candidate_interpretations if o.strip()][:5]
+        # Trust the model only where it can show its work (see _backed_variants): the variants must be
+        # parallel cases in ONE document, each quoted from its own passage, none already named by the user.
+        options, named_by_user = self._backed_variants(verdict, hits)
+        if named_by_user:
+            options = []
         ask = not verdict.answerable and len(options) >= 2 and bool(verdict.clarification_question.strip())
         await self.emit(
             "assessment",
@@ -668,6 +709,8 @@ class AgentRun:
                 "answerable": not ask,
                 "missing_slot": verdict.missing_slot,
                 "candidates": options,
+                "proposed": len(verdict.interpretations),
+                "supported": len(options),
             },
             tokens={"prompt": response.prompt_tokens, "completion": response.completion_tokens},
         )

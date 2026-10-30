@@ -89,11 +89,13 @@ def validate_dataset(cases_path: Path, schema_path: Path, manifest_path: Path) -
             elif not isinstance(page, int) or page < 1 or page > int(document["pages"]):
                 errors.append(f"{case_id}: page {page} is outside {filename} (1-{document['pages']})")
 
-    required_ids = {f"CASE-{number}" for number in range(1, 9)}
-    if missing := sorted(required_ids - ids):
-        errors.append(f"Missing required cases: {', '.join(missing)}")
-    if len(cases) < 8:
-        errors.append("At least eight evaluation cases are required")
+    held_out = bool(ids) and all(case_id.startswith("HELD-") for case_id in ids)
+    if not held_out:  # the held-out file is a separate set: it has no mandatory-case requirement
+        required_ids = {f"CASE-{number}" for number in range(1, 9)}
+        if missing := sorted(required_ids - ids):
+            errors.append(f"Missing required cases: {', '.join(missing)}")
+        if len(cases) < 8:
+            errors.append("At least eight evaluation cases are required")
     if dataset.get("corpus_id") != manifest.get("corpus_id"):
         errors.append("Dataset corpus_id does not match corpus/manifest.json")
 
@@ -247,6 +249,14 @@ def evaluate_result(
 
     for expression in checks.get("required_facts", []):
         check_results[f"required_fact:{expression}"] = matches(text, expression)
+    # Wording of an explicit abstention: broad on purpose (any clear statement that the documents lack it).
+    if expression := checks.get("abstention_wording"):
+        check_results["abstention_wording"] = matches(text, expression)
+    # Older, stricter wording checks stay visible but no longer decide pass/fail (see docs/evaluation.md).
+    legacy_checks = {
+        f"legacy_required_fact:{expression}": matches(text, expression)
+        for expression in checks.get("legacy_required_facts", [])
+    }
     for expression in checks.get("forbidden_text", []):
         check_results[f"forbidden_text:{expression}"] = not matches(text, expression)
 
@@ -331,6 +341,7 @@ def evaluate_result(
         "status": "completed",
         "pass": passed,
         "expected_behavior": case["expected_behavior"],
+        "legacy_checks": legacy_checks,
         "expected_sources": case.get("expected_sources", []),
         "actual_answer": answer,
         "checks": check_results,

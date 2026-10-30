@@ -6,17 +6,25 @@ from typing import Any
 from fastapi import APIRouter, Response
 from sqlalchemy import select
 
-from app.api.deps import SESSION_COOKIE, CurrentSession, DbSession, Passcode, require_owner
+from app.api.deps import (
+    SESSION_COOKIE,
+    Authenticated,
+    CurrentSession,
+    CurrentUser,
+    DbSession,
+    Passcode,
+    require_owner,
+)
 from app.api.errors import ApiError
 from app.config import get_settings
 from app.db.models import Session, Turn
 
-router = APIRouter(prefix="/sessions", tags=["sessions"])
+router = APIRouter(prefix="/sessions", tags=["sessions"], dependencies=[Authenticated])
 
 
 @router.post("", status_code=201, dependencies=[Passcode])
-async def create_session(response: Response, db: DbSession) -> dict[str, str]:
-    session = Session()
+async def create_session(response: Response, db: DbSession, user: CurrentUser) -> dict[str, str]:
+    session = Session(owner_user_id=user.id if user else None)
     db.add(session)
     await db.commit()
     settings = get_settings()
@@ -28,6 +36,30 @@ async def create_session(response: Response, db: DbSession) -> dict[str, str]:
         secure=settings.session_cookie_secure,
         max_age=settings.session_ttl_seconds,
     )
+    return {"session_id": str(session.id)}
+
+
+def _set_cookie(response: Response, session_id: uuid.UUID) -> None:
+    settings = get_settings()
+    response.set_cookie(
+        SESSION_COOKIE,
+        str(session_id),
+        httponly=True,
+        samesite="lax",
+        secure=settings.session_cookie_secure,
+        max_age=settings.session_ttl_seconds,
+    )
+
+
+@router.post("/{session_id}/resume")
+async def resume_session(
+    session_id: uuid.UUID, response: Response, db: DbSession, user: CurrentUser
+) -> dict[str, str]:
+    """Pick a conversation back up after signing in again. Only its owner can."""
+    session = await db.get(Session, session_id)
+    if user is None or session is None or session.owner_user_id != user.id:
+        raise ApiError(404, "NOT_FOUND", "Session not found.")
+    _set_cookie(response, session.id)
     return {"session_id": str(session.id)}
 
 

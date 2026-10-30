@@ -1,0 +1,187 @@
+# Held-out evaluation set (written 2026-10-30, after the tuned cases and BEFORE any run against it).
+# These questions were not used to choose prompts, thresholds or code. Results are reported separately from
+# eval/cases.yaml and are never used to tune. See docs/evaluation.md.
+schema_version: 1
+corpus_id: northfield-it-policies-v1
+cases:
+  - id: HELD-1
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: After how many failed sign-in attempts is an account locked, and for how long at first?
+    expected_behavior: Answer the stated lockout threshold and first lockout period without asking anything.
+    expected_sources:
+      - document_file: 04-password-policy-2023.pdf
+        page: 3
+    checks:
+      required_facts: ["five|5", "30 minutes"]
+      expect_stop_reason: answered
+      expect_clarification: false
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-2
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: When does an inactive Northfield account get suspended?
+    expected_behavior: Answer the inactivity period from the account lifecycle standard.
+    expected_sources:
+      - document_file: 08-account-lifecycle.pdf
+        page: 4
+    checks:
+      required_facts: ["180 days"]
+      expect_stop_reason: answered
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-3
+    category: multi_document
+    requirement_ids: [REQ-C2, REQ-C4]
+    turns:
+      - content: How long do new NetID holders have to enroll in MFA, and which product handles MFA for remote access?
+    expected_behavior: Combine the identity standard's enrollment window with the remote-work standard's MFA product.
+    expected_sources:
+      - document_file: 05-identity-mfa-standard-2025.pdf
+        page: 2
+      - document_file: 07-remote-work-security.pdf
+        page: 2
+    checks:
+      required_facts: ["14", "Duo"]
+      expect_stop_reason: answered
+      min_distinct_documents_cited: 2
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-4
+    category: ambiguous
+    requirement_ids: [REQ-C5, REQ-E1]
+    turns:
+      - content: How much storage do I get?
+      - content: On the research computing cluster, in my home directory.
+        is_clarification_reply: true
+    expected_behavior: Ask which kind of storage is meant, then answer the home directory quota.
+    expected_sources:
+      - document_file: 09-research-computing-governance.pdf
+        page: 5
+    checks:
+      required_facts: ["50 GB"]
+      expect_stop_reason: answered
+      expect_clarification: true
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: false
+    baseline_exclusion_reason: A retrieve-once baseline has no clarification action or retained conversational state.
+    repetitions: 1
+
+  - id: HELD-5
+    category: insufficient_evidence
+    requirement_ids: [REQ-C5, REQ-B5]
+    turns:
+      - content: How many vacation days do Northfield staff receive each year?
+    expected_behavior: State that the documents do not cover vacation days; invent nothing.
+    expected_sources: []
+    checks:
+      abstention_wording: "(do(es)? not|don't|cannot|can't|unable|no |nothing|not (available|found|provided)).{0,80}(contain|include|provide|found|available|mention|cover|specify|address|policy|information|evidence)|insufficient evidence"
+      forbidden_text: ["15 days", "20 days", "25 days"]
+      expect_stop_reason: insufficient_evidence
+      expect_notice_kind: missing_evidence
+      no_citations: true
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-6
+    category: insufficient_evidence
+    requirement_ids: [REQ-C5, REQ-B5]
+    turns:
+      - content: What is the maximum fine for losing a university laptop?
+    expected_behavior: State that no fine schedule exists in the documents; invent no amount.
+    expected_sources: []
+    checks:
+      abstention_wording: "(do(es)? not|don't|cannot|can't|unable|no |nothing|not (available|found|provided)).{0,80}(contain|include|provide|found|available|mention|cover|specify|address|policy|information|evidence)|insufficient evidence"
+      forbidden_text: ["$500", "$1,000", "$250"]
+      expect_stop_reason: insufficient_evidence
+      expect_notice_kind: missing_evidence
+      no_citations: true
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-7
+    category: conflict
+    requirement_ids: [REQ-C4, REQ-B5]
+    turns:
+      - content: Is multi-factor authentication required for every Northfield account?
+    expected_behavior: Cite the 2023 policy (not universally mandated) and the 2025 standard (required for all accounts) and explain the difference.
+    expected_sources:
+      - document_file: 04-password-policy-2023.pdf
+        page: 4
+      - document_file: 05-identity-mfa-standard-2025.pdf
+        page: 4
+    checks:
+      required_facts: ["2023", "2025", "required"]
+      expect_stop_reason: answered
+      expect_notice_kind: conflict
+      min_distinct_documents_cited: 2
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-8
+    category: follow_up
+    requirement_ids: [REQ-E1]
+    turns:
+      - content: How long are audit records kept for enclave repositories in the approved cloud services?
+      - content: And what about standard buckets?
+    expected_behavior: Resolve "standard buckets" in the context of audit record retention and answer one year.
+    expected_sources:
+      - document_file: 10-approved-cloud-services.pdf
+        page: 3
+    checks:
+      required_facts: ["one year|1 year|12 months"]
+      expect_stop_reason: answered
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-9
+    category: adaptive_retrieval
+    requirement_ids: [REQ-C3, REQ-C6]
+    turns:
+      - content: How long can files sit on the cluster's temporary working disk before they are deleted on their own?
+    expected_behavior: Find the scratch storage purge period despite the different everyday wording.
+    expected_sources:
+      - document_file: 09-research-computing-governance.pdf
+        page: 5
+    checks:
+      required_facts: ["60"]
+      expect_stop_reason: answered
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-10
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: How long are nightly home directory snapshots kept on the research cluster?
+    expected_behavior: Answer the snapshot retention period from the research computing governance policy.
+    expected_sources:
+      - document_file: 09-research-computing-governance.pdf
+        page: 5
+    checks:
+      required_facts: ["30 days"]
+      expect_stop_reason: answered
+      expect_clarification: false
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1

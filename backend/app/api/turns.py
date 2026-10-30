@@ -11,13 +11,20 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.deps import CurrentSession, DbSession, require_owner, require_passcode
+from app.api.deps import (
+    Authenticated,
+    CurrentSession,
+    DbSession,
+    require_owner,
+    require_passcode,
+    still_signed_in,
+)
 from app.api.errors import ApiError
 from app.db.models import Session, TraceEvent, Turn
 from app.state import limits, session_state
 from app.turns import service
 
-router = APIRouter(tags=["turns"])
+router = APIRouter(tags=["turns"], dependencies=[Authenticated])
 STREAM_MAX_SECONDS = 150
 
 
@@ -118,8 +125,12 @@ async def stream_events(
 
     async def frames() -> AsyncIterator[str]:
         last, waited, idle = -1, 0.0, 0.0
+        checks = 0
         while waited < STREAM_MAX_SECONDS:
             if await request.is_disconnected():
+                return
+            checks += 1
+            if checks % 20 == 0 and not await still_signed_in(request):  # about every five seconds
                 return
             events = await service.load_events(turn_id, last)
             for event in events:

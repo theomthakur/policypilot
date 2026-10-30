@@ -85,7 +85,8 @@ cases:
     expected_behavior: State that the corpus contains no reimbursement policy and do not invent an amount or citation.
     expected_sources: []
     checks:
-      required_facts: ["not.*(available|found|provided)|insufficient evidence|does not contain"]
+      abstention_wording: "(do(es)? not|don't|cannot|can't|unable|no |nothing|not (available|found|provided)).{0,80}(contain|include|provide|found|available|mention|cover|specify|address|policy|information|evidence)|insufficient evidence"
+      legacy_required_facts: ["not.*(available|found|provided)|insufficient evidence|does not contain"]
       forbidden_text: ["$25", "$50", "$75", "$100"]
       expect_stop_reason: insufficient_evidence
       expect_notice_kind: missing_evidence

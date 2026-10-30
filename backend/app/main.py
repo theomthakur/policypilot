@@ -9,9 +9,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 
-from app.api import config, documents, health, sessions, turns
+from app.api import auth, config, documents, health, sessions, turns
 from app.api.errors import install_error_handlers
+from app.auth.service import validate_settings
 from app.config import get_settings
 from app.logging import configure_logging, request_id_var
 
@@ -43,6 +45,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
+    validate_settings(settings)  # production refuses to start without real sign-in
     app = FastAPI(
         title="PolicyPilot API",
         version=settings.app_version,
@@ -77,8 +80,29 @@ def create_app() -> FastAPI:
         )
         return response
 
+    @app.middleware("http")
+    async def csrf_guard(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        # A browser that carries the sign-in cookie must be on this site when it changes anything. Browsers
+        # always send Origin (or Sec-Fetch-Site) on a cross-site POST; scripts and curl are not CSRF vectors.
+        if request.method in ("POST", "PUT", "PATCH", "DELETE") and "pp_auth" in request.cookies:
+            origin, fetch_site = request.headers.get("origin"), request.headers.get("sec-fetch-site")
+            allowed = {settings.public_origin.rstrip("/")}
+            if (origin and origin.rstrip("/") not in allowed) or fetch_site == "cross-site":
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": {
+                            "code": "FORBIDDEN",
+                            "message": "Cross-site request refused.",
+                            "details": {},
+                        }
+                    },
+                )
+        return await call_next(request)
+
     install_error_handlers(app)
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(auth.router, prefix=API_PREFIX)
     app.include_router(sessions.router, prefix=API_PREFIX)
     app.include_router(documents.router, prefix=API_PREFIX)
     app.include_router(turns.router, prefix=API_PREFIX)

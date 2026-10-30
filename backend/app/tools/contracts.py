@@ -80,12 +80,19 @@ class AskClarificationInput(_Strict):
     options: list[str] = Field(default_factory=list, max_length=5)
 
 
-class AssessQuestionInput(_Strict):
-    """Structured result of the post-retrieval ambiguity check. The loop, not the model, acts on it."""
+class Interpretation(_Strict):
+    label: str = Field(min_length=1, max_length=80)
+    quote: str = Field(min_length=1, max_length=300)
 
+
+class AssessQuestionInput(_Strict):
+    """Structured result of the post-retrieval ambiguity check. The loop, not the model, acts on it, and only
+    when every interpretation is backed by a quote that really appears in a different search result."""
+
+    already_stated: list[str] = Field(default_factory=list, max_length=8)
     answerable: bool
     missing_slot: str = Field(default="", max_length=120)
-    candidate_interpretations: list[str] = Field(default_factory=list, max_length=5)
+    interpretations: list[Interpretation] = Field(default_factory=list, max_length=5)
     clarification_question: str = Field(default="", max_length=300)
 
 
@@ -119,9 +126,28 @@ ASSESS_TOOL_SPEC: dict[str, Any] = {
         "parameters": {
             "type": "object",
             "properties": {
+                "already_stated": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Details of the user's situation that the question already gives.",
+                },
                 "answerable": {"type": "boolean"},
                 "missing_slot": {"type": "string"},
-                "candidate_interpretations": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
+                "interpretations": {
+                    "type": "array",
+                    "maxItems": 5,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {"type": "string"},
+                            "quote": {
+                                "type": "string",
+                                "description": "Exact words from ONE result giving the rule for this case.",
+                            },
+                        },
+                        "required": ["label", "quote"],
+                    },
+                },
                 "clarification_question": {"type": "string"},
             },
             "required": ["answerable"],
