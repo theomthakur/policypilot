@@ -89,6 +89,10 @@ def _content_words(text: str) -> set[str]:
     return {w.rstrip("s") for w in words if w not in _GENERIC}
 
 
+def _stems(text: str) -> set[str]:
+    return {w.rstrip("s") for w in re.findall(r"[a-z]{3,}", text.lower())}
+
+
 def _args_hash(name: str, args: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps([name, args], sort_keys=True, default=str).encode()).hexdigest()
 
@@ -640,9 +644,14 @@ class AgentRun:
     ) -> tuple[list[str], bool]:
         """Variants that are real, parallel cases. Returns (labels to offer, user already named one)."""
         question_words = _content_words(self.question)
+        # The variants must be kinds of a noun the user used without saying which kind ("my account"): that
+        # noun has to be in the question and in every label ("Student account", "Guest account").
+        head = _stems(verdict.head_noun) & _stems(self.question)
         per_document: dict[str, dict[str, str]] = {}
         named = False
         for item in verdict.interpretations:
+            if not head or not head & _stems(item.label):
+                continue
             label_words = _content_words(item.label)
             if label_words & question_words:
                 named = True  # the user already said which case applies

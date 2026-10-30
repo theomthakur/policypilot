@@ -91,6 +91,7 @@ def _load_renewal(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
 
 def _renewal_assessment(**overrides: Any) -> Any:
     fields: dict[str, Any] = {
+        "head_noun": "account",
         "missing_slot": "account type",
         "interpretations": [
             {"label": "Student account", "quote": "Student accounts renew automatically each term"},
@@ -111,7 +112,7 @@ def test_parallel_cases_in_one_document_make_the_loop_ask(
 
     _load_renewal(make_pdf, tmp_path)
     model = ScriptedModel([respond(("search_documents", {"query": "renew account"})), _renewal_assessment()])
-    outcome, events = _run(model, "How do I renew my membership?", agent_assess_ambiguity=True)
+    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
     assert outcome.stop_reason == "clarification_needed"
     assert outcome.clarification == {
         "question": "Which type of account do you want to renew?",
@@ -167,6 +168,50 @@ def test_a_case_the_user_already_named_is_never_asked_about(
     assert not events.of("clarification_requested") and outcome.stop_reason != "clarification_needed"
 
 
+def test_variants_of_a_noun_the_user_never_used_are_not_asked_about(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    for overrides in ({"head_noun": "membership"}, {"head_noun": ""}):
+        model = ScriptedModel(
+            [
+                respond(("search_documents", {"query": "renew account"})),
+                _renewal_assessment(**overrides),
+                respond(("final_answer", {"summary": "The documents do not contain this."})),
+            ]
+        )
+        outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+        assert outcome.stop_reason != "clarification_needed", overrides
+        assert events.of("assessment")[0]["assessment"]["supported"] == 0
+
+
+def test_labels_that_do_not_name_a_kind_of_that_noun_are_dropped(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew account"})),
+            _renewal_assessment(
+                interpretations=[
+                    {"label": "Students", "quote": "Student accounts renew automatically each term"},
+                    {
+                        "label": "Sponsored guests",
+                        "quote": "Sponsored guest accounts renew only when the sponsor",
+                    },
+                ]
+            ),
+            respond(("final_answer", {"summary": "The documents do not contain this."})),
+        ]
+    )
+    outcome, _ = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason != "clarification_needed"
+
+
 def test_a_label_that_is_not_about_its_passage_is_not_trusted(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
@@ -185,7 +230,7 @@ def test_a_label_that_is_not_about_its_passage_is_not_trusted(
             respond(("final_answer", {"summary": "The documents do not contain this."})),
         ]
     )
-    outcome, events = _run(model, "How do I renew my membership?", agent_assess_ambiguity=True)
+    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
     assert (
         outcome.stop_reason != "clarification_needed"
         and events.of("assessment")[0]["assessment"]["supported"] == 0

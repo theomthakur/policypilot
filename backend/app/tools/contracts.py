@@ -90,6 +90,7 @@ class AssessQuestionInput(_Strict):
     when every interpretation is backed by a quote that really appears in a different search result."""
 
     already_stated: list[str] = Field(default_factory=list, max_length=8)
+    head_noun: str = Field(default="", max_length=40)
     answerable: bool
     missing_slot: str = Field(default="", max_length=120)
     interpretations: list[Interpretation] = Field(default_factory=list, max_length=5)
@@ -130,6 +131,10 @@ ASSESS_TOOL_SPEC: dict[str, Any] = {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Details of the user's situation that the question already gives.",
+                },
+                "head_noun": {
+                    "type": "string",
+                    "description": "The unqualified noun in the question that has several kinds (such as account).",
                 },
                 "answerable": {"type": "boolean"},
                 "missing_slot": {"type": "string"},
