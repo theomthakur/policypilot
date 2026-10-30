@@ -30,6 +30,15 @@ One tuned run after the bug fix (`run-2026-10-30-gpt-4o-mini-r19`): agent **9 of
 
 **A deployment trap found here.** The application's own daily budget cap (`DAILY_BUDGET_USD`, default 1.00) stops all answers once reached, with a "budget used up" message; heavy evaluation hits it. For evaluation days raise it (the local `.env` is set to 8.00) or clear the Redis key `budget:<date>`. Two earlier sets of runs failed instantly for this reason and were deleted.
 
+### Final measurements (prompt v10, 31 Oct; `heldout2-v10b-g`, `-h`, `run-2026-10-31-gpt-4o-mini-r22`)
+
+After the outside review (judge also sees the exact-words search, grounded defaults, failed quotes repaired from page text, a figure check on claims, common words out of the keyword search, the CASE-9 label corrected to page 2, and clarification decided from the judge's structured fields instead of its own "answerable" flag):
+
+- **One run of the 11 tuned cases: agent 10 of 11, baseline 5 of 9.** Only CASE-4 (ask which account to renew) fails. CASE-9, CASE-11 and CASE-6 pass in this run.
+- **Fresh set, two runs: agent 14 of 18, baseline 10 of 14.** The three conflict questions and the five specific or control questions all pass 2 of 2, with no needless clarification. The two ambiguous questions (HELD-15, HELD-16) still fail 0 of 2 each: HELD-15 now asks but the turn after the reply does not finish as "answered"; HELD-16 is not asked about.
+- Mean cost about $0.009 per agent question (judge included) against $0.0004 for the baseline, median 6.7 s against 2.3 s.
+- **Caveats.** The fresh set guided several fixes, so it is not clean. One tuned run is one sample; the earlier three-repeat table below was measured before these changes. Two earlier batches of runs were deleted because the application's daily spending cap stopped every turn (the cap reads the day's total from the database, so clearing Redis does not reset it).
+
 ### Tuned cases, three repeats (r15, r16, r17; `eval/results/run-2026-10-30-gpt-4o-mini-r1{5,6,7}/`)
 
 | Case | Category | Agent passed | Baseline passed | What fails |
