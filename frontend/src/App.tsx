@@ -15,8 +15,10 @@ import {
 } from './components/ConversationPanel'
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { PasscodeDialog } from './components/PasscodeDialog'
+import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
-import { ProjectGuide } from './components/ProjectGuide'
+import { ArchitecturePage } from './components/ArchitecturePage'
+import { PresentationPage } from './components/PresentationPage'
 import { TracePanel } from './components/TracePanel'
 import { useTurnStream } from './hooks/useTurnStream'
 
@@ -221,7 +223,7 @@ export function App() {
         >
           <div className="launch-brand">
             <div className="launch-logo" aria-hidden="true">
-              <PolicyPilotMark className="launch-mark" />
+              <AnimatedMark className="launch-mark" />
             </div>
             <div className="launch-wordmark">PolicyPilot</div>
             <p>Evidence-grounded policy intelligence</p>
@@ -341,8 +343,10 @@ export function App() {
             </div>
           </main>
         </>
+      ) : appView === 'architecture' ? (
+        <ArchitecturePage onBack={() => navigateTo('workspace')} />
       ) : (
-        <ProjectGuide view={appView} onBack={() => navigateTo('workspace')} />
+        <PresentationPage onBack={() => navigateTo('workspace')} />
       )}
 
       <CitationDrawer citation={citation} onClose={() => setCitation(null)} />

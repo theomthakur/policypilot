@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AnswerPayload, Citation } from '../api/types'
 import { ClarificationCard } from './ClarificationCard'
+import { AnimatedMark } from './AnimatedMark'
 import { PolicyPilotMark } from './PolicyPilotMark'
 
 export interface DisplayMessage {
@@ -196,7 +197,7 @@ export function ConversationPanel({
         {busy && (
           <article className="message message-assistant working-message">
             <div className="assistant-avatar" aria-hidden="true">
-              <PolicyPilotMark />
+              <AnimatedMark speed={1.4} />
             </div>
             <div className="message-content">
               <span className="message-author">PolicyPilot</span>
