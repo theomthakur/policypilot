@@ -788,7 +788,7 @@ class AgentRun:
         evidence = "\n".join(
             f"- {h['title']} p.{h['page']}"
             + (f" ({h['section']})" if h.get("section") else "")
-            + f": {str(h['excerpt'])[:700]}"
+            + f": {str(h['excerpt'])[:1000]}"
             for h in hits
         )
         messages = [

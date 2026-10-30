@@ -847,3 +847,21 @@ def test_the_judge_also_sees_passages_for_the_users_exact_words(
     assert outcome.totals.tool_calls == 2 and outcome.totals.tool_attempts == 2
     judge_input = model.calls[1][-1]["content"]
     assert "Student accounts renew automatically" in judge_input  # only the literal search finds this passage
+
+
+def test_null_text_fields_from_the_judge_do_not_disable_the_check(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew account"})),
+            _renewal_assessment(facet=None, missing_slot=None, clarification_question=None),
+        ]
+    )
+    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "clarification_needed"  # asked, with a question the code wrote itself
+    assert "Student account" in outcome.clarification["question"]
+    assert "skipped" not in events.of("assessment")[0]["assessment"]

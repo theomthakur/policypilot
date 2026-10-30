@@ -3,7 +3,7 @@
 import uuid
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ErrorCode = Literal[
     "INVALID_ARGUMENT",
@@ -104,6 +104,12 @@ class AssessQuestionInput(_Strict):
     facet: str = Field(default="", max_length=120)  # the same thing under the name the prompt uses
     interpretations: list[Interpretation] = Field(default_factory=list, max_length=5)
     clarification_question: str = Field(default="", max_length=300)
+
+    @field_validator("missing_slot", "facet", "clarification_question", mode="before")
+    @classmethod
+    def _none_means_empty(cls, value: Any) -> Any:
+        """Models often send null for "nothing to say"; treat it as an empty string, not an invalid check."""
+        return "" if value is None else value
 
 
 class ChatReplyInput(_Strict):
