@@ -23,7 +23,8 @@ On three repeats of the 11 tuned cases the agent passed 24 of 33 case-runs and t
 - **Two required behaviors are unreliable:** asking a clarifying question instead of answering for every variant (CASE-4 passed 0 of 3; held-out HELD-4 0 of 2) and stating that a newer policy replaced an older one (CASE-6 1 of 3; HELD-7 0 of 2). The ambiguity check also asks needlessly on some specific questions (HELD-2). Vocabulary bridging (CASE-9) still fails on its tuned case; the evidence-driven re-search that would address it was not built.
 - **The verifier checks each claim, not every sentence of the prose.** Extra sentences were true in the cases I checked by hand, but nothing enforces it.
 - **No public deployment, no recorded demo, and the work is still on `integration/full-stack`, not `main`.** Those are yours to do. CI has run on GitHub for this branch and passed all seven jobs ([run](https://github.com/theomthakur/policypilot/actions/runs/41068139547)).
-- **Kubernetes limits:** single node, one replica of the API and worker (uploads are on a local volume; no object-storage adapter), one PostgreSQL pod (no replication), no autoscaler, NetworkPolicies written but not shown to be enforced (kindnet made connections unreliable), and the OpenShift overlay was only rendered.
+- **Kubernetes limits:** one kind node (the S3-backed two-replica overlay was never run across nodes), one PostgreSQL pod (no replication), no autoscaler or load test, and the OpenShift overlay was only rendered. NetworkPolicies were enforced and checked on Calico, not on kind's default CNI.
+- **The last agent fixes were not re-run with the real model** (the evaluation key's limit was used up), so their effect is untested beyond unit tests.
 - **Sign-in** was tested against Keycloak only. There are no roles, no single logout, and rate limits are per client address.
 - Small evaluation, one model, no load testing.
 
@@ -33,5 +34,5 @@ On three repeats of the 11 tuned cases the agent passed 24 of 33 case-runs and t
 2. Make clarification dependable: a stronger model for the one-off ambiguity check, or a few-shot set drawn from held-out data, then measure on fresh questions (the current check is evidence-backed but misses and over-asks).
 3. Evidence-driven re-retrieval and query expansion from the documents' own vocabulary (CASE-9), measured on the held-out set.
 4. Verify every sentence of an answer, not only its claims.
-5. An S3-compatible storage adapter (MinIO locally) so the worker and API can scale across nodes, then a load test and an autoscaler; managed PostgreSQL with replication; a CNI that enforces NetworkPolicy; try the OpenShift overlay.
+5. Run the scaled overlay across real nodes with a load test and an autoscaler; managed PostgreSQL with replication; try the OpenShift overlay.
 6. Roles, single logout and per-user rate limits; tracing and cost dashboards.

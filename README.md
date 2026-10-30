@@ -13,7 +13,9 @@ The current implementation is on `integration/full-stack` while final evaluation
 - **Working and verified:** document ingestion, hybrid retrieval, the bounded agent, literal citation checks, the web application, OIDC sign-in tested with two users, per-user data isolation, restart-safe background jobs, Redis fallback, Docker Compose, and a Kubernetes deployment on a local `kind` cluster.
 - **CI:** all seven jobs passed on this branch, including backend integration tests, frontend checks, secret scanning, image builds, manifest rendering, and a Compose smoke test: [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
 - **Still in progress:** improving clarification and superseded-policy handling, publishing the hosted demo, recording the walkthrough, and merging the final branch into `main`.
-- **Outside the demonstrated scope:** multi-node upload storage, database replication, enforced NetworkPolicies, a live OpenShift deployment, university SSO, roles, and single logout.
+- **Last evaluation caveat:** the final agent changes (a fix to the ambiguity check and a scope-aware conflict repair) are covered by 26 unit tests but were **not re-run against the real model**: the evaluation key's $1 limit ran out, so until a key is available the local app cannot answer questions either.
+- **Newly shown:** uploads can live in an S3-compatible bucket with two API and two worker replicas (one kind node), and NetworkPolicies were enforced and checked on Calico.
+- **Outside the demonstrated scope:** cross-node scaling and load testing, database replication, a live OpenShift deployment, university SSO, roles, and single logout.
 
 The checklist of what the brief asks for and where each item stands is in [`docs/submission-checklist.md`](docs/submission-checklist.md).
 
