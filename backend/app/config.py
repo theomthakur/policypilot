@@ -103,6 +103,12 @@ class Settings(BaseSettings):
     upload_max_mb: int = 10
     upload_max_pages: int = 100
     upload_dir: str = "/data/uploads"
+    storage_backend: Literal["local", "s3"] = "local"  # "s3": uploads in an S3-compatible bucket (MinIO, AWS)
+    s3_bucket: str = "policypilot-uploads"
+    s3_endpoint: str = ""  # e.g. http://minio:9000; empty for AWS
+    s3_region: str = "us-east-1"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
     corpus_dir: str = "/app/corpus/pdfs"
     reference_dir: str = ""  # optional folder of real public documents, loaded as source "reference"
     corpus_autoload: bool = True

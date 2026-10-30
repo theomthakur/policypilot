@@ -736,11 +736,19 @@ class AgentRun:
             verdict = AssessQuestionInput.model_validate(call.arguments) if call else None
         except Exception as exc:  # an unavailable check must never block an answer
             logger.warning("ambiguity assessment skipped: %s", str(exc)[:200])
+            await self.emit(
+                "assessment",
+                "info",
+                state="EVALUATE",
+                summary="The check for a missing detail could not run; answering as asked.",
+                assessment={"answerable": True, "skipped": type(exc).__name__},
+            )
             return None
         if verdict is None:
             return None
         # Trust the model only where it can show its work (see _backed_variants): the variants must be
         # parallel cases in ONE document, each quoted from its own passage, none already named by the user.
+        slot = verdict.missing_slot or verdict.facet
         options, named_by_user = self._backed_variants(verdict, hits)
         if named_by_user:
             options = []
@@ -757,13 +765,13 @@ class AgentRun:
             "info",
             state="EVALUATE",
             summary=(
-                f"The answer depends on {verdict.missing_slot or 'a detail you have not given'}; asking."
+                f"The answer depends on {slot or 'a detail you have not given'}; asking."
                 if ask
                 else "Checked whether more detail is needed: the question can be answered as asked."
             )[:300],
             assessment={
                 "answerable": not ask,
-                "missing_slot": verdict.missing_slot,
+                "missing_slot": slot,
                 "candidates": options,
                 "proposed": len(verdict.interpretations),
                 "supported": len(options),
@@ -843,6 +851,39 @@ class AgentRun:
         outcome = await self._final_answer(call, messages, partial_reason=reason)
         return outcome or await self._partial(reason)
 
+    async def _verify_summary(self, answer: dict[str, Any]) -> dict[str, Any]:
+        """Claims are quote-checked, the summary prose is not. Drop any summary sentence stating a figure that
+        no cited page contains, and say so. Words and names are not checked; numbers are."""
+        if not answer["citations"] or not answer["summary"]:
+            return answer
+        pages = [
+            await self.page_text(uuid.UUID(c["document_id"]), c["page"]) or "" for c in answer["citations"]
+        ]
+        haystack = re.sub(r"[\s,]+", "", " ".join(pages))
+        kept_lines: list[str] = []
+        dropped = 0
+        for line in str(answer["summary"]).split("\n"):
+            kept: list[str] = []
+            for sentence in re.split(r"(?<=[.!?])\s+", line):
+                figures = re.findall(r"\d[\d,.]*\d|\d", sentence)
+                if all(re.sub(r"[\s,]+", "", f).rstrip(".") in haystack for f in figures):
+                    kept.append(sentence)
+                else:
+                    dropped += 1
+            kept_lines.append(" ".join(kept))
+        if dropped:
+            answer["summary"] = (
+                "\n".join(line for line in kept_lines if line.strip()).strip() or answer["summary"]
+            )
+            answer["notices"].append(
+                {
+                    "kind": "partial",
+                    "text": f"{dropped} sentence(s) with figures no cited page contains were removed.",
+                    "citation_indexes": [],
+                }
+            )
+        return answer
+
     async def _normalize(self, answer: dict[str, Any]) -> dict[str, Any]:
         """Code-level guarantees on the final answer, whatever the model wrote."""
         notices: list[dict[str, Any]] = answer["notices"]
@@ -884,7 +925,7 @@ class AgentRun:
         for doc in newer:
             for relation in doc.supersedes or []:
                 target = older.get(relation.get("filename", ""))
-                if target is not None:
+                if target is not None and self._in_scope(relation, target):
                     pages = sorted({i.page for i in self.state.ledger.values() if i.document_id == doc.id})
                     return (
                         f"{doc.title} (effective {doc.effective_date}) {relation.get('statement', '')}, "
@@ -894,6 +935,15 @@ class AgentRun:
                         "each says, add a `conflict` notice, and name what the newer document changes."
                     )
         return None
+
+    def _in_scope(self, relation: dict[str, Any], older: Document) -> bool:
+        """Does a documented supersession apply to this question? With scope terms listed it applies only when
+        the question touches them and none of the documented exceptions."""
+        terms, exceptions = relation.get("scope_terms") or [], relation.get("exception_terms") or []
+        if not terms:
+            return True
+        question = self.question.lower()
+        return any(t in question for t in terms) and not any(t in question for t in exceptions)
 
     async def _supersession_pairs(self) -> list[tuple[Document, Document, dict[str, Any]]]:
         """(newer, older, relation) for every documented supersession among the shared documents."""
@@ -932,12 +982,11 @@ class AgentRun:
         about the superseded provision in force today, the answer is built from the two literal passages
         instead of trusting the model to weigh them. Scope and exceptions come from document metadata."""
         seen = {item.document_id for item in self.state.ledger.values()}
-        question = self.question.lower()
         for newer, older, rel in await self._supersession_pairs():
-            terms, exceptions = rel.get("scope_terms") or [], rel.get("exception_terms") or []
+            terms = rel.get("scope_terms") or []
             if newer.id not in seen or older.id not in seen or not terms:
                 continue
-            if not any(t in question for t in terms) or any(t in question for t in exceptions):
+            if not self._in_scope(rel, older):
                 continue
             if _is_historical(self.question, older.effective_date):
                 continue
@@ -1019,7 +1068,7 @@ class AgentRun:
             for newer in docs:
                 for relation in newer.supersedes or []:
                     older = by_name.get(relation.get("filename", ""))
-                    if older is None:
+                    if older is None or not self._in_scope(relation, older):
                         continue
                     return {
                         "kind": "conflict",
@@ -1083,7 +1132,7 @@ class AgentRun:
                 state="EVALUATE",
                 summary="Two documents disagree and one replaces the other: answering from both passages.",
             )
-        answer = templated or await self._normalize(verified.answer)
+        answer = templated or await self._verify_summary(await self._normalize(verified.answer))
         if partial_reason and answer["claims"]:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(

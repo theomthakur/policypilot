@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 
+from app import storage
 from app.api.deps import Authenticated, CurrentSession, DbSession, Passcode
 from app.api.errors import ApiError
 from app.config import get_settings
@@ -154,8 +155,8 @@ async def upload_document(
         }
 
     storage_name = f"{uuid.uuid4().hex}.pdf"  # never trust the user's filename as a path
-    target = Path(settings.upload_dir) / storage_name
-    await asyncio.to_thread(_write_file, target, data)
+    await storage.put(storage_name, data)
+    target = Path(settings.upload_dir) / storage_name  # where a local-disk worker finds it
     filename = Path(file.filename or "upload.pdf").name[:300]
     document = Document(
         title=filename,
@@ -173,7 +174,13 @@ async def upload_document(
     await queue.enqueue(
         db,
         "ingest",
-        {"document_id": str(document.id), "run_id": str(run.id), "path": str(target)},
+        {
+            "document_id": str(document.id),
+            "run_id": str(run.id),
+            "path": str(target),
+            "storage_key": storage_name,
+            "storage": settings.storage_backend,
+        },
         session_id,
         settings.job_max_attempts,
     )
@@ -191,17 +198,17 @@ async def get_document(document_id: uuid.UUID, db: DbSession, session_id: Curren
 
 
 @router.get("/documents/{document_id}/file")
-async def get_document_file(
-    document_id: uuid.UUID, db: DbSession, session_id: CurrentSession
-) -> FileResponse:
+async def get_document_file(document_id: uuid.UUID, db: DbSession, session_id: CurrentSession) -> Response:
     """The original PDF, for the in-app viewer (inline, so a browser opens it instead of downloading)."""
     doc = await _visible_document(db, document_id, session_id)
     settings = get_settings()
-    base = Path(
-        {"corpus": settings.corpus_dir, "reference": settings.reference_dir, "upload": settings.upload_dir}[
-            doc.source
-        ]
-    )
+    headers = {"Content-Disposition": f'inline; filename="{doc.filename}"'}
+    if doc.source == "upload":
+        data = await storage.read(doc.storage_name)
+        if data is None:
+            raise ApiError(404, "NOT_FOUND", "The original file is not available.")
+        return Response(data, media_type="application/pdf", headers=headers)
+    base = Path(settings.corpus_dir if doc.source == "corpus" else settings.reference_dir)
     path = base / doc.storage_name
 
     def usable() -> bool:  # file-system checks run off the event loop

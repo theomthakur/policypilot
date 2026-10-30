@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+# Uploads in an S3-compatible bucket (SeaweedFS here; MinIO, Ceph or AWS S3 work the same through S3_ENDPOINT) instead of
+# a ReadWriteOnce volume shared by the API and the worker. With that volume gone the API and worker can have several
+# replicas on different nodes. Needs the Secret `s3-secrets` (S3_ACCESS_KEY, S3_SECRET_KEY, s3.json); scripts/k8s_up.sh
+# creates it when ENABLE_OBJECT_STORAGE=true.
+resources:
+  - seaweedfs.yaml
+patches:
+  - path: config-patch.yaml
+  - path: api-patch.yaml
+  - path: worker-patch.yaml
+  - target: {kind: PersistentVolumeClaim, name: uploads}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata: {name: uploads}

@@ -18,6 +18,15 @@ async def handle(job: Claimed) -> None:
         from app.ingest.pipeline import ingest_document
 
         p = job.payload
+        if p.get("storage") == "s3":
+            from app import storage
+
+            data = await storage.read(p["storage_key"])
+            if data is None:
+                raise FileNotFoundError(f"upload {p['storage_key']} is missing from the bucket")
+            with storage.local_copy(p["storage_key"], data) as path:
+                await ingest_document(uuid.UUID(p["document_id"]), uuid.UUID(p["run_id"]), path)
+            return
         await ingest_document(uuid.UUID(p["document_id"]), uuid.UUID(p["run_id"]), Path(p["path"]))
     else:
         raise ValueError(f"unknown job kind {job.kind}")

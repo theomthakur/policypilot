@@ -10,6 +10,8 @@ CLUSTER="${CLUSTER:-policypilot}"
 KIND="${KIND:-kind}"
 TAG="${IMAGE_TAG:-local}"
 NS=policypilot
+OVERLAY=kind
+[ "${ENABLE_OBJECT_STORAGE:-false}" = "true" ] && OVERLAY=kind-scaled
 INGRESS_MANIFEST="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/kind/deploy.yaml"
 
 if [ "${1:-}" = "down" ]; then "$KIND" delete cluster --name "$CLUSTER"; exit 0; fi
@@ -51,9 +53,16 @@ if ! kubectl -n "$NS" get secret keycloak-secrets >/dev/null 2>&1; then
   printf 'alice=%s\nbob=%s\n' "$alice" "$bob" > .k8s-demo-credentials
 fi
 
-echo "== deploy"
+if [ "$OVERLAY" = "kind-scaled" ] && ! kubectl -n "$NS" get secret s3-secrets >/dev/null 2>&1; then
+  access="$(openssl rand -hex 8)"; secret="$(openssl rand -hex 16)"
+  kubectl -n "$NS" create secret generic s3-secrets \
+    --from-literal=S3_ACCESS_KEY="$access" --from-literal=S3_SECRET_KEY="$secret" \
+    --from-literal=s3.json="{\"identities\":[{\"name\":\"policypilot\",\"credentials\":[{\"accessKey\":\"$access\",\"secretKey\":\"$secret\"}],\"actions\":[\"Admin\",\"Read\",\"Write\",\"List\"]}]}" >/dev/null
+fi
+
+echo "== deploy ($OVERLAY)"
 kubectl -n "$NS" delete job policypilot-migrate policypilot-seed --ignore-not-found >/dev/null
-kubectl apply -k deploy/k8s/overlays/kind
+kubectl apply -k "deploy/k8s/overlays/$OVERLAY"
 kubectl -n "$NS" wait --for=condition=complete job/policypilot-migrate --timeout=300s
 kubectl -n "$NS" wait --for=condition=complete job/policypilot-seed --timeout=600s
 for d in api worker frontend keycloak; do kubectl -n "$NS" rollout status "deploy/$d" --timeout=300s; done

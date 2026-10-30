@@ -641,3 +641,74 @@ def test_a_provision_the_document_excepts_is_not_overridden(
     outcome, events = _template_run("Do service account passwords expire?")
     assert not any("answering from both passages" in e.get("summary", "") for e in events.of("evaluate"))
     assert outcome.answer["summary"].startswith("The 2023 policy rotates")
+
+
+def test_a_summary_sentence_with_a_figure_the_pages_lack_is_removed(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _load(make_pdf, tmp_path)
+
+    def invented(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Guest", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Guests get 10 Mbps down and 2 Mbps up. Sessions last 48 hours. Ask the desk.",
+                    "claims": [{"text": "Guests get 10 Mbps.", "evidence_ids": [key], "quote": QUOTE_MBPS}],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "guest network bandwidth"})), invented])
+    outcome, _ = _run(model, "What is the guest limit?")
+    summary = outcome.answer["summary"]
+    assert "10 Mbps" in summary and "48 hours" not in summary and "Ask the desk" in summary
+    assert any("removed" in n["text"] for n in outcome.answer["notices"])
+
+
+def test_a_skipped_assessment_is_visible_in_the_trace(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            respond(
+                ("assess_question", {"answerable": True, "surprise_field": "x"})
+            ),  # invalid for the schema
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered"
+    assert events.of("assessment")[0]["assessment"]["skipped"] == "ValidationError"
+
+
+def test_the_conflict_repair_respects_documented_exceptions(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _metadata_corpus(make_pdf, tmp_path)
+
+    def only_old(messages: list[dict[str, Any]]) -> Any:
+        old = _evidence_id(messages, "Password Policy", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Service accounts rotate every 90 days.",
+                    "claims": [{"text": "Every 90 days.", "evidence_ids": [old], "quote": QUOTE_OLD}],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "passwords expire prohibited"})), only_old])
+    outcome, _ = _run(model, "How often must service account passwords expire?")
+    assert len(model.calls) == 2  # no repair round trip: the exception keeps the supersession out of it
+    assert [n["kind"] for n in outcome.answer["notices"]] == []

@@ -1,0 +1,8 @@
+# The kind overlay plus uploads in an S3-compatible bucket and two replicas each of the API and the worker.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: policypilot
+resources:
+  - ../kind
+components:
+  - ../../components/object-storage

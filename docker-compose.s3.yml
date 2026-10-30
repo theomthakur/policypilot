@@ -1,0 +1,33 @@
+# Uploads in an S3-compatible bucket instead of a local volume (SeaweedFS here; MinIO or AWS S3 work the same):
+#   export S3_ACCESS_KEY=$(openssl rand -hex 8) S3_SECRET_KEY=$(openssl rand -hex 16)
+#   docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --build
+# The access keys are generated for you; nothing is committed. A worker or API on another machine then needs no
+# shared disk.
+services:
+  objects:
+    image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /etc/s3 && printf '{"identities":[{"name":"policypilot","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List"]}]}' "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /etc/s3/s3.json
+        exec /usr/bin/weed server -s3 -s3.config=/etc/s3/s3.json -dir=/data -volume.max=20
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY}
+    volumes:
+      - objectdata:/data
+    restart: unless-stopped
+
+  backend:
+    environment:
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://objects:8333
+      S3_BUCKET: policypilot-uploads
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY}
+    depends_on:
+      objects:
+        condition: service_started
+
+volumes:
+  objectdata:

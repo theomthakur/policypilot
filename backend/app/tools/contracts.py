@@ -98,6 +98,7 @@ class AssessQuestionInput(_Strict):
     default_reading: str | None = Field(default=None, max_length=80)  # an obvious default value, if any
     answers_differ: bool = False  # the quoted rules give different steps, limits or numbers per value
     missing_slot: str = Field(default="", max_length=120)
+    facet: str = Field(default="", max_length=120)  # the same thing under the name the prompt uses
     interpretations: list[Interpretation] = Field(default_factory=list, max_length=5)
     clarification_question: str = Field(default="", max_length=300)
 
@@ -151,6 +152,7 @@ ASSESS_TOOL_SPEC: dict[str, Any] = {
                     "description": "True only if the quoted passages give different steps or numbers.",
                 },
                 "missing_slot": {"type": "string"},
+                "facet": {"type": "string", "description": "The attribute the values differ by."},
                 "interpretations": {
                     "type": "array",
                     "maxItems": 5,

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  template:
+    spec:
+      affinity: null
+      volumes:
+        - name: uploads
+          $patch: delete
+      containers:
+        - name: api
+          volumeMounts:
+            - mountPath: /data/uploads
+              $patch: delete
+          envFrom:
+            - configMapRef: {name: policypilot-config}
+            - secretRef: {name: policypilot-secrets}
+            - secretRef: {name: s3-secrets}
