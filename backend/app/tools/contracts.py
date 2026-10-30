@@ -134,7 +134,7 @@ ASSESS_TOOL_SPEC: dict[str, Any] = {
                 },
                 "head_noun": {
                     "type": "string",
-                    "description": "The unqualified noun in the question that has several kinds (such as account).",
+                    "description": "The noun in the question that has several kinds (such as account).",
                 },
                 "answerable": {"type": "boolean"},
                 "missing_slot": {"type": "string"},
