@@ -363,6 +363,10 @@ def evaluate_result(
     }
 
 
+INFRASTRUCTURE_STOPS = {"error", "budget_exhausted"}
+MAX_CONSECUTIVE_INVALID = 3
+
+
 def run_case(
     api: ApiEvaluationClient,
     case: dict[str, Any],
@@ -391,6 +395,15 @@ def run_case(
                 fault_inject=turn_spec.get("fault_inject") if mode == "agent" else None,
             )
             turns.append(turn)
+            if turn.get("stop_reason") in INFRASTRUCTURE_STOPS:
+                # The model provider or the app's own spending cap stopped this turn. That says nothing about
+                # the system under test, so it is never scored as a failure.
+                return {
+                    "status": "invalid",
+                    "pass": None,
+                    "expected_behavior": case["expected_behavior"],
+                    "failure_note": f"invalid: the turn ended with {turn.get('stop_reason')} (provider error or budget cap)",
+                }
             clarification_turn_id = turn.get("id") if turn.get("stop_reason") == "clarification_needed" else None
         return evaluate_result(api, case, turns, documents, pricing)
     except (EvaluationError, httpx.HTTPError) as error:
@@ -428,6 +441,8 @@ def markdown_report(run: dict[str, Any]) -> str:
         def verdict(item: dict[str, Any]) -> str:
             if item["status"] == "excluded":
                 return "n/a"
+            if item["status"] == "invalid":
+                return "invalid"
             return "pass" if item.get("pass") else "fail"
         def metric(item: dict[str, Any], name: str) -> str:
             value = item.get("metrics", {}).get(name)
@@ -446,6 +461,8 @@ def markdown_report(run: dict[str, Any]) -> str:
             item = result["systems"][mode]
             if item["status"] == "excluded":
                 lines.append(f"- **{mode}: n/a.** {item['reason']}")
+            elif item["status"] == "invalid":
+                lines.append(f"- **{mode}: invalid.** {item['failure_note']}")
             elif item.get("pass"):
                 lines.append(f"- **{mode}: pass.** All deterministic checks passed; manual source review is still required.")
             else:
@@ -518,6 +535,7 @@ def main() -> int:
     try:
         with ApiEvaluationClient(config) as api:
             documents = api.documents()
+            invalid_in_a_row = 0
             for case in cases:
                 print(f"Running {case['id']}...", flush=True)
                 systems = {
@@ -531,6 +549,14 @@ def main() -> int:
                     "systems": systems,
                 }
                 run["cases"].append(result)
+                invalid_in_a_row = (
+                    invalid_in_a_row + 1 if any(r["status"] == "invalid" for r in systems.values()) else 0
+                )
+                if invalid_in_a_row >= MAX_CONSECUTIVE_INVALID:
+                    raise EvaluationError(
+                        f"{invalid_in_a_row} cases in a row ended with a provider error or budget stop: "
+                        "this run is invalid (check the model key's limit and DAILY_BUDGET_USD). Aborting."
+                    )
                 if case["id"] in TRACE_CASES:
                     for mode, system_result in systems.items():
                         if system_result.get("trace"):

@@ -115,7 +115,7 @@ def test_parallel_cases_in_one_document_make_the_loop_ask(
     outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
     assert outcome.stop_reason == "clarification_needed"
     assert outcome.clarification == {
-        "question": "Which type of account do you want to renew?",
+        "question": "Which one do you mean: Student account or Sponsored guest account?",
         "options": ["Student account", "Sponsored guest account"],
     }
     assessment = events.of("assessment")[0]["assessment"]
@@ -865,3 +865,153 @@ def test_null_text_fields_from_the_judge_do_not_disable_the_check(
     assert outcome.stop_reason == "clarification_needed"  # asked, with a question the code wrote itself
     assert "Student account" in outcome.clarification["question"]
     assert "skipped" not in events.of("assessment")[0]["assessment"]
+
+
+SCOPE_AND_LEVELS = [
+    "1. Scope\n\nThis policy covers the following accounts: the LMS account and the VPN account.\n\n"
+    "Level 3 data must be encrypted with AES-128 before storage in any approved system.\n\n"
+    "Level 4 data must be encrypted with AES-256 and the keys kept in a hardware module.",
+]
+
+
+def _load_scope_and_levels(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+    from app.ingest.pipeline import ensure_corpus_loaded
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    make_pdf(SCOPE_AND_LEVELS, name="corpus/03-levels.pdf")
+    make_pdf(REMOTE, name="corpus/02-remote.pdf")
+    clear_caches()
+    asyncio.run(ensure_corpus_loaded(corpus))
+    clear_caches()
+
+
+def _kinds(*pairs: tuple[str, str], **fields: Any) -> Any:
+    return _assess(
+        False,
+        answers_differ=True,
+        interpretations=[{"label": label, "quote": quote} for label, quote in pairs],
+        **fields,
+    )
+
+
+def test_a_list_of_what_exists_is_not_a_set_of_kinds_to_choose_between(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_scope_and_levels(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "accounts scope"})),
+            _kinds(
+                ("LMS account", "the LMS account and the VPN account"),
+                ("VPN account", "This policy covers the following accounts"),
+            ),
+            respond(("final_answer", {"summary": "The documents do not contain this."})),
+        ]
+    )
+    outcome, events = _run(model, "When is an inactive account suspended?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason != "clarification_needed"
+    kinds = events.of("assessment")[0]["assessment"]["kinds"]
+    assert {k["status"] for k in kinds} <= {"not_about_the_question", "rules_alike", "label_not_in_passage"}
+
+
+def test_a_number_in_the_question_names_the_kind_it_means(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_scope_and_levels(make_pdf, tmp_path)
+    pairs = (
+        ("Level 3 data", "Level 3 data must be encrypted with AES-128 before storage"),
+        (
+            "Level 4 data",
+            "Level 4 data must be encrypted with AES-256 and the keys kept in a hardware module",
+        ),
+    )
+    for question, expect_ask in (
+        ("How is Level 4 data encrypted?", False),  # the digit names the kind
+        ("How is data encrypted?", True),
+    ):
+        model = ScriptedModel(
+            [
+                respond(("search_documents", {"query": "data encrypted levels"})),
+                _kinds(*pairs),
+                respond(("final_answer", {"summary": "The documents do not contain this."})),
+            ]
+        )
+        outcome, events = _run(model, question, agent_assess_ambiguity=True)
+        assert (outcome.stop_reason == "clarification_needed") is expect_ask, question
+        statuses = {k["label"]: k["status"] for k in events.of("assessment")[0]["assessment"]["kinds"]}
+        if expect_ask:
+            assert statuses == {"Level 3 data": "verified", "Level 4 data": "verified"}
+        else:
+            assert statuses["Level 4 data"] == "named_by_user"
+
+
+def test_the_question_offered_lists_only_the_kinds_that_passed(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load_scope_and_levels(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "data encrypted levels"})),
+            _kinds(
+                ("Level 3 data", "Level 3 data must be encrypted with AES-128 before storage"),
+                (
+                    "Level 4 data",
+                    "Level 4 data must be encrypted with AES-256 and the keys kept in a hardware module",
+                ),
+                (
+                    "Level 5 data",
+                    "Level 5 data must be encrypted with a quantum-safe scheme",
+                ),  # not in the results
+                clarification_question="Which level: Level 3 data, Level 4 data or Level 5 data?",
+            ),
+        ]
+    )
+    outcome, _ = _run(model, "How is data encrypted?", agent_assess_ambiguity=True)
+    assert outcome.clarification["options"] == ["Level 3 data", "Level 4 data"]
+    assert "Level 5" not in outcome.clarification["question"]
+    assert [s["label"] for s in outcome.clarification_sources] == ["Level 3 data", "Level 4 data"]
+    assert all(s["page"] == 1 and s["quote"] for s in outcome.clarification_sources)
+
+
+def test_the_page_behind_the_chosen_option_is_read_before_the_model_starts(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel
+    from app.turns.service import _chosen_source
+
+    _load_scope_and_levels(make_pdf, tmp_path)
+    document_id = _document_id("03-levels")
+    sources = [
+        {"label": "Level 3 data", "document_id": document_id, "page": 1, "quote": "x"},
+        {"label": "Level 4 data", "document_id": document_id, "page": 1, "quote": "y"},
+    ]
+    assert _chosen_source(sources, "Level 4, please") == (document_id, 1)
+    assert _chosen_source(sources, "data") is None  # names neither
+    assert _chosen_source(sources, "Level 3 or level 4") is None  # names both
+
+    model = ScriptedModel(
+        [
+            _answer_step(
+                "Scope", 1, "Level 4 data must be encrypted with AES-256", "Level 4 data uses AES-256."
+            )
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "Level 4",
+        ctx_kwargs={
+            "clarification": ("Which level?", "Level 4"),
+            "original_question": "How is data encrypted?",
+            "preload": (document_id, 1),
+        },
+    )
+    assert events.of("tool_call")[0]["tool"] == "read_document_pages"
+    assert outcome.totals.tool_calls == 1 and outcome.totals.model_requests == 1  # no search was needed
+    assert outcome.stop_reason == "answered"

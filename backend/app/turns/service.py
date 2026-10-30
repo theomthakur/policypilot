@@ -58,6 +58,21 @@ class TracePersister:
         self.seq += 1
 
 
+def _chosen_source(sources: list[dict[str, Any]], reply: str) -> tuple[str, int] | None:
+    """The page behind the option the user picked, if the reply picks exactly one."""
+    from app.agent.loop import _GENERIC_STEMS, _tokens
+
+    labels = [_tokens(str(s["label"])) for s in sources]
+    shared = set.intersection(*labels) if labels else set()
+    reply_tokens = _tokens(reply)
+    matched = [
+        s
+        for s, tokens in zip(sources, labels, strict=True)
+        if (tokens - shared - _GENERIC_STEMS) & reply_tokens
+    ]
+    return (str(matched[0]["document_id"]), int(matched[0]["page"])) if len(matched) == 1 else None
+
+
 async def _build_context(turn: Turn, reply_to: uuid.UUID | None) -> QuestionContext:
     async with get_sessionmaker()() as db:
         state = await session_state.load(db, turn.session_id) or session_state.empty()
@@ -68,6 +83,7 @@ async def _build_context(turn: Turn, reply_to: uuid.UUID | None) -> QuestionCont
     if reply_to is not None and pending and pending.get("turn_id") == str(reply_to):
         ctx.clarification = (pending["question"], turn.question)
         ctx.original_question = pending["original_question"]
+        ctx.preload = _chosen_source(pending.get("sources") or [], turn.question)
     return ctx
 
 
@@ -242,6 +258,7 @@ async def _finish(
         if outcome.stop_reason == "clarification_needed" and outcome.clarification:
             state["pending_clarification"] = {
                 "turn_id": str(turn.id),
+                "sources": outcome.clarification_sources,
                 "question": outcome.clarification["question"],
                 "original_question": turn.question,
             }

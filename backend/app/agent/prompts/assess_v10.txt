@@ -13,7 +13,7 @@ Examples (invented, from unrelated domains):
 - "How much is the library late fee?" One fee for all borrowers is stated: default_reading "all borrowers" with that sentence as default_quote.
 - "How many leave days do part-time staff get?" The question names the group: value_in_question "part-time staff".
 - "Where may I leave my bicycle overnight?" The allowed places are the answer, not kinds to choose between: interpretations empty.
-- "What is the backup policy for my files?" Results: "Home folders are backed up nightly." "Project folders are backed up weekly." "Scratch is not backed up." interpretations: Home folders, Project folders, Scratch, with those quotes. value_in_question null, default null, answers_differ true.
+- "What is the refund policy for my course fees?" Results: "Undergraduate course fees are refunded in full before the second week." "Graduate course fees are refunded at half price before the second week." interpretations: Undergraduate course fees, Graduate course fees, with those quotes. value_in_question null, default null, answers_differ true.
 - A question the results do not answer at all: interpretations empty.
 
 When the kinds exist and no value is named, add one friendly clarification_question that lists the kinds. Use only the assess_question tool.

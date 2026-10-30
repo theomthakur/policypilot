@@ -108,7 +108,7 @@ cases:
       - content: How long are deleted files kept?
       - content: In Research Vault.
         is_clarification_reply: true
-    expected_behavior: "Ask which service is meant (Research Vault and the Temporary Transfer Zone differ), then answer for Research Vault."
+    expected_behavior: "Ask which service is meant (Research Vault and the managed object stores keep deleted files for different periods), then answer for Research Vault."
     expected_sources:
       - document_file: 10-approved-cloud-services.pdf
         page: 3

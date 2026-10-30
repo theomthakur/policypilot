@@ -17,6 +17,7 @@ class QuestionContext:
     history: list[tuple[str, str]] = field(default_factory=list)  # (question, answer summary)
     clarification: tuple[str, str] | None = None  # (clarifying question asked, user's reply)
     original_question: str | None = None
+    preload: tuple[str, int] | None = None  # (document_id, page) of the option the user chose, read up front
     cited: frozenset[tuple[str, int]] = frozenset()  # (document_id, page) used in recent answers
 
 
@@ -61,6 +62,9 @@ class Outcome:
     clarification: dict[str, Any] | None = None
     totals: Totals = field(default_factory=Totals)
     ledger: dict[str, EvidenceItem] = field(default_factory=dict)
+    clarification_sources: list[dict[str, Any]] = field(
+        default_factory=list
+    )  # label, document_id, page, quote
 
 
 @dataclass

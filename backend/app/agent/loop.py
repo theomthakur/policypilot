@@ -11,6 +11,7 @@ import logging
 import re
 import time
 import uuid
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -73,6 +74,11 @@ def build_user_message(ctx: QuestionContext) -> str:
             f"The user replied: {reply}\n"
             "Answer the original question using the reply."
         )
+        if ctx.preload:
+            parts.append(
+                "The page that matches the user's choice has already been read for you (see the tool result "
+                "above). Answer from it; search only if it does not cover the question."
+            )
     else:
         parts.append(f"Question: {ctx.question}")
     if ctx.history:
@@ -98,6 +104,31 @@ def _content_words(text: str) -> set[str]:
 
 def _stems(text: str) -> set[str]:
     return {w.rstrip("s") for w in re.findall(r"[a-z]{3,}", text.lower())}
+
+
+_STOPWORDS = frozenset(
+    {
+        *("a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from", "has", "have"),
+        *("how", "i", "if", "in", "is", "it", "its", "my", "of", "on", "or", "the", "to", "what", "when"),
+        *("where", "which", "who", "why", "will", "with", "would", "you", "your", "we", "our", "me", "this"),
+        *("that", "there", "they", "their"),
+    }
+)
+_GENERIC_STEMS = frozenset({"accou", "user", "users", "types", "type", "north", "unive", "polic", "stand"})
+
+
+def _tokens(text: str) -> set[str]:
+    """Words, numbers and acronyms (digits and "LMS" count), long words cut to five letters, so that
+    renew, renewed and renewal match."""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    return {w[:5] if len(w) >= 5 else w for w in words if w not in _STOPWORDS}
+
+
+@dataclass
+class Variants:
+    options: list[dict[str, Any]]  # verified kinds: label, quote, document_id, page
+    named: bool  # the question already names one of the kinds
+    details: list[dict[str, Any]]  # every proposal with its outcome, for the trace
 
 
 def _rules_differ(quotes: list[str]) -> bool:
@@ -341,6 +372,27 @@ class AgentRun:
             {"role": "system", "content": prompts.load("system")},
             {"role": "user", "content": build_user_message(ctx)},
         ]
+        if ctx.preload and ctx.clarification:
+            document_id, page = ctx.preload
+            call = ToolCall(
+                "preload",
+                "read_document_pages",
+                {"document_id": document_id, "page_start": page, "page_end": page},
+            )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {"name": call.name, "arguments": json.dumps(call.arguments)},
+                        }
+                    ],
+                }
+            )
+            await self._data_tool(call, messages)  # counts toward the tool budget and shows in the trace
         while True:
             limit = self._limit_hit()
             if limit:
@@ -476,7 +528,7 @@ class AgentRun:
         await self.emit("answer", "ok", state="EMIT", summary=message[:300], stop_reason="answered")
         return self._finish("answered", answer)
 
-    async def _clarify(self, call: ToolCall) -> Outcome:
+    async def _clarify(self, call: ToolCall, sources: list[dict[str, Any]] | None = None) -> Outcome:
         try:
             args = AskClarificationInput.model_validate(call.arguments)
         except Exception:
@@ -488,9 +540,11 @@ class AgentRun:
             summary=args.question[:300],
             input={"question": args.question, "options": args.options},
         )
-        return self._finish(
+        outcome = self._finish(
             "clarification_needed", clarification={"question": args.question, "options": args.options}
         )
+        outcome.clarification_sources = sources or []
+        return outcome
 
     async def _data_tool(self, call: ToolCall, messages: list[dict[str, Any]]) -> Outcome | None:
         s, st = self.settings, self.state
@@ -690,7 +744,7 @@ class AgentRun:
         against the search budget and is visible in the trace."""
         query = " ".join(self.question.split())[:300]
         first = self.state.last_query or ""
-        if len(query) < 3 or not (_stems(query) - _stems(first)):
+        if len(query) < 3 or not (_tokens(query) - _tokens(first)):
             return []
         digest = _args_hash("search_documents", {"query": query})
         if digest in self.state.seen_calls or self.totals.tool_calls >= self.settings.agent_max_tool_calls:
@@ -742,7 +796,7 @@ class AgentRun:
         """A default reading counts only if its quote is on a result, is not one of the per-value quotes, and
         shares a distinctive word with the question (a scope sentence about everything does not qualify)."""
         quote = (verdict.default_quote or "").strip()
-        if not quote or any(check_quote(quote, str(h["excerpt"])) == "failed" for h in hits[:0]):
+        if not quote:
             return False
         if not any(check_quote(quote, str(h["excerpt"])) != "failed" for h in hits):
             return False
@@ -750,35 +804,61 @@ class AgentRun:
             return False
         return bool(_content_words(quote) & _content_words(self.question))
 
-    def _backed_variants(
-        self, verdict: AssessQuestionInput, hits: list[dict[str, Any]]
-    ) -> tuple[list[str], bool]:
-        """Variants that are real, parallel cases. Returns (labels to offer, user already named one)."""
-        question_words = _content_words(self.question)
-        per_document: dict[str, dict[str, tuple[str, str]]] = {}
+    def _backed_variants(self, verdict: AssessQuestionInput, hits: list[dict[str, Any]]) -> "Variants":
+        """Which proposed kinds are real, parallel cases for THIS question. Every proposal is kept in
+        `details` with the reason it was dropped, so a verdict can be replayed and audited."""
+        question_tokens = _tokens(self.question)
+        label_tokens = [_tokens(item.label) for item in verdict.interpretations]
+        shared = set.intersection(*label_tokens) if label_tokens else set()
+        details: list[dict[str, Any]] = []
+        verified: dict[str, dict[str, dict[str, Any]]] = {}
         named = False
-        for item in verdict.interpretations:
-            label_words = _content_words(item.label)
-            if label_words & question_words:
-                named = True  # the user already said which case applies
+        for item, tokens in zip(verdict.interpretations, label_tokens, strict=True):
+            detail: dict[str, Any] = {"label": item.label[:80], "quote": item.quote[:160]}
+            details.append(detail)
+            distinguishing = tokens - shared - _GENERIC_STEMS
+            if distinguishing & question_tokens:
+                detail["status"] = "named_by_user"  # the user already said which kind applies
+                named = True
                 continue
             for hit in hits:
                 excerpt = str(hit["excerpt"])
                 if check_quote(item.quote, excerpt) == "failed":
                     continue
-                if label_words and not label_words & _content_words(excerpt):
-                    break  # the label is not even about this passage
-                per_document.setdefault(str(hit["document_id"]), {}).setdefault(
-                    item.label.strip().lower(), (item.label.strip(), item.quote)
+                if distinguishing and not distinguishing & _tokens(excerpt):
+                    detail["status"] = "label_not_in_passage"
+                    break
+                verified.setdefault(str(hit["document_id"]), {}).setdefault(
+                    item.label.strip().lower(),
+                    {
+                        "label": item.label.strip(),
+                        "quote": item.quote,
+                        "document_id": str(hit["document_id"]),
+                        "page": hit["page"],
+                        "detail": detail,
+                    },
                 )
+                detail.update(status="verified", document_id=str(hit["document_id"]), page=hit["page"])
                 break
-        best = max(per_document.values(), key=len, default={})
-        variants = list(best.values())[:5]
-        # Code, not the model, checks that the quoted rules really differ (a figure, or most of the wording).
-        # Two passages worded alike are one rule, however many labels they carry.
-        if len(variants) >= 2 and not _rules_differ([quote for _, quote in variants]):
-            return [], named
-        return [label for label, _ in variants], named
+            else:
+                detail["status"] = "quote_not_found"
+        best = list(max(verified.values(), key=len, default={}).values())[:5]
+        for entries in verified.values():
+            for entry in entries.values():
+                if entry not in best:
+                    entry["detail"]["status"] = "other_document"
+        # Two quoted rules worded alike are one rule, however many labels they carry.
+        if len(best) >= 2 and not _rules_differ([e["quote"] for e in best]):
+            for entry in best:
+                entry["detail"]["status"] = "rules_alike"
+            best = []
+        # The quotes have to be about what was asked: a list of what exists (scope bullets) shares nothing.
+        relevant = [e for e in best if (_tokens(e["quote"]) - _GENERIC_STEMS) & question_tokens]
+        if len(best) >= 2 and len(relevant) < 2:
+            for entry in best:
+                entry["detail"]["status"] = "not_about_the_question"
+            best = []
+        return Variants(best, named, details)
 
     async def _assess(self, result: ToolResult) -> Outcome | None:
         """One structured check after the first search: does the answer depend on a detail the user left out?
@@ -822,9 +902,8 @@ class AgentRun:
         # Trust the model only where it can show its work (see _backed_variants): the variants must be
         # parallel cases in ONE document, each quoted from its own passage, none already named by the user.
         slot = verdict.missing_slot or verdict.facet
-        options, named_by_user = self._backed_variants(verdict, hits)
-        if named_by_user:
-            options = []
+        variants = self._backed_variants(verdict, hits)
+        options = [] if variants.named else [e["label"] for e in variants.options]
         default = (verdict.default_reading or "").strip()
         if default and not self._default_is_grounded(verdict, hits):
             default = ""  # a default has to be backed by words from the results, not asserted
@@ -836,7 +915,14 @@ class AgentRun:
             and not default
             and len(options) >= 2
         )
-        if ask and not verdict.clarification_question.strip():
+        mentions = verdict.clarification_question.strip().lower()
+        dropped = [d["label"].lower() for d in variants.details if d.get("status") != "verified"]
+        if ask and not (
+            mentions
+            and all(o.lower() in mentions for o in options)
+            and not any(d in mentions for d in dropped)
+        ):
+            # Offer exactly the options that passed the checks, never one that was dropped.
             listed = f"{', '.join(options[:-1])} or {options[-1]}"
             verdict = verdict.model_copy(
                 update={"clarification_question": f"Which one do you mean: {listed}?"}
@@ -856,6 +942,7 @@ class AgentRun:
                 "candidates": options,
                 "proposed": len(verdict.interpretations),
                 "supported": len(options),
+                "kinds": variants.details,
                 "answers_differ": verdict.answers_differ,
                 "value_in_question": verdict.value_in_question,
                 "default_reading": default or None,
@@ -867,12 +954,17 @@ class AgentRun:
         )
         if not ask:
             return None
+        sources = [
+            {k: e[k] for k in ("label", "document_id", "page", "quote")}
+            for e in variants.options[: len(options)]
+        ]
         return await self._clarify(
             ToolCall(
                 call.id if call else "assess",
                 "ask_clarification",
                 {"question": verdict.clarification_question.strip()[:300], "options": options},
-            )
+            ),
+            sources,
         )
 
     @staticmethod

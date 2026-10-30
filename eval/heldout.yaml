@@ -27,10 +27,10 @@ cases:
     requirement_ids: [REQ-B5]
     turns:
       - content: When does an inactive Northfield account get suspended?
-    expected_behavior: Answer the inactivity period from the account lifecycle standard.
+    expected_behavior: "Answer from the research computing governance policy (the only inactivity rule; it covers research computing accounts) without asking which account type."
     expected_sources:
-      - document_file: 08-account-lifecycle.pdf
-        page: 4
+      - document_file: 09-research-computing-governance.pdf
+        page: 3
     checks:
       required_facts: ["180 days"]
       expect_stop_reason: answered

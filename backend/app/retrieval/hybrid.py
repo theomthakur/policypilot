@@ -69,9 +69,20 @@ _share_cache: dict[tuple[str, int], float] = {}
 
 
 async def _without_common_terms(db: AsyncSession, terms: list[str]) -> list[str]:
-    """Drop query words found in most chunks (a page banner repeats the institution's name on every page, and
-    an OR query rewards it). Keeps every term if all are common; does nothing on a tiny corpus."""
-    total = int((await db.execute(text("SELECT count(*) FROM chunks"))).scalar_one())
+    """Drop query words found in most institutional chunks (a page banner repeats the institution's name
+    on every page, and an OR query rewards it). The share is measured over institutional chunks only,
+    because the large reference documents dilute it. Keeps every term if all are common; does nothing
+    on a tiny corpus."""
+    total = int(
+        (
+            await db.execute(
+                text(
+                    "SELECT count(*) FROM chunks c JOIN documents d ON d.id = c.document_id "
+                    "WHERE d.authority = 'institutional'"
+                )
+            )
+        ).scalar_one()
+    )
     if total < _MIN_CHUNKS_FOR_COMMON or not terms:
         return terms
     kept = []
@@ -80,7 +91,11 @@ async def _without_common_terms(db: AsyncSession, terms: list[str]) -> list[str]
         if key not in _share_cache:
             found = (
                 await db.execute(
-                    text("SELECT count(*) FROM chunks WHERE tsv @@ to_tsquery('english', :t)"), {"t": term}
+                    text(
+                        "SELECT count(*) FROM chunks c JOIN documents d ON d.id = c.document_id "
+                        "WHERE d.authority = 'institutional' AND c.tsv @@ to_tsquery('english', :t)"
+                    ),
+                    {"t": term},
                 )
             ).scalar_one()
             _share_cache[key] = int(found) / total
