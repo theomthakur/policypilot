@@ -1,0 +1,177 @@
+# Second held-out set, written 2026-10-30 BEFORE the supersession template and the facet-based clarification gate were
+# implemented or run, after the first held-out set (eval/heldout.yaml) had been looked at and partly used to diagnose
+# failures (so HELD-1..10 are no longer clean). These nine questions have not been used for any change.
+# Covers: current vs historical vs out-of-scope supersession (the one document pair in the corpus), genuinely
+# ambiguous questions, and specific questions that must be answered without asking.
+schema_version: 1
+corpus_id: northfield-it-policies-v1
+cases:
+  - id: HELD-11
+    category: conflict
+    requirement_ids: [REQ-C4, REQ-B5]
+    turns:
+      - content: Do Northfield accounts still need their password changed on a fixed schedule?
+    expected_behavior: "Current rule from the 2025 standard (no periodic expiration), with the earlier schedule and the conflict explained."
+    expected_sources:
+      - document_file: 04-password-policy-2023.pdf
+        page: 2
+      - document_file: 05-identity-mfa-standard-2025.pdf
+        page: 4
+    checks:
+      required_facts: ["2025", "prohibit|no longer|not required|supersed"]
+      expect_stop_reason: answered
+      expect_notice_kind: conflict
+      min_distinct_documents_cited: 2
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-12
+    category: conflict
+    requirement_ids: [REQ-C4]
+    turns:
+      - content: What password change interval did the 2023 password policy require for regular users?
+    expected_behavior: "A historical question: answer the 2023 rule without presenting it as current."
+    expected_sources:
+      - document_file: 04-password-policy-2023.pdf
+        page: 2
+    checks:
+      required_facts: ["90 days", "2023"]
+      expect_stop_reason: answered
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-13
+    category: conflict
+    requirement_ids: [REQ-C4]
+    turns:
+      - content: How often must service account passwords be rotated?
+    expected_behavior: "Service accounts are explicitly outside what the 2025 standard supersedes; the 2023 rule (90 days) still applies and no supersession is claimed."
+    expected_sources:
+      - document_file: 04-password-policy-2023.pdf
+        page: 6
+    checks:
+      required_facts: ["90 days"]
+      forbidden_text: ["prohibited", "supersed"]
+      expect_stop_reason: answered
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-14
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: What is the minimum password length for privileged accounts?
+    expected_behavior: "Answer 20 characters from the password policy; nothing is superseded here."
+    expected_sources:
+      - document_file: 04-password-policy-2023.pdf
+        page: 6
+    checks:
+      required_facts: ["20"]
+      forbidden_text: ["supersed"]
+      expect_stop_reason: answered
+      expect_clarification: false
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-15
+    category: ambiguous
+    requirement_ids: [REQ-C5, REQ-E1]
+    turns:
+      - content: What is the backup policy for my data?
+      - content: My files in /projects on the research cluster.
+        is_clarification_reply: true
+    expected_behavior: "Ask which storage is meant (the documents give different backup rules for home, project, scratch and archive storage), then answer for project storage."
+    expected_sources:
+      - document_file: 09-research-computing-governance.pdf
+        page: 5
+    checks:
+      required_facts: ["90 days"]
+      expect_stop_reason: answered
+      expect_clarification: true
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: false
+    baseline_exclusion_reason: A retrieve-once baseline has no clarification action or retained conversational state.
+    repetitions: 1
+
+  - id: HELD-16
+    category: ambiguous
+    requirement_ids: [REQ-C5, REQ-E1]
+    turns:
+      - content: How long are deleted files kept?
+      - content: In Research Vault.
+        is_clarification_reply: true
+    expected_behavior: "Ask which service is meant (Research Vault and the Temporary Transfer Zone differ), then answer for Research Vault."
+    expected_sources:
+      - document_file: 10-approved-cloud-services.pdf
+        page: 3
+    checks:
+      required_facts: ["30 days"]
+      expect_stop_reason: answered
+      expect_clarification: true
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: false
+    baseline_exclusion_reason: A retrieve-once baseline has no clarification action or retained conversational state.
+    repetitions: 1
+
+  - id: HELD-17
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: What encryption algorithm is required for Level 4 data at rest?
+    expected_behavior: "Answer AES-256 without asking which kind of data or system."
+    expected_sources:
+      - document_file: 02-data-classification-standard.pdf
+        page: 8
+    checks:
+      required_facts: ["AES-256"]
+      expect_stop_reason: answered
+      expect_clarification: false
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-18
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: How long does a guest Wi-Fi session last?
+    expected_behavior: "Answer 24 hours without asking."
+    expected_sources:
+      - document_file: 01-acceptable-use-and-guest-network.pdf
+        page: 3
+    checks:
+      required_facts: ["24 hours"]
+      expect_stop_reason: answered
+      expect_clarification: false
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
+
+  - id: HELD-19
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
+    turns:
+      - content: Are files in the Temporary Transfer Zone backed up, and when are they deleted?
+    expected_behavior: "No backup; deleted seven days after upload. Answer without asking."
+    expected_sources:
+      - document_file: 10-approved-cloud-services.pdf
+        page: 3
+    checks:
+      required_facts: ["seven days|7 days", "not|no"]
+      expect_stop_reason: answered
+      expect_clarification: false
+      min_distinct_documents_cited: 1
+      max_tool_calls: 6
+    applies_to_baseline: true
+    repetitions: 1
