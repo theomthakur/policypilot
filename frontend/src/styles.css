@@ -3708,3 +3708,11 @@ th {
 .pane-sidebar.is-collapsed .sidebar-pages {
   align-items: stretch;
 }
+
+/* The tools row (Developer, theme, account) stays pinned to the bottom of the sidebar on every page */
+.pane-sidebar {
+  min-height: 0;
+}
+.sidebar-footer {
+  margin-top: auto;
+}

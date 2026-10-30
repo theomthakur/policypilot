@@ -13,6 +13,27 @@ export function DocumentsPanel({
   onView?: (document: PolicyDocument) => void
 }) {
   const queryClient = useQueryClient()
+  // Folders start open; a folder the person closes stays closed while they move between tabs.
+  const [closedFolders, setClosedFolders] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pp_closed_folders') ?? '[]')
+    } catch {
+      return []
+    }
+  })
+  const setFolderOpen = (key: string, open: boolean) => {
+    setClosedFolders((current) => {
+      const next = open
+        ? current.filter((item) => item !== key)
+        : [...new Set([...current, key])]
+      try {
+        localStorage.setItem('pp_closed_folders', JSON.stringify(next))
+      } catch {
+        // A convenience only.
+      }
+      return next
+    })
+  }
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
@@ -162,7 +183,14 @@ export function DocumentsPanel({
           )
           if (items.length === 0) return null
           return (
-            <details className="doc-folder" key={folder.key} open>
+            <details
+              className="doc-folder"
+              key={folder.key}
+              open={!closedFolders.includes(folder.key)}
+              onToggle={(event) =>
+                setFolderOpen(folder.key, event.currentTarget.open)
+              }
+            >
               <summary>
                 <span className="folder-name">{folder.label}</span>
                 <span className="folder-count">{items.length}</span>
