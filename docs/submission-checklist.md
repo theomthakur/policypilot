@@ -61,29 +61,29 @@ Status as of 29 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [x] Repeatable evaluation script with 11 cases, expected behavior and expected sources (`eval/run.py`, `eval/cases.yaml`).
 - [x] Actual results and a failure analysis (`docs/evaluation.md`), compared with a single-pass retrieve-once baseline on the same corpus and model, with traces committed and exclusions explained (CASE-4 and CASE-8 are not applicable to the baseline).
 - [x] The write-up says where iteration helps and where it only adds cost; the agent does not win every case.
-- [ ] Manual citation check (opening each cited page and judging the claim) is not done; the log in `docs/evaluation.md` is empty. Automatic check: every shown citation is literal text on its page (16 of 16).
+- [ ] Manual citation check (opening each cited page and judging the claim) is not done; the log in `docs/evaluation.md` is empty. Automatic check: every shown citation is literal text on its page (14 of 14).
 
 **J. Engineering quality**
 - [x] Clear module layout, ADRs, 76 backend tests and 15 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [~] Tests pass locally; they have not yet run in GitHub Actions.
 
-## 3. Required test cases (final run r9, agent vs baseline)
+## 3. Required test cases (final run r10, agent vs baseline)
 
-Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/run-2026-10-29-gpt-4o-mini-r9/`.
+Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/run-2026-10-29-gpt-4o-mini-r10/`.
 
 - [x] 1 Simple lookup: pass, pass
 - [x] 2 Multi-document A: pass, pass
 - [x] 3 Multi-document B: pass for the agent, fail for the baseline (unstable between runs)
 - [ ] 4 Ambiguous question: **fail** (answers for every account type instead of asking); baseline not applicable
-- [ ] 5 Insufficient evidence: **fail** for both on the strict checks (the agent's answer was right but lacked the missing-evidence notice; the baseline was right in different words)
-- [ ] 6 Conflicting sources: **fail** for both (finds the 2023 policy, never the 2025 one that replaces it)
+- [ ] 5 Insufficient evidence: **fail** for the agent on the strict wording check (it did say the documents do not cover it; the baseline passed this time and failed in the previous run)
+- [ ] 6 Conflicting sources: **fail** for both (finds the 2023 policy, never the 2025 one that replaces it; borderline, a hand test answered correctly)
 - [x] 7 Prompt injection: pass, pass
 - [x] 8 Tool failure or timeout: pass; baseline not applicable
 - [ ] 9 Adaptive re-retrieval (extra): **fail** for both (everyday wording does not match the policy's terms)
 - [x] 10 One document, many parts (extra): pass, pass
-- [ ] 11 Follow-up question (extra): **fail** for both in this run (the agent ran out of searches; the baseline cannot resolve "her")
+- [ ] 11 Follow-up question (extra): **fail** for both (the agent ran out of searches; the baseline cannot resolve "her")
 
-Result: agent 6 of 11, baseline 4 of 9 (agent 5 of the same 9). Agent citation support 16 of 16, baseline 10 of 10. The agent uses about eleven times the tokens. Prompts were tuned on these same cases and runs vary by about one case, so treat it as a development measurement.
+Result: agent 6 of 11, baseline 5 of 9 (agent 5 of the same 9). Agent citation support 14 of 14, baseline 9 of 9. Average correctness is higher for the agent in both runs on this library (0.84 to 0.87 against 0.65 to 0.68); pass counts are within noise. The agent uses about eleven times the tokens. Prompts were tuned on these same cases and runs vary by about one case, so treat it as a development measurement.
 
 ## 4. Technology
 

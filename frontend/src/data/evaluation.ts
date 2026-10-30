@@ -1,9 +1,9 @@
-// Per-case results of the final evaluation run: eval/results/run-2026-10-29-gpt-4o-mini-r9/results.json
-// (openai/gpt-4o-mini via OpenRouter, prompt v7, 14-document library). Generated from that file; deterministic
+// Per-case results of the final evaluation run: eval/results/run-2026-10-29-gpt-4o-mini-r10/results.json
+// (openai/gpt-4o-mini via OpenRouter, prompt v8, 14-document library). Generated from that file; deterministic
 // checks only; the manual page review is pending.
 export type CaseResult = 'pass' | 'fail' | 'n/a'
 
-export const evaluationRun = 'run-2026-10-29-gpt-4o-mini-r9'
+export const evaluationRun = 'run-2026-10-29-gpt-4o-mini-r10'
 
 export const evaluationCases: {
   id: string
@@ -24,7 +24,7 @@ export const evaluationCases: {
     id: 'CASE-5',
     label: 'Not in the documents',
     agent: 'fail',
-    baseline: 'fail',
+    baseline: 'pass',
   },
   {
     id: 'CASE-6',

@@ -2,11 +2,11 @@
 
 ## Status
 
-The 11 frozen cases were run against the integrated stack with a real model (`openai/gpt-4o-mini` through OpenRouter, temperature 0, seed 42). The reference run is `eval/results/run-2026-10-29-gpt-4o-mini-r9/`, made with the final code (prompt v7) on the final 14-document library: the ten synthetic policies in their final layout plus four real NIST documents. Results are deterministic-check results only; the manual page review below is **not done yet**.
+The 11 frozen cases were run against the integrated stack with a real model (`openai/gpt-4o-mini` through OpenRouter, temperature 0, seed 42). The reference run is `eval/results/run-2026-10-29-gpt-4o-mini-r10/`, made with the final code (prompt v8) on the final 14-document library: the ten synthetic policies in their final layout plus four real NIST documents. Results are deterministic-check results only; the manual page review below is **not done yet**.
 
-**Read this as a development measurement.** The system prompt and the citation-snapping rule were tuned against these same 11 cases (see the run history), and a model at temperature 0 still varies between runs: the last comparable agent runs passed 7, 6, 7 and 6 cases. A held-out set of new questions is the honest next test.
+**Read this as a development measurement.** The system prompt and the citation-snapping rule were tuned against these same 11 cases (see the run history), and a model at temperature 0 still varies between runs: the last comparable agent runs passed 7, 6, 7, 6 and 6 cases. A held-out set of new questions is the honest next test.
 
-> **Note on page numbers and corpus.** Runs r1 to r8 used the original ten-document corpus in its first, plain layout. Before run r9 the synthetic PDFs were regenerated with a more realistic layout (banner, real tables, headers), which moved some pages, and four real NIST documents were added. The frozen-case table below and `eval/cases.yaml` use the new pages; run r9 is the only run on the final corpus.
+> **Note on page numbers and corpus.** Runs r1 to r8 used the original ten-document corpus in its first, plain layout. Before run r9 the synthetic PDFs were regenerated with a more realistic layout (banner, real tables, headers), which moved some pages, and four real NIST documents were added. The frozen-case table below and `eval/cases.yaml` use the new pages; runs r9 and r10 are the runs on the final corpus.
 
 ## Method
 
@@ -40,24 +40,24 @@ Deterministic string/regex checks are transparent and repeatable but incomplete.
 | CASE-10 | Multi-part, one document | Incident Response, pp. 2 and 3 | Applicable |
 | CASE-11 | Pronoun-resolving follow-up | Incident Response, p. 3 | Applicable |
 
-## Final comparison (run r9, 14-document library)
+## Final comparison (run r10, 14-document library)
 
-The baseline is not applicable to CASE-4 (clarification) and CASE-8 (retry), so it covers 9 cases. The agent column is shown for all 11 cases and, in brackets, for the same 9 cases as the baseline.
+The baseline is not applicable to CASE-4 (clarification) and CASE-8 (retry), so it covers 9 cases. The agent column is shown for all 11 cases and, in brackets, for the same 9 cases as the baseline. Run r9, on the same corpus with prompt v7, is listed beside it.
 
-| Metric | Adaptive agent | Baseline |
+| Metric | Adaptive agent (r9 in brackets) | Baseline (r9 in brackets) |
 |---|---:|---:|
-| Cases passed (all deterministic checks) | 6 of 11 (5 of 9) | 4 of 9 |
-| Correctness (mean of fact and behavior checks) | 0.87 (0.88) | 0.65 |
-| Citation support (quote literally on the cited page) | 16 of 16 | 10 of 10 |
-| Task completion (mean) | 0.87 (0.87) | 0.73 |
-| Mean tool calls | 3.9 | 1.1 |
-| Mean latency | 7.9 s | 2.4 s |
-| Tokens (prompt + completion), all cases | 238,580 | 21,350 |
-| Estimated cost, all cases | $0.038 | $0.004 |
+| Cases passed (all deterministic checks) | 6 of 11 (6), 5 of 9 shared (5) | 5 of 9 (4) |
+| Correctness (mean of fact and behavior checks) | 0.84 (0.87) | 0.68 (0.65) |
+| Citation support (quote literally on the cited page) | 14 of 14 (16 of 16) | 9 of 9 (10 of 10) |
+| Task completion (mean) | 0.87 (0.87) | 0.75 (0.73) |
+| Mean tool calls | 4.0 (3.9) | 1.1 (1.1) |
+| Mean latency | 7.8 s (7.9 s) | 2.7 s (2.4 s) |
+| Tokens (prompt + completion), all cases | 233,002 (238,580) | 21,401 (21,350) |
+| Estimated cost, all cases | $0.037 ($0.038) | $0.004 ($0.004) |
 
-Per case (agent, baseline): CASE-1 pass, pass. CASE-2 pass, pass. CASE-3 pass, fail. CASE-4 fail, n/a. CASE-5 fail, fail. CASE-6 fail, fail. CASE-7 pass, pass. CASE-8 pass, n/a. CASE-9 fail, fail. CASE-10 pass, pass. CASE-11 fail, fail.
+Per case (agent, baseline) in r10: CASE-1 pass, pass. CASE-2 pass, pass. CASE-3 pass, fail. CASE-4 fail, n/a. CASE-5 fail, pass. CASE-6 fail, fail. CASE-7 pass, pass. CASE-8 pass, n/a. CASE-9 fail, fail. CASE-10 pass, pass. CASE-11 fail, fail.
 
-**What this shows.** On the final library the agent is ahead on the 9 shared cases (5 passes to 4, correctness 0.88 against 0.65) at about eleven times the tokens and three times the latency. The earlier run on the original ten documents had them close (6 to 5, correctness 0.89 against 0.82); adding four long, real documents with overlapping vocabulary hurt the single-pass baseline more, because one search is easier to mislead when more of the library looks relevant. This is one run per setting, so treat the widening gap as a direction, not a result. Where the question is a direct lookup that one good search answers (CASE-1, 2, 7, 10), the baseline is as good and far cheaper. The agent also handles a timed-out tool (CASE-8) that the baseline cannot retry. Citation support is 100 percent for both because a citation that fails the literal-quote check is never shown.
+**What this shows.** The agent's average correctness is consistently higher than the baseline's across both runs on this library (0.84 to 0.87 against 0.65 to 0.68), but the number of cases passed outright is within noise: the agent passed 6 of 11 both times (5 of the 9 shared cases), the baseline 4 and then 5 of 9. The agent costs about eleven times the tokens and takes about three times as long. Where the question is a direct lookup that one good search answers (CASE-1, 2, 7, 10), the baseline is as good and far cheaper. The agent also handles a timed-out tool (CASE-8) that the baseline cannot retry. On the earlier ten-document corpus the two were closer on correctness (0.89 against 0.82, run r8); two runs on the larger library are not enough to say whether the gap widened. Citation support is 100 percent for both because a citation that fails the literal-quote check is never shown.
 
 ## Manual citation check log
 
@@ -86,16 +86,16 @@ For each system/case, open the generated PDF and verify that the cited passage s
 | CASE-11 | agent | pending | pending | | |
 | CASE-11 | baseline | pending | pending | | |
 
-## Failure analysis (run r9)
+## Failure analysis (run r10)
 
 These causes come from the failed check names and the saved traces. They are not yet confirmed by a manual read of every trace.
 
 - **CASE-4, agent.** The agent answered for every account type instead of asking which one applies, so no clarification was requested. Cause: agent planning. Prompt rules, an early clarification and a post-search checkpoint (run r6) were all tried; the model either never asks or asks on everything. The next step is a structured field the code acts on, not more prose.
-- **CASE-5, agent and baseline.** The documents contain nothing about reimbursement. The agent's answer was right but it did not attach the expected missing-evidence notice; the baseline answered correctly in words the check's regular expression does not accept. Cause: model formatting for the agent; evaluator limit for the baseline.
-- **CASE-6, agent and baseline.** Only the 2023 password policy was retrieved; the 2025 standard that supersedes it was never found. Cause: retrieval plus planning. The question's wording matches the old policy, and nothing in the first results hints that a newer standard exists.
+- **CASE-5, agent.** The documents contain nothing about reimbursement and the agent said so (stop reason correct), but its wording did not match the check's regular expression. In r9 the agent's answer lacked the missing-evidence notice instead; the baseline passed in r10 and failed in r9 on the same wording check. Cause: evaluator limit and model phrasing; the behavior is right and the check is strict.
+- **CASE-6, agent and baseline.** Only the 2023 password policy was retrieved; the 2025 standard that supersedes it was never found. Cause: retrieval plus planning. The question's wording matches the old policy, and nothing in the first results hints that a newer standard exists. (In a later hand test the agent did answer "no, passwords do not expire" correctly from the newer standard, so this case is borderline.)
 - **CASE-9, agent and baseline.** The answer cited related pages, not the expected Data Classification and Approved Cloud Services pages. Cause: retrieval. The question uses everyday wording ("internet-hosted file repository") and the policy uses its own terms; neither system bridged the vocabulary. Similarity scores cannot flag this as weak evidence (see ADR 0005).
-- **CASE-11, agent and baseline.** The follow-up needs the incident team lead's role and phone number from the synthetic plan. The agent used all its searches (10 tool calls) and missed the phone number; the baseline cannot resolve "her". The new NIST incident-response document competes with the synthetic plan for these questions, which is a likely cause of the agent's regression from the earlier runs.
-- **CASE-3 flips between runs.** It passed for the agent in r9 and failed for the baseline; earlier it failed for the agent once. Treat it as unstable.
+- **CASE-11, agent and baseline.** The follow-up needs the incident team lead's role and phone number from the synthetic plan. The agent used all its searches (11 tool calls) and missed the contact details; the baseline cannot resolve "her". The new NIST incident-response document competes with the synthetic plan for these questions, which is a likely cause of the agent's regression from the earlier runs on the ten-document corpus.
+- **CASE-3 flips between runs.** It passed for the agent in r9 and r10 and failed for the baseline in both; earlier it failed for the agent once. Treat it as unstable.
 
 **Evaluator limits.** The checks are string and regular-expression checks. They can fail an answer that is correct in different words and pass one that is wrong but contains the right words. The manual log above is the real check.
 

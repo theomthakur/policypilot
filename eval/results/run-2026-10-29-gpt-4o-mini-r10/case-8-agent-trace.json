@@ -1,0 +1,205 @@
+[
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 0,
+    "ts": "2026-10-30T01:28:22.550661+00:00",
+    "type": "turn_started",
+    "state": "PLAN",
+    "status": "info",
+    "summary": "Turn started."
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 1,
+    "ts": "2026-10-30T01:28:23.368783+00:00",
+    "type": "evaluate",
+    "state": "EVALUATE",
+    "status": "info",
+    "tokens": "[REDACTED]",
+    "summary": "Model decided the next action.",
+    "duration_ms": 815
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 2,
+    "ts": "2026-10-30T01:28:23.372326+00:00",
+    "type": "plan",
+    "state": "PLAN",
+    "status": "ok",
+    "summary": "Plan: How many days of daily snapshots does Northfield Research Vault retain?",
+    "sub_questions": [
+      "How many days of daily snapshots does Northfield Research Vault retain?"
+    ]
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 3,
+    "ts": "2026-10-30T01:28:24.295560+00:00",
+    "type": "evaluate",
+    "state": "EVALUATE",
+    "status": "info",
+    "tokens": "[REDACTED]",
+    "summary": "Model decided the next action.",
+    "duration_ms": 920
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 4,
+    "ts": "2026-10-30T01:28:24.298949+00:00",
+    "type": "tool_call",
+    "tool": "search_documents",
+    "input": {
+      "query": "Northfield Research Vault daily snapshots retention"
+    },
+    "state": "ACT",
+    "status": "ok",
+    "attempt": 1,
+    "summary": "Calling search_documents."
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 5,
+    "ts": "2026-10-30T01:28:32.305753+00:00",
+    "type": "tool_result",
+    "tool": "search_documents",
+    "state": "OBSERVE",
+    "result": {
+      "hits": 0,
+      "weak": null,
+      "pages": [],
+      "error_code": "TIMEOUT"
+    },
+    "status": "retried",
+    "attempt": 1,
+    "summary": "TIMEOUT: search_documents timed out.",
+    "duration_ms": 8005
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 6,
+    "ts": "2026-10-30T01:28:32.511261+00:00",
+    "type": "tool_call",
+    "tool": "search_documents",
+    "input": {
+      "query": "Northfield Research Vault daily snapshots retention"
+    },
+    "state": "ACT",
+    "status": "ok",
+    "attempt": 2,
+    "summary": "Calling search_documents."
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 7,
+    "ts": "2026-10-30T01:28:32.530895+00:00",
+    "type": "tool_result",
+    "tool": "search_documents",
+    "state": "OBSERVE",
+    "result": {
+      "hits": 6,
+      "weak": false,
+      "pages": [
+        {
+          "page": 3,
+          "title": "Approved Cloud Services Registry",
+          "document_id": "260ae5f4-b017-424b-a0ed-3e4d86c5b516"
+        },
+        {
+          "page": 2,
+          "title": "Approved Cloud Services Registry",
+          "document_id": "260ae5f4-b017-424b-a0ed-3e4d86c5b516"
+        },
+        {
+          "page": 4,
+          "title": "Data Classification and Handling Standard",
+          "document_id": "3c7da2a3-7d02-47d9-8c51-3b0afee8a264"
+        },
+        {
+          "page": 6,
+          "title": "Acceptable Use and Guest Network Policy",
+          "document_id": "73c877fa-d43c-46b6-8612-0eed08279781"
+        },
+        {
+          "page": 5,
+          "title": "Research Computing Governance and High-Performance Computing Policy",
+          "document_id": "5d99a373-70d4-4a38-8065-277a8530967d"
+        },
+        {
+          "page": 11,
+          "title": "Research Computing Governance and High-Performance Computing Policy",
+          "document_id": "5d99a373-70d4-4a38-8065-277a8530967d"
+        }
+      ],
+      "error_code": null
+    },
+    "status": "ok",
+    "attempt": 2,
+    "summary": "6 hits: Acceptable Use and Guest Network Policy p.6, Approved Cloud Services Registry p.2, Approved Cloud Services Registry p.3, Data Classification and Handling Standard p.4",
+    "duration_ms": 20
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 8,
+    "ts": "2026-10-30T01:28:34.838922+00:00",
+    "type": "evaluate",
+    "state": "EVALUATE",
+    "status": "info",
+    "tokens": "[REDACTED]",
+    "summary": "Model decided the next action.",
+    "duration_ms": 2302
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 9,
+    "ts": "2026-10-30T01:28:34.844251+00:00",
+    "type": "synthesize",
+    "state": "SYNTHESIZE",
+    "status": "info",
+    "summary": "Drafting the answer."
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 10,
+    "ts": "2026-10-30T01:28:34.854271+00:00",
+    "type": "verify",
+    "state": "VERIFY",
+    "status": "ok",
+    "summary": "All citations verified.",
+    "citations": [
+      {
+        "page": 3,
+        "title": "Approved Cloud Services Registry",
+        "verified": true,
+        "document_id": "260ae5f4-b017-424b-a0ed-3e4d86c5b516"
+      }
+    ]
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 11,
+    "ts": "2026-10-30T01:28:34.856437+00:00",
+    "type": "answer",
+    "state": "EMIT",
+    "status": "ok",
+    "summary": "Northfield Research Vault retains daily snapshots for 35 days. Deleted files can be recovered by project owners for 30 days, and by OIT backup administrators for an additional five days. It's important to note that the Research Vault is intended as a working repository, not a permanent archive.",
+    "citations": [
+      {
+        "page": 3,
+        "title": "Approved Cloud Services Registry",
+        "verified": true,
+        "document_id": "260ae5f4-b017-424b-a0ed-3e4d86c5b516"
+      }
+    ],
+    "stop_reason": "answered"
+  },
+  {
+    "turn_id": "e136aa57-c889-47f1-b630-a8feba4657a5",
+    "seq": 12,
+    "ts": "2026-10-30T01:28:34.857813+00:00",
+    "type": "turn_completed",
+    "status": "info",
+    "summary": "Finished: answered.",
+    "duration_ms": 12312,
+    "stop_reason": "answered"
+  }
+]
