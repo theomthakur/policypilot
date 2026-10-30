@@ -2957,3 +2957,282 @@ time {
   display: block;
   margin: 0 0 10px;
 }
+
+/* ===== Calm UI pass: lighter type, one brand mark, a sidebar that folds into the logo ===== */
+.topbar .brand strong {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.topbar .policy-pilot-mark.header-mark {
+  width: 34px;
+  height: 34px;
+}
+/* The sidebar carries the brand in the workspace, so the top bar does not repeat it there. */
+@media (min-width: 701px) {
+  .app-shell.view-workspace .topbar .brand {
+    visibility: hidden;
+  }
+}
+.primary-nav button {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.primary-nav button.active {
+  color: var(--ink);
+  background: var(--violet-soft);
+}
+.primary-nav button.active::after {
+  display: none;
+}
+h1,
+h2,
+h3,
+strong,
+b,
+th {
+  font-weight: 600;
+}
+.message-author {
+  font-weight: 600;
+}
+.switch,
+.topbar-actions button {
+  font-weight: 500;
+}
+
+/* Conversation: no extra title, just the chat */
+.conversation-heading:has(.mode-toggle.is-hidden) {
+  display: none;
+}
+.welcome-state h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.assistant-avatar.large {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 18px;
+}
+.example-prompts {
+  margin-top: 28px;
+}
+
+/* Sidebar: flat, one column, folds into the logo */
+.workspace,
+.workspace.no-sidebar {
+  transition: grid-template-columns 240ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.workspace,
+.workspace.no-documents,
+.workspace.no-trace {
+  grid-template-columns: 272px minmax(0, 1fr);
+}
+.workspace.no-sidebar {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+.pane-sidebar {
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 4px;
+}
+.sidebar-logo {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  transition: background 150ms ease;
+}
+.sidebar-logo:hover {
+  background: var(--violet-soft);
+}
+.sidebar-mark {
+  width: 28px;
+  height: 28px;
+  transition: transform 400ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.pane-sidebar.is-collapsed .sidebar-mark {
+  transform: rotate(-45deg);
+}
+.sidebar-logo:hover .sidebar-mark {
+  transform: rotate(45deg);
+}
+.sidebar-name {
+  flex: 1;
+  color: var(--violet-text);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar-toggle {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+.sidebar-toggle:hover {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 8px;
+}
+.sidebar-nav button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+.sidebar-nav button:hover {
+  background: var(--violet-soft);
+  color: var(--ink);
+}
+.sidebar-nav button.active {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.sidebar-nav .nav-label {
+  flex: 1;
+}
+.sidebar-nav .tab-count {
+  padding: 0 7px;
+  font-size: 11px;
+}
+.sidebar-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  animation: sidebar-fade 220ms ease both;
+}
+.sidebar-content[hidden] {
+  display: none;
+}
+@keyframes sidebar-fade {
+  from {
+    opacity: 0;
+  }
+}
+.sidebar-content > .panel {
+  height: auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.sidebar-content .panel-heading {
+  display: none;
+}
+/* Collapsed: the logo, then two icons */
+.pane-sidebar.is-collapsed .sidebar-name,
+.pane-sidebar.is-collapsed .sidebar-toggle,
+.pane-sidebar.is-collapsed .nav-label {
+  display: none;
+}
+.pane-sidebar.is-collapsed .sidebar-head {
+  justify-content: center;
+  padding: 0;
+}
+.pane-sidebar.is-collapsed .sidebar-nav button {
+  justify-content: center;
+  padding: 0;
+}
+.pane-sidebar.is-collapsed .tab-count {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 15px;
+}
+@media (max-width: 980px) {
+  .workspace,
+  .workspace.no-documents,
+  .workspace.no-trace {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .workspace.no-sidebar {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace,
+  .sidebar-mark {
+    transition: none;
+  }
+}
+
+/* Document list inside the sidebar: compact rows, titles may use two lines */
+.sidebar-content .document-card {
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 9px 6px;
+}
+.sidebar-content .pdf-mark {
+  width: 32px;
+  height: 32px;
+  font-size: 9px;
+  border-radius: 8px;
+}
+.sidebar-content .document-details strong {
+  display: -webkit-box;
+  white-space: normal;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.sidebar-content .document-details span {
+  font-size: 12px;
+}
+.sidebar-content .doc-view {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.sidebar-content .upload-zone,
+.sidebar-content .dropzone {
+  padding: 12px;
+}

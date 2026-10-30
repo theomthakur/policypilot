@@ -5,7 +5,6 @@ import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
 import { PolicyPilotMark } from './PolicyPilotMark'
-import { greeting } from '../api/greeting'
 
 export interface DisplayMessage {
   id: string
@@ -198,15 +197,8 @@ export function ConversationPanel({
     )
 
   return (
-    <section
-      className="panel conversation-panel"
-      aria-labelledby="conversation-title"
-    >
+    <section className="panel conversation-panel" aria-label="Conversation">
       <div className="panel-heading conversation-heading">
-        <div>
-          <p className="eyebrow">Grounded policy assistant</p>
-          <h2 id="conversation-title">Conversation</h2>
-        </div>
         <div
           className={`mode-toggle${developer ? '' : ' is-hidden'}`}
           aria-label="Answer mode"
@@ -255,12 +247,7 @@ export function ConversationPanel({
             <div className="assistant-avatar large" aria-hidden="true">
               <PolicyPilotMark />
             </div>
-            <p className="welcome-kicker">Policy intelligence, with evidence</p>
-            <h3>{greeting()}. What would you like to know?</h3>
-            <p>
-              I will search the corpus, inspect evidence, and cite the pages
-              that support the answer.
-            </p>
+            <h3>What would you like to know?</h3>
             <div className="example-prompts">
               {examples.map((example) => (
                 <button

@@ -177,17 +177,14 @@ export function DocumentsPanel({
                     <strong title={document.title}>{document.title}</strong>
                     <span>
                       {document.page_count}{' '}
-                      {document.page_count === 1 ? 'page' : 'pages'} ·{' '}
-                      {document.source === 'reference'
-                        ? 'public reference'
-                        : document.source === 'bundled'
-                          ? 'sample policy'
-                          : 'your upload'}
+                      {document.page_count === 1 ? 'page' : 'pages'}
                     </span>
-                    <span className="document-status">
-                      <StatusDot status={document.status} />
-                      {document.status}
-                    </span>
+                    {document.status !== 'ready' && (
+                      <span className="document-status">
+                        <StatusDot status={document.status} />
+                        {document.status}
+                      </span>
+                    )}
                     {document.error && (
                       <span className="document-error">{document.error}</span>
                     )}

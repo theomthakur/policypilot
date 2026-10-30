@@ -48,38 +48,59 @@ function viewFromHash(): AppView {
   return hash === 'architecture' || hash === 'presentation' ? hash : 'workspace'
 }
 
-function CollapseBar({
-  side,
-  label,
-  count,
-  open,
-  onToggle,
-}: {
-  side: 'left' | 'right'
-  label: string
-  count?: number
-  open: boolean
-  onToggle: () => void
-}) {
-  // The arrow points the way the panel will move: toward its own edge to hide, away to show.
-  const arrow = (side === 'left') === open ? '‹' : '›'
+function IconBook() {
   return (
-    <button
-      type="button"
-      className={`collapse-bar${open ? '' : ' is-collapsed'}`}
-      aria-expanded={open}
-      aria-label={`${open ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
-      title={`${open ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
-      onClick={onToggle}
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
     >
-      <span className="collapse-arrow" aria-hidden="true">
-        {arrow}
-      </span>
-      <span className="collapse-label">
-        {label}
-        {count ? <em>{count}</em> : null}
-      </span>
-    </button>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
+      <path d="M4 5.5v16M9 8h7" />
+    </svg>
+  )
+}
+
+function IconActivity() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 12h4l3-8 4 16 3-8h4" />
+    </svg>
+  )
+}
+
+function IconSidebar() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M9 4v16" />
+    </svg>
   )
 }
 
@@ -350,7 +371,7 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell view-${appView}`}>
       {launching && (
         <div
           className="launch-screen"
@@ -369,10 +390,7 @@ export function App() {
         <h1 className="visually-hidden">PolicyPilot, a policy assistant</h1>
         <div className="brand">
           <PolicyPilotMark className="header-mark" />
-          <div>
-            <strong>PolicyPilot</strong>
-            <span>Research, AI and learning policy assistant</span>
-          </div>
+          <strong>PolicyPilot</strong>
         </div>
         <nav className="primary-nav" aria-label="Application sections">
           {(
@@ -487,55 +505,77 @@ export function App() {
 
           <main className={`workspace${showSidebar ? '' : ' no-sidebar'}`}>
             <aside
-              className={`workspace-pane pane-sidebar ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
+              className={`workspace-pane pane-sidebar${showSidebar ? '' : ' is-collapsed'} ${mobilePanel !== 'conversation' ? 'mobile-active' : ''}`}
               aria-label="Workspace sidebar"
             >
-              <CollapseBar
-                side="left"
-                label="Workspace"
-                open={showSidebar}
-                onToggle={() => setShowSidebar(!showSidebar)}
-              />
-              <div className="pane-body sidebar-body" hidden={!showSidebar}>
-                <div className="sidebar-tabs" role="tablist">
+              <div className="sidebar-head">
+                <button
+                  type="button"
+                  className="sidebar-logo"
+                  aria-label={
+                    showSidebar ? 'Collapse sidebar' : 'Expand sidebar'
+                  }
+                  aria-expanded={showSidebar}
+                  title={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
+                  onClick={() => setShowSidebar(!showSidebar)}
+                >
+                  <PolicyPilotMark className="sidebar-mark" />
+                </button>
+                <span className="sidebar-name">PolicyPilot</span>
+                <button
+                  type="button"
+                  className="sidebar-toggle"
+                  aria-label="Collapse sidebar"
+                  title="Collapse sidebar"
+                  onClick={() => setShowSidebar(false)}
+                  tabIndex={showSidebar ? 0 : -1}
+                >
+                  <IconSidebar />
+                </button>
+              </div>
+              <div className="sidebar-nav" role="tablist">
+                {(
+                  [
+                    ['documents', 'Knowledge base', <IconBook key="b" />],
+                    ['activity', 'Agent activity', <IconActivity key="a" />],
+                  ] as const
+                ).map(([key, label, icon]) => (
                   <button
+                    key={key}
                     type="button"
                     role="tab"
-                    aria-selected={sidebarTab === 'documents'}
-                    className={sidebarTab === 'documents' ? 'active' : ''}
-                    onClick={() => setSidebarTab('documents')}
+                    aria-selected={sidebarTab === key}
+                    aria-label={label}
+                    title={label}
+                    className={sidebarTab === key ? 'active' : ''}
+                    onClick={() => {
+                      setSidebarTab(key)
+                      setShowSidebar(true)
+                    }}
                   >
-                    Knowledge base
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={sidebarTab === 'activity'}
-                    className={sidebarTab === 'activity' ? 'active' : ''}
-                    onClick={() => setSidebarTab('activity')}
-                  >
-                    Agent activity
-                    {turn.events.length > 0 && (
+                    {icon}
+                    <span className="nav-label">{label}</span>
+                    {key === 'activity' && turn.events.length > 0 && (
                       <span className="tab-count">{turn.events.length}</span>
                     )}
                   </button>
-                </div>
-                <div className="sidebar-content">
-                  {sidebarTab === 'documents' ? (
-                    <DocumentsPanel
-                      onView={(document) =>
-                        setViewer({ id: document.id, title: document.title })
-                      }
-                    />
-                  ) : (
-                    <TracePanel
-                      events={turn.events}
-                      totals={turn.totals}
-                      streamStatus={turn.status}
-                      developer={developer}
-                    />
-                  )}
-                </div>
+                ))}
+              </div>
+              <div className="sidebar-content" hidden={!showSidebar}>
+                {sidebarTab === 'documents' ? (
+                  <DocumentsPanel
+                    onView={(document) =>
+                      setViewer({ id: document.id, title: document.title })
+                    }
+                  />
+                ) : (
+                  <TracePanel
+                    events={turn.events}
+                    totals={turn.totals}
+                    streamStatus={turn.status}
+                    developer={developer}
+                  />
+                )}
               </div>
             </aside>
             <div
