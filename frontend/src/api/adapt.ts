@@ -1,6 +1,7 @@
 // The backend contract (contracts/openapi.yaml) and the UI's view models differ in naming and shape.
 // Everything that crosses the network goes through these pure functions, so components never see raw
 // backend payloads.
+import { humanizeEvent } from './humanize'
 import type {
   AnswerPayload,
   Citation,
@@ -18,6 +19,11 @@ import type {
 } from './types'
 
 type Raw = Record<string, unknown>
+type HumanRevision = {
+  previous_query?: string
+  new_query?: string
+  reason?: string
+}
 
 const asRecord = (value: unknown): Raw =>
   value && typeof value === 'object' ? (value as Raw) : {}
@@ -214,23 +220,36 @@ export function adaptEvent(raw: Raw): TraceEvent {
     documents.set(id, entry)
   })
   const tokens = asRecord(raw.tokens)
-  const revision = asRecord(raw.revision)
-  let summary = asString(raw.summary)
-  if (backendType === 'query_revised' && revision.new_query) {
-    summary =
-      `${summary} "${asString(revision.previous_query)}" → "${asString(revision.new_query)}"`.trim()
-  }
+  const technical = asString(raw.summary)
   const type: TraceEventType =
     backendType === 'tool_result' && status === 'retried'
       ? 'retry'
       : ((eventTypes[backendType] ?? backendType) as TraceEventType)
+  const human = humanizeEvent({
+    type: backendType,
+    status,
+    tool: (raw.tool as string | null | undefined) ?? null,
+    input: (raw.input as Record<string, unknown> | null | undefined) ?? null,
+    summary: technical,
+    hits: typeof result.hits === 'number' ? result.hits : undefined,
+    weak: Boolean(result.weak),
+    errorCode: asString(result.error_code) || undefined,
+    revision: (raw.revision as HumanRevision | null | undefined) ?? null,
+    subQuestions: Array.isArray(raw.sub_questions)
+      ? raw.sub_questions.map(String)
+      : undefined,
+    limitName: asString(asRecord(raw.limit).name) || undefined,
+  })
   return {
     id: `${asString(raw.turn_id)}-${asNumber(raw.seq)}`,
     sequence: asNumber(raw.seq),
     type,
     timestamp: asString(raw.ts),
     status: eventStatus[status] ?? (status as TraceStatus),
-    summary,
+    summary: human.text,
+    title: human.title,
+    hidden: human.hidden,
+    technical_summary: technical,
     tool_name: (raw.tool as string | null | undefined) ?? null,
     input: (raw.input as Record<string, unknown> | null | undefined) ?? null,
     result:

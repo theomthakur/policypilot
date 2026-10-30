@@ -9,6 +9,7 @@ export interface DisplayMessage {
   role: 'user' | 'assistant'
   text?: string
   answer?: AnswerPayload | null
+  meta?: string
 }
 
 interface ConversationPanelProps {
@@ -129,10 +130,25 @@ export function ConversationPanel({
             type="button"
             onClick={() => onModeChange('baseline')}
           >
-            Baseline
+            Quick
           </button>
         </div>
       </div>
+      <p className="mode-hint">
+        {mode === 'agent' ? (
+          <>
+            <strong>Agent:</strong> searches, searches again with different
+            words when unsure, asks you when your question is unclear, and
+            checks every quote. Slower, more careful.
+          </>
+        ) : (
+          <>
+            <strong>Quick:</strong> searches once and answers once, with the
+            same quote check. Faster, and the simple version the agent is
+            compared against.
+          </>
+        )}
+      </p>
 
       <div className="messages" aria-live="polite">
         {messages.length === 0 && (
@@ -183,6 +199,9 @@ export function ConversationPanel({
               <span className="message-author">
                 {message.role === 'assistant' ? 'PolicyPilot' : 'You'}
               </span>
+              {message.meta && (
+                <span className="message-meta">{message.meta}</span>
+              )}
               {message.text && <p>{message.text}</p>}
               {message.answer && (
                 <AnswerView

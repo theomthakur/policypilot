@@ -141,7 +141,7 @@
 }
 .slide-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13em, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1em;
 }
 .slide-card {
@@ -165,7 +165,7 @@
 }
 .slide-steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9em;
   margin: 0;
   padding: 0;
@@ -294,7 +294,17 @@
 .deck-full .deck-foot {
   opacity: 0.4;
 }
+@media (max-width: 900px) {
+  .slide-steps,
+  .slide-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 760px) {
+  .slide-steps,
+  .slide-cards {
+    grid-template-columns: 1fr;
+  }
   .deck-hint {
     display: none;
   }

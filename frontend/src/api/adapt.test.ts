@@ -145,7 +145,8 @@ describe('backend to view-model adapters', () => {
       summary: 'Weak results.',
       revision: { previous_query: 'a', new_query: 'b', reason: 'low_score' },
     })
-    expect(revised.summary).toContain('"a" → "b"')
+    expect(revised.summary).toContain('“b”')
+    expect(revised.title).toBe('Trying different words')
     expect(
       adaptEvent({
         turn_id: 't',

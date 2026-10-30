@@ -1,3 +1,4 @@
+import { eventStatusLabel, stopReasonLabel } from '../api/humanize'
 import type { RunTotals, TraceEvent, TraceEventType } from '../api/types'
 
 interface TracePanelProps {
@@ -61,46 +62,53 @@ export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
         </div>
       ) : (
         <ol className="trace-list">
-          {events.map((event) => (
-            <li key={event.id} className="trace-event">
-              <EventIcon event={event} />
-              <div className="event-body">
-                <div className="event-title-row">
-                  <strong>
-                    {event.tool_name ?? event.type.replaceAll('_', ' ')}
-                  </strong>
-                  {badgeTypes[event.type] && (
-                    <span className={`trace-badge badge-${event.type}`}>
-                      {badgeTypes[event.type]}
-                    </span>
+          {events
+            .filter((event) => !event.hidden)
+            .map((event) => (
+              <li key={event.id} className="trace-event">
+                <EventIcon event={event} />
+                <div className="event-body">
+                  <div className="event-title-row">
+                    <strong>
+                      {event.title ??
+                        event.tool_name ??
+                        event.type.replaceAll('_', ' ')}
+                    </strong>
+                    {badgeTypes[event.type] && (
+                      <span className={`trace-badge badge-${event.type}`}>
+                        {badgeTypes[event.type]}
+                      </span>
+                    )}
+                    {event.duration_ms != null && (
+                      <time>{event.duration_ms} ms</time>
+                    )}
+                  </div>
+                  <p>{event.summary}</p>
+                  {event.input && (
+                    <details>
+                      <summary>Technical details</summary>
+                      <pre>
+                        {event.tool_name ? `${event.tool_name}\n` : ''}
+                        {JSON.stringify(event.input, null, 2)}
+                      </pre>
+                    </details>
                   )}
-                  {event.duration_ms != null && (
-                    <time>{event.duration_ms} ms</time>
-                  )}
+                  {event.result?.documents &&
+                    event.result.documents.length > 0 && (
+                      <div className="source-pills">
+                        {event.result.documents.map((document) => (
+                          <span key={`${event.id}-${document.id}`}>
+                            {document.title} · p. {document.pages.join(', ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  <span className={`event-status status-label-${event.status}`}>
+                    {eventStatusLabel(event.status)}
+                  </span>
                 </div>
-                <p>{event.summary}</p>
-                {event.input && (
-                  <details>
-                    <summary>Validated input</summary>
-                    <pre>{JSON.stringify(event.input, null, 2)}</pre>
-                  </details>
-                )}
-                {event.result?.documents &&
-                  event.result.documents.length > 0 && (
-                    <div className="source-pills">
-                      {event.result.documents.map((document) => (
-                        <span key={`${event.id}-${document.id}`}>
-                          {document.title} · p. {document.pages.join(', ')}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                <span className={`event-status status-label-${event.status}`}>
-                  {event.status}
-                </span>
-              </div>
-            </li>
-          ))}
+              </li>
+            ))}
         </ol>
       )}
 
@@ -112,7 +120,7 @@ export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
           </div>
           <div>
             <strong>{totals.tool_calls}</strong>
-            <span>tools</span>
+            <span>searches</span>
           </div>
           <div>
             <strong>{totals.prompt_tokens + totals.completion_tokens}</strong>
@@ -120,16 +128,16 @@ export function TracePanel({ events, totals, streamStatus }: TracePanelProps) {
           </div>
           <div>
             <strong>{(totals.latency_ms / 1000).toFixed(1)}s</strong>
-            <span>latency</span>
+            <span>time</span>
           </div>
           <div>
             <strong>${totals.estimated_cost_usd.toFixed(4)}</strong>
             <span>cost</span>
           </div>
-          <p>
-            <span>Stop reason</span>
-            <strong>{totals.stop_reason.replaceAll('_', ' ')}</strong>
-          </p>
+          <div>
+            <strong>{stopReasonLabel(totals.stop_reason)}</strong>
+            <span>result</span>
+          </div>
         </div>
       )}
     </section>

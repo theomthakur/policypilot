@@ -117,6 +117,9 @@ export interface TraceEvent {
   timestamp: string
   status: TraceStatus
   summary: string
+  title?: string
+  hidden?: boolean
+  technical_summary?: string
   tool_name?: string | null
   input?: Record<string, unknown> | null
   result?: {

@@ -24,6 +24,17 @@ import { useTurnStream } from './hooks/useTurnStream'
 
 const SESSION_KEY = 'policypilot_session_id'
 type MobilePanel = 'documents' | 'conversation' | 'trace'
+function describeRun(
+  mode: 'agent' | 'baseline',
+  searches: number,
+  asked: boolean,
+): string {
+  if (asked) return 'Agent · asked you a question'
+  if (mode === 'baseline') return 'Quick mode · 1 search'
+  if (searches === 0) return 'Agent · replied without searching'
+  return `Agent · ${searches} search${searches === 1 ? '' : 'es'}`
+}
+
 type AppView = 'workspace' | 'architecture' | 'presentation'
 
 function viewFromHash(): AppView {
@@ -48,6 +59,7 @@ export function App() {
   const creatingSession = useRef(false)
   const completedTurn = useRef<string | null>(null)
   const clarificationTurn = useRef<string | null>(null)
+  const sentMode = useRef<'agent' | 'baseline'>('agent')
 
   useEffect(() => {
     const reduceMotion = window.matchMedia(
@@ -144,17 +156,19 @@ export function App() {
       completedTurn.current === activeTurnId
     )
       return
+    const answer = turn.answer
     completedTurn.current = activeTurnId
-    clarificationTurn.current = turn.answer.clarification ? activeTurnId : null
+    clarificationTurn.current = answer.clarification ? activeTurnId : null
+    const meta = describeRun(
+      sentMode.current,
+      turn.totals?.tool_calls ?? 0,
+      Boolean(answer.clarification),
+    )
     setMessages((current) => [
       ...current,
-      {
-        id: `assistant-${activeTurnId}`,
-        role: 'assistant',
-        answer: turn.answer,
-      },
+      { id: `assistant-${activeTurnId}`, role: 'assistant', answer, meta },
     ])
-  }, [activeTurnId, turn.answer, turn.status])
+  }, [activeTurnId, turn.answer, turn.status, turn.totals])
 
   const sendMessage = async (content: string, replyToClarification = false) => {
     if (!sessionId || busy) return
@@ -163,6 +177,7 @@ export function App() {
       ...current,
       { id: `user-${crypto.randomUUID()}`, role: 'user', text: content },
     ])
+    sentMode.current = mode
     try {
       const response = await api.sendMessage(
         sessionId,
