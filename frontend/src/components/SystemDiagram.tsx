@@ -24,8 +24,7 @@ const layers: Layer[] = [
       {
         logos: ['react', 'vite'],
         name: 'React + TypeScript',
-        detail:
-          'Chat, verified-citation drawer, live execution trace (SSE), uploads, clarification card.',
+        detail: 'Chat, citation drawer, live trace, uploads.',
       },
     ],
   },
@@ -42,8 +41,7 @@ const layers: Layer[] = [
       {
         logos: ['nginx'],
         name: 'nginx',
-        detail:
-          'Serves the app, proxies /api, keeps the event stream unbuffered.',
+        detail: 'Serves the app and proxies /api.',
       },
     ],
   },
@@ -56,7 +54,7 @@ const layers: Layer[] = [
         logos: ['fastapi', 'pydantic'],
         name: 'FastAPI + Pydantic',
         detail:
-          'Passcode gate, rate limit, daily budget cap, session ownership on every resource, SSE trace stream.',
+          'Passcode, rate limit, budget cap, session ownership, SSE stream.',
       },
     ],
   },
@@ -69,17 +67,16 @@ const layers: Layer[] = [
         logos: ['python'],
         name: 'Bounded state machine',
         detail:
-          'PLAN → ACT → OBSERVE → EVALUATE → REVISE or CLARIFY → SYNTHESIZE → VERIFY → EMIT. Limits on steps, tools, time and tokens; a partial answer instead of a hang.',
+          'Plan, search, judge, search again or ask, answer, verify. Hard limits.',
       },
       {
         name: 'Four read-only tools',
         detail:
-          'list_documents, search_documents, read_document_pages, get_document_outline. Results are untrusted data.',
+          'List, search, read pages, outline. Results are untrusted data.',
       },
       {
         name: 'Citation verifier',
-        detail:
-          'Provenance, page, then the quote must be literal text on the cited page. Unsupported claims are dropped.',
+        detail: 'The quote must be literal text on the cited page.',
       },
     ],
   },
@@ -91,26 +88,22 @@ const layers: Layer[] = [
       {
         logos: ['postgresql'],
         name: 'PostgreSQL + pgvector',
-        detail:
-          'Source of truth: pages, chunks (HNSW vectors, full-text index), turns, trace events, evidence, citations.',
+        detail: 'Source of truth: vectors, text search, turns, trace.',
       },
       {
         logos: ['redis'],
         name: 'Redis',
-        detail:
-          'Session state, search cache keyed by corpus version, ingest progress, rate limits, daily budget. Optional: Postgres fallback.',
+        detail: 'Sessions, search cache, rate limits, budget. Optional.',
       },
       {
         logos: ['onnx'],
         name: 'Local embeddings',
-        detail:
-          'bge-small-en-v1.5 on ONNX Runtime. No per-query embedding cost.',
+        detail: 'bge-small on ONNX. No per-query cost.',
       },
       {
         logos: ['openrouter'],
         name: 'OpenRouter → LLM',
-        detail:
-          'One OpenAI-compatible client; model and key are configuration. Temperature 0, fixed seed.',
+        detail: 'One client; model and key are configuration.',
       },
     ],
   },
@@ -153,9 +146,7 @@ function RulesAsData() {
     <section className="hld-rules" aria-labelledby="hld-rules-title">
       <h3 id="hld-rules-title">Rules are data, not code</h3>
       <p>
-        Everything below is read live from this deployment (
-        <code>GET /api/v1/config</code>) and changed with environment variables.
-        The prompt is versioned and recorded on every turn.
+        Read live from this deployment and changed with environment variables.
       </p>
       {c ? (
         <dl>
@@ -260,34 +251,30 @@ export function SystemDiagram() {
             ))}
           </ol>
           <p>
-            One transaction per document, progress in Redis, then{' '}
-            <code>corpus_version</code> is bumped so stale search results can
-            never be served.
+            One transaction per document. Stale search results are never served.
           </p>
         </aside>
       </div>
 
-      <section className="hld-lane" aria-labelledby="hld-lane-title">
+      <section className="hld-chips-block" aria-labelledby="hld-lane-title">
         <h3 id="hld-lane-title">
           Production scale: designed for, not built today
         </h3>
-        <ul>
+        <ul className="hld-chips hld-chips-dashed">
           {productionLane.map(([name, detail]) => (
-            <li key={name}>
-              <strong>{name}</strong>
-              <span>{detail}</span>
+            <li key={name} title={detail}>
+              {name}
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="hld-patterns" aria-labelledby="hld-patterns-title">
+      <section className="hld-chips-block" aria-labelledby="hld-patterns-title">
         <h3 id="hld-patterns-title">Patterns in use</h3>
-        <ul>
+        <ul className="hld-chips">
           {patterns.map(([name, detail]) => (
-            <li key={name}>
-              <strong>{name}</strong>
-              <span>{detail}</span>
+            <li key={name} title={detail}>
+              {name}
             </li>
           ))}
         </ul>
