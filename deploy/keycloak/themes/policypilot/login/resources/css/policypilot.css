@@ -5,7 +5,7 @@
 @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; src: url('../fonts/dm-mono-latin-500-normal.woff2') format('woff2'); }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --pp-bg: #e7ddf2;
   --pp-surface: #f6f0fc;
   --pp-line: #d7cae8;
@@ -163,14 +163,6 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
   #kc-content, .card-pf, .login-pf-page .card-pf, .pf-v5-c-login__main-body { padding: 24px 20px; border-radius: 14px; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root { --pp-bg: #120e18; --pp-surface: #1b1523; --pp-line: #3a2f47; --pp-ink: #efe9f5; --pp-muted: #c6bdce; --pp-brand: #c9a0f0; --pp-highlight: #2a2035; --pp-focus: rgba(201, 160, 240, 0.3); --pp-shadow: 0 22px 56px rgba(0, 0, 0, 0.36); }
-  html, body.login-pf, body { background: radial-gradient(circle at 22% 16%, rgba(118, 81, 150, 0.2), transparent 32%), radial-gradient(circle at 85% 76%, rgba(201, 160, 240, 0.12), transparent 36%), var(--pp-bg); }
-  #kc-content, .card-pf, .login-pf-page .card-pf, .pf-v5-c-login__main-body { background: rgba(27, 21, 35, 0.97); }
-  .pf-v5-c-form-control, .pf-v5-c-text-input-group__text-input, input[type='text'], input[type='email'], input[type='password'] { color: var(--pp-ink); background: #120e18; }
-  .pf-v5-c-button.pf-m-primary, #kc-login, input[type='submit'] { color: #20162a; background: var(--pp-brand); border-color: var(--pp-brand); }
-}
-
 /* ---- Polish: one card, one box per field ---------------------------------------------------------------- */
 .pf-v5-c-login__main {
   width: min(100%, 460px);
@@ -231,11 +223,6 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
 @media (max-width: 520px) {
   .pf-v5-c-login__main { padding: 24px 20px; }
 }
-@media (prefers-color-scheme: dark) {
-  .pf-v5-c-login__main { background: rgba(27, 21, 35, 0.97); }
-  .pf-v5-c-form-control { background: #120e18; }
-}
-
 /* Keep the page background one continuous sheet on tall pages (the registration form is long) */
 html, body, body.login-pf { background-attachment: fixed; background-repeat: no-repeat; background-size: cover; min-height: 100vh; }
 

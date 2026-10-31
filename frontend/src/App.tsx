@@ -21,7 +21,7 @@ import { SignInScreen } from './components/SignInScreen'
 import { AccountMenu } from './components/AccountMenu'
 import { failureAnswer } from './api/failure'
 import { newId } from './api/ids'
-import { systemTheme, usePreference } from './hooks/usePreference'
+import { usePreference } from './hooks/usePreference'
 import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
 import { ArchitecturePage } from './components/ArchitecturePage'
@@ -306,10 +306,7 @@ export function App() {
     'pp_developer',
     false,
   )
-  const [theme, setTheme] = usePreference<'light' | 'dark'>(
-    'pp_theme',
-    systemTheme(),
-  )
+  const [theme, setTheme] = usePreference<'light' | 'dark'>('pp_theme', 'light')
   const mode = developer ? chosenMode : 'agent'
 
   useEffect(() => {

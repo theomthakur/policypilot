@@ -24,9 +24,12 @@ docker compose -f docker-compose.yml -f docker-compose.auth.yml up -d --build
 
 The realm (`deploy/keycloak/realm-policypilot.json`) defines a public client with PKCE and two users whose passwords come from the environment. Nothing secret is committed. The same realm is used by the kind overlay.
 
+The PolicyPilot Keycloak sign-in, registration, and re-authentication pages always use the light theme. They do not follow the computer's color-scheme setting.
+The application also opens in light on a first visit. Its sidebar control can still save and restore a person's light or dark choice.
+
 ### PolicyPilot login theme
 
-Local Compose mounts the `policypilot` Keycloak login theme from `deploy/keycloak/themes`. It uses the PolicyPilot mark, bundled Manrope and DM Mono fonts, and local CSS only. It does not fetch fonts, images, or styles from a third party. The theme provides a centered branded sign-in and registration experience, respects system dark mode, and is responsive on a narrow viewport.
+Local Compose mounts the `policypilot` Keycloak login theme from `deploy/keycloak/themes`. It uses the PolicyPilot mark, bundled Manrope and DM Mono fonts, and local CSS only. It does not fetch fonts, images, or styles from a third party. The theme provides a centered branded sign-in and registration experience, always uses the light palette, and is responsive on a narrow viewport.
 
 The committed realm keeps registration and password reset disabled. Local Compose alone starts a short-lived `keycloak-init` helper after Keycloak is available. That helper enables registration for local browser verification, while leaving password reset disabled. The kind overlay remains registration-disabled and mounts the same theme assets through its `keycloak-theme` ConfigMap.
 
