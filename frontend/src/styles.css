@@ -1002,7 +1002,7 @@ progress {
   color: inherit;
 }
 .clarification-response-label {
-  margin-top: 2px;
+  margin: 2px 0 8px;
 }
 
 /* Trace */
