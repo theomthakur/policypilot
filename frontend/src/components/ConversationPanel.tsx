@@ -6,7 +6,10 @@ import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
 import { personalizedGreeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
-import { latestPendingClarification } from './conversationState'
+import {
+  isClarificationReply,
+  latestPendingClarification,
+} from './conversationState'
 
 export interface DisplayMessage {
   id: string
@@ -270,47 +273,66 @@ export function ConversationPanel({
           </div>
         )}
 
-        {messages.map((message) => (
-          <article
-            className={`message message-${message.role}`}
-            key={message.id}
-          >
-            <div
-              className={
-                message.role === 'assistant'
-                  ? 'assistant-avatar'
-                  : 'user-avatar'
-              }
-              aria-hidden="true"
+        {messages.map((message, index) => {
+          const archivedClarification =
+            message.role === 'assistant' &&
+            message.answer?.clarification &&
+            lastClarification?.id !== message.id
+          const clarificationReply = isClarificationReply(messages, index)
+
+          return (
+            <article
+              className={`message message-${message.role}`}
+              key={message.id}
             >
-              {message.role === 'assistant' ? (
-                <PolicyPilotMark />
-              ) : (
-                <UserAvatar />
-              )}
-            </div>
-            <div className="message-content">
-              <span className="message-author">
-                {message.role === 'assistant' ? 'PolicyPilot' : 'You'}
-              </span>
-              {message.meta && (
-                <span className="message-meta">{message.meta}</span>
-              )}
-              {message.text && <p>{message.text}</p>}
-              {message.answer && (
-                <AnswerView
-                  answer={message.answer}
-                  onCitationOpen={onCitationOpen}
-                />
-              )}
-              {message.role === 'assistant' && message.answer && (
-                <div className="message-tools">
-                  <CopyButton answer={message.answer} />
-                </div>
-              )}
-            </div>
-          </article>
-        ))}
+              <div
+                className={
+                  message.role === 'assistant'
+                    ? 'assistant-avatar'
+                    : 'user-avatar'
+                }
+                aria-hidden="true"
+              >
+                {message.role === 'assistant' ? (
+                  <PolicyPilotMark />
+                ) : (
+                  <UserAvatar />
+                )}
+              </div>
+              <div className="message-content">
+                <span className="message-author">
+                  {message.role === 'assistant' ? 'PolicyPilot' : 'You'}
+                </span>
+                {clarificationReply && (
+                  <span className="clarification-response-label">
+                    Selected clarification response
+                  </span>
+                )}
+                {message.meta && (
+                  <span className="message-meta">{message.meta}</span>
+                )}
+                {message.text && <p>{message.text}</p>}
+                {archivedClarification && (
+                  <div className="clarification-record">
+                    <span>Clarification asked</span>
+                    <p>{message.answer?.clarification?.prompt}</p>
+                  </div>
+                )}
+                {message.answer && (
+                  <AnswerView
+                    answer={message.answer}
+                    onCitationOpen={onCitationOpen}
+                  />
+                )}
+                {message.role === 'assistant' && message.answer && (
+                  <div className="message-tools">
+                    <CopyButton answer={message.answer} />
+                  </div>
+                )}
+              </div>
+            </article>
+          )
+        })}
 
         {!busy && lastAnswerHasSources(messages) && (
           <div className="followups" aria-label="Suggested follow-up questions">

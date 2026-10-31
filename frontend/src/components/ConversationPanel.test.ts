@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { DisplayMessage } from './ConversationPanel'
-import { latestPendingClarification } from './conversationState'
+import {
+  isClarificationReply,
+  latestPendingClarification,
+} from './conversationState'
 
 const clarification: DisplayMessage = {
   id: 'clarification',
@@ -37,5 +40,11 @@ describe('latestPendingClarification', () => {
     expect(
       latestPendingClarification([clarification, reply, answer]),
     ).toBeNull()
+  })
+
+  it('identifies the user reply that records a clarification choice', () => {
+    const reply: DisplayMessage = { id: 'reply', role: 'user', text: 'Student' }
+    expect(isClarificationReply([clarification, reply], 1)).toBe(true)
+    expect(isClarificationReply([clarification, reply], 0)).toBe(false)
   })
 })
