@@ -168,7 +168,9 @@ def test_a_case_the_user_already_named_is_never_asked_about(
     assert not events.of("clarification_requested") and outcome.stop_reason != "clarification_needed"
 
 
-def test_the_three_judgments_must_all_point_to_asking(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
+def test_evidence_backed_variants_override_a_false_difference_boolean(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
     from app.llm.client import ScriptedModel, respond
 
     _load_renewal(make_pdf, tmp_path)
@@ -176,7 +178,21 @@ def test_the_three_judgments_must_all_point_to_asking(make_pdf: Callable[..., Pa
         "default_reading": "everyone",
         "default_quote": "Student accounts renew automatically each term without any form",
     }
-    for overrides in ({"answers_differ": False}, {"value_in_question": "students"}, grounded):
+    # The judge's `answers_differ` is advisory: if its own quoted, verified variants show two different
+    # rules, deterministic code asks instead of silently guessing.
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew account"})),
+            _renewal_assessment(answers_differ=False),
+        ]
+    )
+    outcome, events = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "clarification_needed"
+    assessment = events.of("assessment")[0]["assessment"]
+    assert assessment["judge_answers_differ"] is False and assessment["evidence_rules_differ"] is True
+
+    # A named value or a grounded default still prevents needless clarification.
+    for overrides in ({"value_in_question": "students"}, grounded):
         model = ScriptedModel(
             [
                 respond(("search_documents", {"query": "renew account"})),
@@ -564,6 +580,32 @@ def test_follow_up_on_a_new_topic_falls_back_to_all_documents(
     assert [e.get("scope") for e in events.of("tool_call")] == ["previous_sources", "all_documents"]
     assert outcome.stop_reason == "answered"
     assert outcome.totals.tool_calls == 1 and outcome.totals.tool_attempts == 2
+
+
+def test_focused_follow_up_reserves_the_final_search_slot_for_an_answer(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    guest = _document_id("01-guest")
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network limits"})),
+            # This second search is plausible but redundant. The loop should stop it before consuming the
+            # last slot, then force a grounded final_answer from the first result.
+            respond(("search_documents", {"query": "guest network policy details"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "What else about the guest network?",
+        ctx_kwargs={"history": [("What is the guest limit?", "10 Mbps")], "cited": frozenset({(guest, 1)})},
+        agent_max_tool_calls=2,
+    )
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
+    assert events.of("early_stop")
 
 
 # ---- P1-F: truthful counters and the turn deadline ------------------------------------------------------

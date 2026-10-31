@@ -558,6 +558,23 @@ class AgentRun:
             self.totals.blocked_calls += 1
             self._tool_message(messages, call, "Tool call limit reached. Call final_answer now.")
             return await self._wrap_up(messages, "limit_tool_calls")
+        # Follow-up and clarification turns already have a focused question and at least one relevant result.
+        # Keep the final data-tool slot for genuinely new evidence; otherwise a weak model can burn it on one
+        # more paraphrase search and turn a supported answer into an artificial limit failure.
+        if (
+            (self.ctx and (self.ctx.history or self.ctx.clarification))
+            and st.ledger_has_good
+            and self.totals.tool_calls >= s.agent_max_tool_calls - 1
+            and call.name == "search_documents"
+        ):
+            self.totals.blocked_calls += 1
+            self._tool_message(
+                messages,
+                call,
+                "A relevant source is already available and the final search slot is reserved. "
+                "Call final_answer now using the evidence already returned.",
+            )
+            return await self._answer_from_existing_evidence(messages)
         if self._time_left() <= 0:
             return await self._wrap_up(messages, "limit_time")
         digest = _args_hash(call.name, call.arguments)
@@ -925,7 +942,12 @@ class AgentRun:
             if label_tokens
             else (verdict.value_in_question or "").strip()
         )  # the judge's "the user stated a value" counts only if it points at one of the readings
-        ask = verdict.answers_differ and not value_named and not default and len(options) >= 2
+        # `answers_differ` is useful telemetry but the judge can occasionally contradict its own quoted
+        # variants. `_backed_variants` has already established that the same document contains two relevant,
+        # different rules. Let that deterministic evidence win over a single probabilistic boolean.
+        evidence_rules_differ = len(options) >= 2
+        answers_differ = verdict.answers_differ or evidence_rules_differ
+        ask = answers_differ and not value_named and not default and len(options) >= 2
         mentions = verdict.clarification_question.strip().lower()
         dropped = [d["label"].lower() for d in variants.details if d.get("status") != "verified"]
         if ask and not (
@@ -954,7 +976,9 @@ class AgentRun:
                 "proposed": len(verdict.interpretations),
                 "supported": len(options),
                 "kinds": variants.details,
-                "answers_differ": verdict.answers_differ,
+                "answers_differ": answers_differ,
+                "judge_answers_differ": verdict.answers_differ,
+                "evidence_rules_differ": evidence_rules_differ,
                 "value_in_question": verdict.value_in_question,
                 "default_reading": default or None,
                 "default_asserted": verdict.default_reading
@@ -1037,6 +1061,37 @@ class AgentRun:
         self.state.repair_used = True  # no repair after a limit
         outcome = await self._final_answer(call, messages, partial_reason=reason)
         return outcome or await self._partial(reason)
+
+    async def _answer_from_existing_evidence(self, messages: list[dict[str, Any]]) -> Outcome:
+        """Finish a focused follow-up before it wastes its last data-tool slot. The tool ledger already holds
+        relevant evidence; this stays bounded, closes every pending tool call and is visible in the trace."""
+        if self._time_left() <= 0 or not self.state.ledger:
+            return await self._partial("limit_time")
+        await self.emit(
+            "early_stop",
+            "info",
+            state="EVALUATE",
+            summary="Relevant evidence is already available; reserving the final search slot and answering.",
+        )
+        self._close_open_tool_calls(messages)
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "Use the relevant evidence already returned and call final_answer now. "
+                    "Do not search again."
+                ),
+            }
+        )
+        try:
+            response = await self._model_call(messages, force_tool="final_answer")
+        except TimeoutError:
+            return await self._partial("limit_time")
+        call = next((c for c in response.tool_calls if c.name == "final_answer"), None)
+        if call is None:
+            return await self._partial("limit_tool_calls")
+        outcome = await self._final_answer(call, messages)
+        return outcome or await self._partial("limit_tool_calls")
 
     async def _verify_summary(self, answer: dict[str, Any]) -> dict[str, Any]:
         """Claims are quote-checked, the summary prose is not. Drop any summary sentence stating a figure that
