@@ -729,6 +729,33 @@ def test_focused_follow_up_reserves_the_final_search_slot_for_an_answer(
     assert events.of("early_stop")
 
 
+def test_follow_up_duplicate_page_read_finishes_from_existing_evidence(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    """A repeated focused page read should not turn a supported follow-up into a limit failure."""
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    guest = _document_id("01-guest")
+    read = {"document_id": guest, "page_start": 1, "page_end": 1}
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network limits"})),
+            respond(("read_document_pages", read)),
+            respond(("read_document_pages", read)),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "What is the guest bandwidth?",
+        ctx_kwargs={"history": [("q", "a")], "cited": frozenset({(guest, 1)})},
+    )
+    assert outcome.stop_reason == "answered"
+    assert events.of("early_stop")
+    assert any(e["status"] == "blocked" for e in events.of("tool_call"))
+
+
 # ---- P1-F: truthful counters and the turn deadline ------------------------------------------------------
 
 # ---- P1-F: truthful counters and the turn deadline -----------------------------------------------------

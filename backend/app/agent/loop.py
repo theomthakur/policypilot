@@ -590,6 +590,16 @@ class AgentRun:
                 summary="Blocked: identical call already made.",
             )
             self._tool_message(messages, call, "Duplicate call blocked. Rephrase or choose another tool.")
+            # On a follow-up, a repeated page read means the model already has the same focused evidence
+            # in its ledger. End with a grounded answer instead of letting it spend the remaining turn
+            # re-requesting that page and turning an otherwise complete answer into a limit failure.
+            if (
+                call.name == "read_document_pages"
+                and self.ctx
+                and (self.ctx.history or self.ctx.clarification)
+                and st.ledger_has_good
+            ):
+                return await self._answer_from_existing_evidence(messages)
             return None
         if call.name == "search_documents" and st.last_query is not None:
             query = str(call.arguments.get("query", ""))
