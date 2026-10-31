@@ -59,12 +59,12 @@ class Settings(BaseSettings):
     llm_provider: Literal["openai_compatible", "fake", "offline"] = "openai_compatible"
     llm_base_url: str = "https://openrouter.ai/api/v1"
     llm_api_key: str = ""
-    llm_model: str = "openai/gpt-4o-mini"
+    llm_model: str = "anthropic/claude-haiku-5.5"
     llm_temperature: float = 0.0
     llm_seed: int | None = 42
     llm_request_timeout_s: float = 30.0
-    llm_price_input_per_million: float = 0.15
-    llm_price_output_per_million: float = 0.60
+    llm_price_input_per_million: float = 0.10
+    llm_price_output_per_million: float = 0.50
 
     # Embeddings
     embedding_provider: Literal["local", "openai", "fake"] = "local"

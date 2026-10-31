@@ -153,7 +153,7 @@ Everything is an environment variable; [`.env.example`](.env.example) lists them
 
 | Variable | Meaning | Default |
 |---|---|---|
-| `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` | The model and where to reach it | OpenRouter, `openai/gpt-4o-mini` |
+| `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` | The model and where to reach it | OpenRouter, `anthropic/claude-haiku-5.5` |
 | `DEMO_PASSCODE` | If set, required to create a session, upload or send a message | empty (off) |
 | `RATE_LIMIT_PER_MINUTE`, `DAILY_BUDGET_USD` | Per-client message limit and daily spend cap | 20, 1.00 |
 | `AGENT_MAX_STEPS`, `AGENT_MAX_TOOL_CALLS`, `AGENT_TURN_TIMEOUT_S`, `AGENT_MAX_TOKENS_PER_TURN` | Agent limits | 8, 6, 60 s, 25,000 |
