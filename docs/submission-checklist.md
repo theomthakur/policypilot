@@ -83,7 +83,7 @@ Each case records expected behavior, actual result, citations, pass or fail, too
 - [x] 10 One document, many parts (extra): pass, pass
 - [~] 11 Follow-up question (extra): agent **2 of 3**, baseline 0 of 3 (the failed run searched the NIST incident document and ran out of searches).
 
-Latest full run (30 Oct 2026, one run per set): tuned cases agent 9 of 11, baseline 4 of 9; 9 newer questions agent 9 of 9, baseline 5 of 7; 10 older held-out questions agent 6 of 10, baseline 5 of 9. No set is blind. The canonical result, the manual citation review and the limits are in `docs/evaluation.md`.
+Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of 27; 9 newer questions, two runs, agent 18 of 18, baseline 10 of 14; 10 older held-out questions, two runs, agent 12 of 20, baseline 12 of 18. No set is blind. The canonical result, the manual citation review and the limits are in `docs/evaluation.md`.
 
 ## 4. Technology
 

@@ -13,7 +13,7 @@ The current implementation is on `integration/full-stack` while final evaluation
 - **Working and verified:** document ingestion, hybrid retrieval, the bounded agent, literal citation checks, the web application, OIDC sign-in tested with two users, per-user data isolation, restart-safe background jobs, Redis fallback, Docker Compose, and a Kubernetes deployment on a local `kind` cluster.
 - **CI:** all seven jobs passed on this branch, including backend integration tests, frontend checks, secret scanning, image builds, manifest rendering, and a Compose smoke test: [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
 - **Still in progress:** improving clarification and superseded-policy handling, publishing the hosted demo, recording the walkthrough, and merging the final branch into `main`.
-- **Latest measurements (30 Oct, one run per set, same model):** the 11 tuned cases 9 of 11, the nine fresh questions 9 of 9, and the ten older held-out questions 6 of 10; the one-pass baseline scored 4 of 9, 5 of 7 and 5 of 9. CASE-4 now asks which account type before answering. Still failing: HELD-4 (an ambiguous question the agent does not ask about), CASE-11 (correct answer, but it reaches the six-call limit) and CASE-9, which alternates between runs. One run per set cannot separate noise from change, and the fresh set guided the fixes, so it is not blind. Details and every label correction: `docs/evaluation.md`.
+- **Final measurements (31 Oct, same model, repeats):** the 11 tuned cases passed 29 of 33 runs (three runs) against 15 of 27 for the one-pass baseline; the 9 newer questions 18 of 18 (two runs) against 10 of 14; and the 10 older held-out questions 12 of 20 (two runs) against 12 of 18. Still failing: CASE-9 (0 of 3: a needless clarifying question, a wrong answer and a call-limit stop), CASE-11 (one run in three reached the call limit) and HELD-2, 7, 8 and 9. No set is blind and the sample is small, so read the numbers as indicative. Details and every label correction: `docs/evaluation.md`.
 - **Newly shown:** uploads can live in an S3-compatible bucket with two API and two worker replicas (one kind node), and NetworkPolicies were enforced and checked on Calico.
 - **Outside the demonstrated scope:** cross-node scaling and load testing, database replication, a live OpenShift deployment, university SSO, roles, and single logout.
 
@@ -179,12 +179,12 @@ API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 POLICYPILOT_BASE_URL=http://localhost:8080/api/v1 python eval/run.py --output-dir eval/results/my-run
 ```
 
-Latest full run (30 Oct 2026, `openai/gpt-4o-mini`, prompt v10, 14-document library, one run per set; the canonical block is at the top of `docs/evaluation.md`):
+Final run (31 Oct 2026, `openai/gpt-4o-mini`, prompt v10, 14-document library; the canonical block is at the top of `docs/evaluation.md`):
 
-- The 11 tuned cases: the agent passed **9 of 11**, the one-pass baseline **4 of 9**.
-- 9 newer questions: agent **9 of 9**, baseline **5 of 7**.
-- 10 older held-out questions: agent **6 of 10**, baseline **5 of 9**.
-- No set is blind any more (all were looked at while fixing behavior), and each is a single run on a noisy model, so treat differences of one or two cases as noise. Known failures: CASE-11 (correct answer that reaches the call limit) and HELD-2, 7, 8, 9.
+- The 11 tuned cases, three runs: the agent passed **29 of 33**, the one-pass baseline **15 of 27**.
+- 9 newer questions, two runs: agent **18 of 18**, baseline **10 of 14**.
+- 10 older held-out questions, two runs: agent **12 of 20**, baseline **12 of 18**.
+- No set is blind any more (all were looked at while fixing behavior) and the samples are small, so treat differences of one or two cases as noise. Known failures: CASE-9, CASE-11 (once in three runs) and HELD-2, 7, 8, 9.
 - The agent costs about ten times the tokens (about thirty times the price, because the judge is a larger model) and takes about four times as long; it is better on cross-document, follow-up and vocabulary-mismatch questions and no better on direct lookups.
 - A manual citation review of the last run found every number and term in every claim on its cited page; it was done by the assistant that built the system, so please spot-check, and the verifier does not check every sentence of an answer's prose.
 
@@ -218,7 +218,7 @@ More in [`docs/security-and-limitations.md`](docs/security-and-limitations.md).
 
 ## AI assistance
 
-AI coding assistants supported planning and implementation. I retained responsibility for the architecture, acceptance criteria, code review, testing, and the claims made in this documentation. The contracts, tests, deterministic corpus, evaluation results, and commit history make that work inspectable.
+AI coding assistants supported planning and implementation. I retained responsibility for the architecture, acceptance criteria, code review, testing, and the claims made in this documentation. The contracts, tests, deterministic corpus, evaluation results, and commit history make that work inspectable. [How the assistants were used, what was rejected, and how it was verified](docs/ai-assisted-development.md).
 
 ## License and data
 

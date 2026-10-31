@@ -1,43 +1,44 @@
 # Demo walkthrough
 
-Target recording length: 5–7 minutes. Use the deployed release and keep a terminal ready for the controlled Redis/tool-failure demonstrations. Pre-index the bundled corpus.
+A reproducible walkthrough of the four moments the brief asks for: a multi-document question, evidence-driven re-retrieval, a clarification that keeps context, and a failed tool call handled within limits. It runs on the local Docker Compose stack. The recorded video is linked at the end.
+
+**Target length:** 5 minutes. Saved traces and the resulting answers for each moment are in [`demo-evidence/`](demo-evidence/), so every step can be checked without a live model.
 
 ## Preparation
 
-1. Open the public URL in a clean browser and pass the demo access gate.
-2. Confirm the document panel shows ten ready synthetic PDFs.
-3. Open the trace panel and clear/create a new session.
-4. Keep `eval/cases.yaml` and one generated PDF ready for source verification.
-5. Do not expose `.env`, keys, passcodes, provider dashboards, or private prompts.
+1. Start the stack: `docker compose up -d`, then open http://localhost:8080. Confirm the Knowledge base shows 14 ready documents (10 university policies, 4 NIST references).
+2. Switch **Developer** mode on (the code icon at the bottom of the sidebar) so the run totals show: steps, searches, tokens, time and cost.
+3. Click **New session**, then the **Agent activity** tab to watch the trace.
+4. Keep keys, `.env` files and the demo passcode off the screen.
 
 ## 1. Multi-document grounded answer
 
-Ask CASE-2:
+Ask:
 
 > A researcher has Level 3 confidential pre-publication data. What encryption is required at rest, and may the researcher paste it into a public consumer AI tool?
 
 Show:
+- The plan and the searches in the Agent activity tab (no private reasoning is shown).
+- Evidence from two documents, Data Classification and Generative AI Guidance.
+- At least two numbered citation chips. Click one to show the exact quote on the page, then **View** to open the PDF at that page.
+- The run totals.
 
-- The plan/tool events without chain-of-thought.
-- Evidence from Data Classification and Generative AI Guidance.
-- At least two verified citation chips.
-- The citation drawer with the exact highlighted page quote.
-- Run totals: tool calls, latency, tokens, and estimated cost.
+Saved: `demo-evidence/01-multi-document.md`.
 
 ## 2. Evidence-driven re-retrieval
 
-Ask CASE-9:
+Ask:
 
-> Where may I keep highly sensitive clinical study files in an internet-hosted file repository?
+> For a Level 4 breach discovered by a remote worker, how quickly must it be reported and who must approve a split-tunnel VPN exception?
 
-Show:
+Show, in the Agent activity tab:
+- The first search finds the breach-reporting rule but nothing about VPN exceptions.
+- A **revised search** ("Searching again for what the first results did not cover"): the agent noticed which part was still unanswered and changed its next action because of what it had found.
+- It then **reads the two full pages** instead of relying on excerpts, and answers from two documents.
 
-- The weak first result.
-- The `query_revised` trace event and the reason for changing action.
-- A follow-up search/read using corpus terms such as Level 4 or controlled analytics enclave.
-- The grounded final answer and pages.
+This passes in every evaluation run. Say plainly what the revision is: in real runs, the agent's second search almost always targets a part of the question the first results did not cover. A rewrite after a *weak* first result is covered by a scripted test (`test_weak_search_triggers_a_visible_revised_query`), because the real model rarely gets a weak first result on this corpus.
 
-Emphasize that the next action changed because of observed results; this is not a fixed retrieve-then-generate pipeline.
+Saved: `demo-evidence/02-re-retrieval.md`. The vocabulary-mismatch case (CASE-9) is a known failing case and is not used for the demo.
 
 ## 3. Clarification with retained context
 
@@ -45,42 +46,37 @@ Ask:
 
 > How do I renew my Northfield account?
 
-The agent should ask which account type. Select or type:
+The agent asks which account type. Reply:
 
 > I am a sponsored guest whose six-month account expires next month.
 
-Show that the next answer uses the original renewal question plus the clarification and cites Account Lifecycle page 4.
+Show that the answer combines the original question with the reply and cites Account Lifecycle page 4 (the sponsor submits the renewal form 14 business days before expiry).
 
-## 4. Controlled tool timeout
+Saved: `demo-evidence/03-clarification.md`.
 
-Run CASE-8 through the evaluator or test-only demo control with `FAULT_INJECTION_ENABLED=true` in a non-public evaluation environment. Never enable arbitrary fault injection on the public deployment.
+## 4. Failed tool call, handled within limits
 
-Show:
+This can't be triggered from the app. It is exercised by the evaluation with an injected fault (`FAULT_INJECTION_ENABLED=true`, test environments only, never public). Show the saved trace in `demo-evidence/04-tool-failure.md`: the first `search_documents` call times out, there is exactly one retry, the search recovers and the answer (35-day retention) is cited, all inside the limits.
 
-- First `search_documents` timeout.
-- Exactly one retry.
-- Recovery and a cited 35-day answer, or a bounded partial response if recovery is configured to fail.
-- Stop reason and total duration within limits.
+To run it yourself: `python eval/run.py --case CASE-8`.
 
-## Optional resilience clip
+## Optional: Redis outage
 
-Run `./scripts/redis_outage.sh`. Show readiness become `degraded`, a question continue via the PostgreSQL/uncached fallback, and Redis restart. Use saved redacted output if changing live infrastructure during the recording is risky.
+Run `./scripts/redis_outage.sh`. Readiness changes to `degraded`, a question is still answered from PostgreSQL without the cache, and Redis is restarted. Use the saved output in `docs/deployment-evidence/` if changing live services during the recording feels risky.
 
 ## Closing points
 
-- PostgreSQL holds durable records; Redis accelerates replaceable state.
-- The baseline uses the same model and retriever but searches exactly once.
-- Evaluation reports successes, failures, latency, tokens, and cost rather than assuming the agent always wins.
-- The deployment is intentionally one VM for reproducibility; explain the documented scaling path.
+- PostgreSQL holds everything durable; Redis speeds up things that are safe to lose.
+- The baseline uses the same model and the same retrieval, but searches once and answers once. The agent helps on cross-document, follow-up and wording-mismatch questions and costs more on direct lookups.
+- Results are in `docs/evaluation.md`, with the failures and the fact that no question set is blind.
+- What is not solved, and what comes next: `docs/summary.md`.
 
 ## Recording checklist
 
-- [ ] Public URL and release version visible.
-- [ ] Multi-document answer and page citations.
-- [ ] Result-driven revised action.
-- [ ] Clarification and follow-up context.
-- [ ] Failed tool call with bounded handling.
-- [ ] No secrets or private information visible.
-- [ ] Video link added here before submission.
+- [ ] Multi-document answer with page citations
+- [ ] A revised search driven by a result
+- [ ] Clarification and the follow-up that keeps context
+- [ ] The failed tool call and its bounded retry (saved trace)
+- [ ] No keys, passcodes or private information visible
 
-**Video:** pending final deployed release.
+**Video:** to be added here before submission.

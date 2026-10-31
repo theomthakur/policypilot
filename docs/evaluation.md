@@ -4,20 +4,21 @@
 
 Everything below this block is the history of how the numbers were reached. This block is the current, canonical result.
 
-- **Code:** branch `integration/full-stack`. The full runs (`r26-tuned`, `r26-heldout2`, `r26-heldout`) ran on commit `7c1e12f`. One later fix (the ambiguity judge's tokens no longer count against the agent's per-turn token limit, commit `18d47d0`) was checked with a re-run of CASE-4 and CASE-6 only (`r27-focus`, both passed). A full re-run on the final commit is pending model credit and will replace the numbers here.
+- **Code:** branch `integration/full-stack`, evaluated at commit `f6981bc`. Every commit after the agent's last behaviour change (`4102de1`) is documentation or scripts only, so these runs describe the submitted agent.
 - **Prompt version:** v10. **Agent model:** `openai/gpt-4o-mini`; **ambiguity judge:** `openai/gpt-4o`; temperature 0, seed 42; 14-document library, corpus manifest SHA-256 `e80b6f47...2a69` (`corpus/manifest.json`).
-- **Date:** 30 Oct 2026, evening US Eastern (the run folders carry UTC dates, which is why some say 31 Oct).
-- **Results, one run per set:**
+- **Date:** 31 Oct 2026 (US Eastern), runs `r31-*` in `eval/results/`. Commands: `scripts/run_final_evaluation.sh r31 <python>`.
+- **Results.** The 11 tuned cases were run three times, and each of the other two sets twice:
 
 | Set | Agent | One-pass baseline |
 |---|---:|---:|
-| 11 tuned cases (`eval/cases.yaml`) | 9 of 11 | 4 of 9 |
-| 9 newer questions (`eval/heldout2.yaml`) | 9 of 9 | 5 of 7 |
-| 10 older held-out questions (`eval/heldout.yaml`) | 6 of 10 | 5 of 9 |
+| 11 tuned cases, 3 runs (`eval/cases.yaml`) | **29 of 33** (10, 10, 9 of 11) | 15 of 27 |
+| 9 newer questions, 2 runs (`eval/heldout2.yaml`) | **18 of 18** | 10 of 14 |
+| 10 older held-out questions, 2 runs (`eval/heldout.yaml`) | **12 of 20** (6 and 6) | 12 of 18 |
 
-- **Cost and latency (tuned set):** the agent costs about $0.012 and takes a median 8.8 s per question; the baseline about $0.0004 and 2.3 s. The agent uses roughly ten times the tokens and thirty times the cost, because the ambiguity judge is a larger model.
-- **Known failures:** CASE-11 (correct, cited answer, but the run reaches the six-call limit); CASE-6 failed once on the token limit before the fix and passed after it; on the older set HELD-2, 7, 8 and 9 fail (wrong document or a missing fact).
-- **Spot checks on the current code (30 Oct 2026, `r28-focus`, `r28-heldout2`, `r28-heldout`, one run each):** after two further changes (a focused follow-up now keeps its last search slot and answers from the evidence it already has; the clarification decision no longer lets the judge's "answers differ" flag override two verified, different readings), CASE-4, CASE-6 and CASE-11 all passed, the 9 newer questions passed 9 of 9, and the 10 older held-out questions passed 6 of 10 (HELD-2, 7, 8, 9 still fail). No question that should simply be answered received a clarifying question. The full 11-case tuned set was not re-run, so the table above still shows the earlier full run.
+- **Per case, tuned set (3 runs):** CASE-1, 2, 3, 4, 5, 6, 7, 8 and 10 passed 3 of 3. CASE-11 passed 2 of 3 (the third run reached the call limit). **CASE-9 failed 3 of 3**: in one run the agent asked a needless clarifying question, in one it answered with a missing fact, and in one it hit the call limit.
+- **Where the agent helps and where it does not:** the agent beats the baseline on one of the two multi-document cases (CASE-3), the conflicting-sources case (CASE-6) and the follow-up (CASE-11), and it is the only system that can ask a clarifying question (CASE-4) or recover from a failed tool call (CASE-8). On direct lookups, the other multi-document case, missing evidence and injection (CASE-1, 2, 5, 7, 10) the baseline passes too, at a fraction of the cost. On the older held-out set the baseline scores about the same as the agent (12 of 18 against 12 of 20).
+- **Cost and latency (tuned set):** the agent costs about $0.011 and takes a median 8.1 s per question; the baseline about $0.0005 and 1.8 s. The agent uses roughly ten times the tokens and twenty times the cost, because the ambiguity judge is a larger model.
+- **Known failures:** CASE-9 (above); CASE-11 (one run in three); on the older set HELD-2, 7, 8 and 9 failed both runs.
 - **Why the four older held-out questions fail (diagnosed from the saved traces).** HELD-2 ("When does an inactive Northfield account get suspended?") has several valid answers: the agent finds a real 90-day student rule, while the case expects the 180-day research-computing rule, so the question is arguably ambiguous and should have prompted a clarifying question. HELD-9 (a "temporary working disk") is answered from a competing, plausible rule (a 7-day transfer zone) instead of the scratch-storage rule that was also retrieved. HELD-7 retrieves both the 2023 and 2025 policies but answers only from the newer one and so misses the conflict. HELD-8 gives the correct, cited answer but keeps reading pages it no longer needs and ends at the token limit, so it is marked incomplete. Three attempts to fix them (a retrieval ranking change, an early stop when budget runs low, and a "stop once answered" prompt line) did not help and were discarded; the causes are in how the agent chooses between evidence, not in a single bug, so they are left as known limits.
 - **No set is blind.** The 11 tuned cases were used to tune the system. The 9 newer questions were written before the changes, but their failures were then used to diagnose and fix behavior. The 10 older held-out questions have been looked at several times, and two of their labels were corrected after seeing results. Every number is a single run on a noisy model, so differences of one or two cases are not evidence of change. A fresh blind set of at least 20 questions was not run.
 - **What the numbers do and do not show:** the citation check proves that each cited quote appears on the cited page. It does not prove that every sentence of an answer's prose is supported by that quote.

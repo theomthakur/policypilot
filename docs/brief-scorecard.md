@@ -1,6 +1,6 @@
 # Scorecard against the take-home brief
 
-Source: `Take-Home-Agentic-RAG-Brief.pdf` (NYU IT, AI Engineer, Agentic RAG). Updated 30 Oct 2026 (evening) from the integrated branch. Every item in the brief is listed in its own order. **Score** is my own honest rating out of 10 for how well the submission meets that item (10 = nothing a reviewer could fault). **Evidence** points at the file, test or saved output that backs it. **To improve** says what would raise the score.
+Source: `Take-Home-Agentic-RAG-Brief.pdf` (NYU IT, AI Engineer, Agentic RAG). Updated 31 Oct 2026 from the integrated branch. Every item in the brief is listed in its own order. **Score** is my own honest rating out of 10 for how well the submission meets that item (10 = nothing a reviewer could fault). **Evidence** points at the file, test or saved output that backs it. **To improve** says what would raise the score.
 
 Status: **DONE** (built and verified), **PARTIAL** (works, something named is open), **OPEN** (not done, needs the author).
 
@@ -9,13 +9,13 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | Area | Score | Where it is weakest |
 |---|---:|---|
 | 2. Problem statement | 8.7 | Agent still fails some new questions |
-| 3. Expected components A to J | 8.7 | Evaluation pass rate and run-to-run noise |
-| 4. Eight required test cases | 8.1 | Conflict case is unstable; clarification case passes on one run |
+| 3. Expected components A to J | 8.5 | The weak-result search case, and the size of the evaluation |
+| 4. Eight required test cases | 8.6 | Citation spot-check still to do by the author |
 | 5. Technology | 9.5 | None |
 | 6. What to submit | 8.0 | Demo not recorded; some docs are out of date |
 | 7. Interview preparation | 7.0 | Needs rehearsal by the author |
 | 8. Optional enhancements | 8.3 | OpenShift not run on a real cluster |
-| **Overall** | **8.4** | Demo recording, stale docs, evaluation noise |
+| **Overall** | **8.5** | Demo recording, stale docs, evaluation noise |
 
 ## 2. Problem statement
 
@@ -36,13 +36,13 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 |---|---|---:|---|---|
 | **A. Application architecture**: frontend and backend, API layer, usable UI | DONE | 9 | React/Vite UI, FastAPI, `contracts/openapi.yaml` checked in CI; one sidebar for all pages, session history, knowledge-base folders, light and dark themes | A person should click through every flow once |
 | **B. RAG pipeline**: parse, chunk, index, retrieve, grounded generation, page metadata kept | DONE | 9 | `backend/app/ingest/`, `retrieval/hybrid.py`, ADR 0005 (benchmark of options) | Section names are empty on institutional chunks (known, does not affect citations) |
-| **C. Adaptive orchestration**: decompose, revise after weak results, combine documents, show a result-driven change of action | DONE | 8 | CASE-2, 3, 9, 11 traces; `query_revised` events | CASE-9 alternates between runs; CASE-11 reaches the call limit after it already has the answer |
+| **C. Adaptive orchestration**: decompose, revise after weak results, combine documents, show a result-driven change of action | DONE | 8 | CASE-2, 3, 4, 8, 11 traces; `query_revised` events (mostly for a part the first search missed) | CASE-9, the weak-result case, failed all three final runs; CASE-11 reached the call limit in one run of three |
 | **D. Tool contracts**: at least three read-only tools, validation, empty-result and error handling | DONE | 9 | `list_documents`, `search_documents`, `read_document_pages`, `get_document_outline`; `contracts/tools.schema.json` | None needed |
 | **E. State and observability**: per-session state, UI trace, timing, tokens | DONE | 9 | Trace events with tools, inputs, summaries, status, citations, tokens; Agent activity tab; session history | None |
 | **F. Execution safety**: step limits, timeouts, bounded retries, partial answers, untrusted text, corpus-only tools, isolated sessions | DONE | 9 | CASE-7, CASE-8, limit tests, per-user ownership, CSRF guard | None needed |
 | **G. Persistence and Redis**: database, real Redis use, keys, expiry, outage behavior | DONE | 8 | Postgres plus Redis (cache, hot state, budget counters), outage script and saved output | Redis key and expiry table should be one page in the runbook |
 | **H. Containerization and DevOps**: Dockerfiles, Compose, health checks, volumes, secrets, CI, smoke test, persistence, outage, update and rollback | DONE | 8 | Compose, CI (ruff, mypy, pytest, builds; green on the latest finished runs), `docs/runbook.md`, kind and Calico verification | No public deploy |
-| **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7 | `eval/run.py`, `eval/cases.yaml` (11 cases), `docs/evaluation.md`; latest run agent 9 of 11, fresh set 9 of 9, older held-out 6 of 10; baseline 4 of 9, 5 of 7, 5 of 9 | Single runs; several disclosed label corrections; held-out sets no longer blind |
+| **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7.5 | `eval/run.py`, `eval/cases.yaml` (11 cases), `docs/evaluation.md`; final run agent 29 of 33 (three runs), newer set 18 of 18, older held-out 12 of 20; baseline 15 of 27, 10 of 14, 12 of 18 | Single runs; several disclosed label corrections; held-out sets no longer blind |
 | **J. Engineering quality**: practices, organization, documentation | DONE | 9 | 173 backend tests, 23 frontend tests, typed config, ADRs, requirements traceability | Some docs are stale (see "What is still needed") |
 
 ## 4. Required demonstration and test cases
@@ -53,16 +53,16 @@ Latest numbers are from the 30 Oct runs (`r23` to `r26`, one run each) and the e
 |---|---|---|---:|---|
 | 1. Simple lookup | Directly supported fact with the right page | pass / pass | 10 | None |
 | 2. Multi-part, multi-document A | All parts, at least two documents | pass / pass | 9 | None |
-| 3. Multi-part, multi-document B | Second cross-document question, each claim cited | pass / fail (baseline) | 9 | None |
-| 4. Ambiguous question | Ask a targeted clarification, keep context | asks which account, then answers correctly (passes under the corrected check) / not applicable | 7 | Passes in one run; the "six months" check was corrected after seeing failures |
+| 3. Multi-part, multi-document B | Second cross-document question, each claim cited | passed all three final runs / fails (baseline 0 of 3) | 9 | None |
+| 4. Ambiguous question | Ask a targeted clarification, keep context | asks which account type and answers correctly: passed all three final runs / not applicable | 8 | Passes reliably on the measured questions; not proven on new ones |
 | 5. Insufficient evidence | Say evidence is missing, no invented citation | pass / pass | 9 | None |
-| 6. Conflicting sources | Cite both passages, explain, do not silently choose | failed in the latest run, passed in three earlier ones / fail (baseline) | 7 | Unstable; built on a two-passage template |
+| 6. Conflicting sources | Cite both passages, explain, do not silently choose | passed all three final runs / fails (baseline 0 of 3) | 8 | Built on a two-passage template; documented scope terms needed |
 | 7. Prompt injection | Ignore instructions in retrieved text | pass / pass | 9 | None |
 | 8. Tool failure or timeout | Bounded retry or graceful recovery, report incomplete work | pass / not applicable | 9 | None |
 | Citation verification | Check cited pages against supporting passages | automated quote check on every citation | 7 | A manual spot-check of about 20 citations is still to be done by the author |
 | Agent against baseline, where iteration helps or costs | Report correctness, citation support, completion, calls, latency, cost | reported; the agent costs about 25 to 30 times the baseline per question | 8 | The overhead is stated openly |
 
-Not passing in the latest run and stated openly in `docs/evaluation.md`: CASE-6 (unstable), CASE-11 (correct answer but stops at the six-call limit); on the older held-out set HELD-2, 7, 8 and 9.
+Not passing in the final runs and stated openly in `docs/evaluation.md`: CASE-9 (failed 3 of 3), CASE-11 (failed 1 of 3, reached the call limit); on the older held-out set HELD-2, 7, 8 and 9 (failed both runs).
 
 ## 5. Technology
 
@@ -127,5 +127,5 @@ Not passing in the latest run and stated openly in `docs/evaluation.md`: CASE-6 
 - Whether to try a gentle "you have enough, answer now" nudge for CASE-11 (reaches the six-call limit with a correct answer).
 
 **Known weak spots, not planned**
-- CASE-6 and CASE-9 are unstable between runs; HELD-2, 7, 8 and 9 fail; no set is blind and every set is one run.
+- CASE-9 fails and CASE-11 failed once in three runs; HELD-2, 7, 8 and 9 fail; no set is blind and the samples are small.
 - A deterministic clarification layer, answer prose built only from verified claims, and a repair path for adaptive search are future work.

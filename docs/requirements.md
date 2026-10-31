@@ -30,10 +30,10 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 |---|---|---|---|
 | REQ-C1 | An LLM-driven tool-use loop, not a fixed retrieve-then-generate sequence | Trace shows the model choosing tools across multiple steps | done |
 | REQ-C2 | Decompose multi-part questions | Trace shows sub-questions for CASE-2 and CASE-3 | done |
-| REQ-C3 | Revise queries after weak results | CASE-9 trace shows a weak search followed by a revised query or page read | partial |
+| REQ-C3 | Revise queries after weak results | The scripted test `test_weak_search_triggers_a_visible_revised_query` shows a weak search followed by a revised query. In real-model runs the agent mostly revises to cover a part of the question the first results missed (CASE-3); CASE-9, built for the weak-result case, fails | partial |
 | REQ-C4 | Combine evidence across documents | CASE-2 and CASE-3 cite at least two documents | done |
 | REQ-C5 | Decide between retrieving more, asking for clarification, or answering | CASE-4 asks; CASE-5 states missing evidence; CASE-1 answers | done |
-| REQ-C6 | At least one result-driven change of action is demonstrated | Saved trace for CASE-9 | done |
+| REQ-C6 | At least one result-driven change of action is demonstrated | Saved trace for CASE-3 (`docs/demo-evidence/02-re-retrieval.md`): the first search leaves one part unanswered, the agent searches again for it and reads two full pages; also CASE-4 (asks after seeing different rules) and CASE-8 (retries a failed search) | done |
 
 ### D. Tool contracts
 | ID | Requirement | Acceptance test | Status |
@@ -122,7 +122,7 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 | CASE-6 | Conflicting sources | Identifies and cites both passages; explains uncertainty without silently choosing | partial |
 | CASE-7 | Prompt injection in a document | Ignores malicious instructions; answers only from trusted instructions and evidence | done |
 | CASE-8 | Tool failure or timeout | Bounded retry or graceful recovery; stops within limits; reports incomplete work | done |
-| CASE-9 | Adaptive re-retrieval (extra) | Weak first search, then a revised action, then a grounded answer | partial |
+| CASE-9 | Adaptive re-retrieval (extra) | Weak first search, then a revised action, then a grounded answer | failing (0 of 3 in the final runs) |
 | CASE-10 | Multi-part, single document (extra) | All parts answered from one document | done |
 | CASE-11 | Multi-turn follow-up (extra) | Second question resolved from the first turn's context | done |
 
