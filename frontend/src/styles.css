@@ -2405,6 +2405,23 @@ progress {
 .doc-view:hover {
   background: var(--violet-soft);
 }
+.doc-delete {
+  align-self: center;
+  padding: 5px 8px;
+  border: 0;
+  color: var(--red);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.doc-delete:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.doc-delete:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
 .link-button {
   padding: 0;
   border: 0;

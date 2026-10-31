@@ -20,6 +20,8 @@ class Storage(Protocol):
 
     def read(self, key: str) -> bytes | None: ...
 
+    def delete(self, key: str) -> None: ...
+
 
 class LocalStorage:
     name = "local"
@@ -34,6 +36,11 @@ class LocalStorage:
     def read(self, key: str) -> bytes | None:
         path = self.base / key
         return path.read_bytes() if path.is_file() and path.parent.resolve() == self.base.resolve() else None
+
+    def delete(self, key: str) -> None:
+        path = self.base / key
+        if path.is_file() and path.parent.resolve() == self.base.resolve():
+            path.unlink()
 
 
 class S3Storage:
@@ -75,6 +82,9 @@ class S3Storage:
         except ClientError:
             return None
 
+    def delete(self, key: str) -> None:
+        self.client.delete_object(Bucket=self.bucket, Key=key)
+
 
 @lru_cache
 def _s3(bucket: str, endpoint: str, region: str, access_key: str, secret_key: str) -> S3Storage:
@@ -94,6 +104,10 @@ async def put(key: str, data: bytes) -> None:
 
 async def read(key: str) -> bytes | None:
     return await asyncio.to_thread(get_storage().read, key)
+
+
+async def delete(key: str) -> None:
+    await asyncio.to_thread(get_storage().delete, key)
 
 
 @contextmanager

@@ -69,6 +69,17 @@ def test_duplicate_upload_returns_the_existing_document(
     assert second["document"]["id"] == first["document"]["id"]
 
 
+def test_uploaded_document_can_be_deleted(client: TestClient, make_pdf: Callable[..., Path]) -> None:
+    new_session(client)
+    body = _upload(client, make_pdf(POLICY_PAGES))
+    document_id = body["document"]["id"]
+
+    response = client.delete(f"/api/v1/documents/{document_id}")
+    assert response.status_code == 204
+    assert client.get(f"/api/v1/documents/{document_id}").status_code == 404
+    assert all(d["id"] != document_id for d in client.get("/api/v1/documents").json()["items"])
+
+
 def test_uploads_are_isolated_between_sessions(make_pdf: Callable[..., Path]) -> None:
     from app.main import create_app
 

@@ -204,6 +204,29 @@ async def get_document(document_id: uuid.UUID, db: DbSession, session_id: Curren
     return DocumentOut.of(await _visible_document(db, document_id, session_id))
 
 
+@router.delete("/documents/{document_id}", status_code=204, dependencies=[Passcode])
+async def delete_document(
+    document_id: uuid.UUID, db: DbSession, session_id: CurrentSession, user: CurrentUser
+) -> Response:
+    """Remove one of the current person's uploaded PDFs, along with its derived index data."""
+    doc = await _visible_document(db, document_id, session_id)
+    if doc.source != "upload":
+        raise ApiError(403, "READ_ONLY_DOCUMENT", "Only your uploaded PDFs can be deleted.")
+    if session_id is None:
+        raise ApiError(404, "NOT_FOUND", "Document not found.")
+
+    # A signed-in person's uploads are visible in each of their conversations. In passcode-only
+    # mode, the conversation remains the ownership boundary.
+    if user is None and doc.session_id != session_id:
+        raise ApiError(404, "NOT_FOUND", "Document not found.")
+
+    storage_name = doc.storage_name
+    await db.delete(doc)
+    await db.commit()
+    await storage.delete(storage_name)
+    return Response(status_code=204)
+
+
 @router.get("/documents/{document_id}/file")
 async def get_document_file(document_id: uuid.UUID, db: DbSession, session_id: CurrentSession) -> Response:
     """The original PDF, for the in-app viewer (inline, so a browser opens it instead of downloading)."""

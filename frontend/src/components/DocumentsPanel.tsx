@@ -39,6 +39,7 @@ export function DocumentsPanel({
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadNotice, setUploadNotice] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [run, setRun] = useState<IngestionRun | null>(null)
 
   const documents = useQuery({
@@ -96,6 +97,28 @@ export function DocumentsPanel({
       setUploadError(errorMessage(error))
     } finally {
       setUploadProgress(null)
+    }
+  }
+
+  const deleteUpload = async (document: PolicyDocument) => {
+    if (
+      !window.confirm(
+        `Delete “${document.title}”? This removes the PDF and its indexed content from your library.`,
+      )
+    ) {
+      return
+    }
+    setDeletingId(document.id)
+    setUploadError(null)
+    setUploadNotice(null)
+    try {
+      await api.deleteDocument(document.id)
+      setUploadNotice(`Deleted ${document.title}.`)
+      await queryClient.invalidateQueries({ queryKey: ['documents'] })
+    } catch (error) {
+      setUploadError(errorMessage(error))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -236,6 +259,17 @@ export function DocumentsPanel({
                       aria-label={`View the PDF: ${document.title}`}
                     >
                       View
+                    </button>
+                  )}
+                  {document.source === 'uploaded' && (
+                    <button
+                      className="doc-delete"
+                      type="button"
+                      onClick={() => void deleteUpload(document)}
+                      disabled={deletingId === document.id}
+                      aria-label={`Delete the PDF: ${document.title}`}
+                    >
+                      {deletingId === document.id ? 'Deleting' : 'Delete'}
                     </button>
                   )}
                 </article>

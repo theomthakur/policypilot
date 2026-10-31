@@ -99,6 +99,9 @@ export const api = {
     )
     return response.items.map(adaptDocument)
   },
+  deleteDocument: async (documentId: string) => {
+    await request<unknown>(`/documents/${documentId}`, { method: 'DELETE' })
+  },
   getIngestion: async (runId: string) =>
     adaptIngestion(
       await request<Record<string, unknown>>(`/ingestion/${runId}`),
