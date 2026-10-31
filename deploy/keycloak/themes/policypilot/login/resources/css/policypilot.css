@@ -358,12 +358,14 @@ div.pf-v5-c-form__label { margin-bottom: 8px; }
 #kc-attempted-username {
   display: block !important;
   width: 100% !important;
+  height: 46px !important;
   max-width: none !important;
   min-width: 0 !important;
-  padding-inline: 12px !important;
+  padding: 11px 12px !important;
   color: var(--pp-muted);
   font-size: 14px;
-  text-align: center;
+  line-height: 22px;
+  text-align: left;
   text-overflow: clip;
   box-sizing: border-box;
 }
