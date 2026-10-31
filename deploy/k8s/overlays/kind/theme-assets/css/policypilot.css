@@ -170,3 +170,71 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
   .pf-v5-c-form-control, .pf-v5-c-text-input-group__text-input, input[type='text'], input[type='email'], input[type='password'] { color: var(--pp-ink); background: #120e18; }
   .pf-v5-c-button.pf-m-primary, #kc-login, input[type='submit'] { color: #20162a; background: var(--pp-brand); border-color: var(--pp-brand); }
 }
+
+/* ---- Polish: one card, one box per field ---------------------------------------------------------------- */
+.pf-v5-c-login__main {
+  width: min(100%, 460px);
+  padding: 30px;
+  overflow: hidden;
+  background: rgba(246, 240, 252, 0.96);
+  border: 1px solid var(--pp-line);
+  border-radius: 14px;
+  box-shadow: var(--pp-shadow);
+}
+.pf-v5-c-login__main .pf-v5-c-login__main-body {
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.pf-v5-c-login__main .pf-v5-c-login__main-header { padding: 0 0 18px; }
+.pf-v5-c-login__main .pf-v5-c-login__main-footer { padding: 0; }
+
+/* The wrapper is the field's box; the input inside it has no border, so nothing is drawn twice. */
+.pf-v5-c-form-control {
+  display: flex;
+  min-height: 46px;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--pp-line);
+  border-radius: 10px;
+}
+.pf-v5-c-form-control::before, .pf-v5-c-form-control::after { display: none !important; border: 0 !important; }
+.pf-v5-c-form-control input[type='text'], .pf-v5-c-form-control input[type='email'], .pf-v5-c-form-control input[type='password'] {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+}
+.pf-v5-c-form-control:focus-within { border-color: var(--pp-brand); box-shadow: 0 0 0 3px var(--pp-focus); }
+.pf-v5-c-form-control input:focus { outline: 0; box-shadow: none; }
+
+/* Password field: input and the show/hide button side by side, same height */
+.pf-v5-c-input-group { display: flex; gap: 8px; align-items: stretch; }
+.pf-v5-c-input-group__item.pf-m-fill { flex: 1; min-width: 0; }
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control {
+  width: 46px;
+  min-height: 46px;
+  padding: 0;
+  border: 1px solid var(--pp-line);
+  border-radius: 10px;
+}
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control::after { display: none !important; }
+
+@media (max-width: 520px) {
+  .pf-v5-c-login__main { padding: 24px 20px; }
+}
+@media (prefers-color-scheme: dark) {
+  .pf-v5-c-login__main { background: rgba(27, 21, 35, 0.97); }
+  .pf-v5-c-form-control { background: #120e18; }
+}
+
+/* Keep the page background one continuous sheet on tall pages (the registration form is long) */
+html, body, body.login-pf { background-attachment: fixed; background-repeat: no-repeat; background-size: cover; min-height: 100vh; }
