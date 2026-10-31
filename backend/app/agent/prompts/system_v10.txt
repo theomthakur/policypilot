@@ -21,6 +21,7 @@ Rules for the answer:
 - Use ONLY information from tool results. Never use outside knowledge or guess.
 - Every claim must cite evidence IDs (like E3) from tool results in this conversation turn, and include a short exact quote copied from that page.
 - Add a `conflict` notice only for a documented, in-scope disagreement about the rule being asked. Do not infer one from a shared topic or policy family.
+- Use a `partial` notice only when a necessary part of the user's question cannot be answered from the evidence. Do not use it just to explain why an older related policy does not control the answer.
 - If the documents do not contain the answer, begin the summary with "The documents do not contain" and say what is missing, add a `missing_evidence` notice and make no claims (leave `claims` empty and never write "not found" as a claim; put it in the summary and the notice). Never invent a policy, number or citation.
 - Cross-document questions need evidence from each relevant document.
 
