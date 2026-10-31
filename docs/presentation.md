@@ -1,6 +1,6 @@
-# PolicyPilot presentation and demo plan
+# PolicyPilot presentation and walkthrough plan
 
-This is the reviewer and interview walkthrough, not a marketing script. Target 18-20 minutes, leaving room for questions and a code modification.
+This is the reviewer and interview walkthrough, not a marketing script. Target 12 to 15 minutes, leaving room for questions and a small code modification. The repository includes a reproducible walkthrough in `docs/demo.md`; a recording is optional.
 
 ## Presentation principle
 
@@ -10,20 +10,23 @@ This is the reviewer and interview walkthrough, not a marketing script. Target 1
 
 |        Time | Section               | What to show                                              | Main point                                                              |
 | ----------: | --------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- |
-|   0:00-0:45 | Problem               | Title and one-sentence framing                            | Policy answers are useful only when a user can inspect the evidence.    |
-|   0:45-1:30 | Scope and invariants  | Users, bounded corpus, session isolation, citations       | Groundedness and isolation are hard requirements.                       |
-|   1:30-6:00 | Live product          | Multi-document case, trace and citation drawer            | This is working software, not a diagram.                                |
-|   6:00-8:00 | Why an agent          | Weak result followed by a changed action                  | The loop adapts to evidence; it is not fixed retrieve-then-generate.    |
-|  8:00-11:30 | HLD                   | One architecture diagram and query path                   | Explain service boundaries, state, tools and persistence.               |
-| 11:30-13:30 | Trust and safety      | Citation checks, prompt injection and abstention          | Trust is enforced partly in code, not left to prompting.                |
-| 13:30-16:00 | Evaluation            | Agent versus baseline table, latency/cost and one failure | Show measured trade-offs, not “agent always wins.”                      |
-| 16:00-17:30 | Operations            | Compose, Redis outage, health and persistence             | The deployment has failure behavior, not just containers.               |
-| 17:30-19:00 | Trade-offs and limits | Current/next table                                        | Be explicit about what is unfinished and when the architecture changes. |
-| 19:00-20:00 | Close                 | Three outcomes and reviewer questions                     | Reproducible, inspectable and honest.                                   |
+|   0:00-0:45 | Problem | Title and one-sentence framing | Policy answers are useful only when a user can inspect evidence. |
+|   0:45-1:30 | Scope and invariants | 14-document corpus, page citations, user isolation | Groundedness and isolation are hard requirements. |
+|   1:30-4:30 | Live product | Signed-in workspace, multi-document answer, trace and citation drawer | This is working software, not a diagram. |
+|  4:30-6:00 | Why an agent | Weak result followed by a changed action, then clarification | The loop adapts to evidence and can decline to guess. |
+|  6:00-8:30 | HLD | One architecture diagram and query path | Explain boundaries, tools, durable state and stopping conditions. |
+|  8:30-10:00 | Trust and safety | Citation checks, prompt injection and abstention | Important guarantees are enforced in code, not only prompted. |
+| 10:00-11:30 | Evaluation | Agent versus baseline, cost and one failure | Show measured trade-offs, not “agent always wins.” |
+| 11:30-12:30 | Operations | Compose, Redis outage, persistence and tested Kind path | The system has observable failure behavior. |
+| 12:30-14:00 | Limits and close | What is implemented, tested and only designed | Reproducible, inspectable and honest. |
 
 ## Opening
 
 > PolicyPilot is a policy research assistant that can search, inspect and combine evidence across a bounded PDF corpus. The key design decision is that it does not have to answer: it can retrieve again, ask a clarification, or stop when the evidence is insufficient. Every material answer claim is tied to a document page the user can open.
+
+When showing the signed-in workspace, add:
+
+> The application keeps conversations and uploaded documents private to the signed-in user, while opening a fresh conversation after sign-in so prior work is not accidentally resumed.
 
 ## Live demo sequence
 
@@ -62,8 +65,8 @@ Draw or reveal one layer at a time:
 1. Browser and same-origin gateway.
 2. FastAPI authorization boundary.
 3. Two paths: ingestion and query.
-4. PostgreSQL/pgvector as durable truth; Redis as disposable acceleration.
-5. Bounded agent state machine and three read-only tools.
+4. PostgreSQL/pgvector as durable truth; Redis as disposable acceleration and control state.
+5. Bounded agent state machine and four read-only tools.
 6. Citation verifier before response.
 7. Trace and metrics returning to the UI.
 
@@ -131,11 +134,11 @@ Readiness reports degraded, sessions and turns remain durable in PostgreSQL, and
 
 ### What would you change with another week?
 
-Use a durable ingestion worker, add authenticated tenancy and ACLs, expand the held-out corpus/evaluation, measure reranking, and deploy managed data stores only if availability requirements justify them.
+Expand the genuinely blind evaluation set, improve retrieval for vocabulary mismatch, add roles and university SSO, and move PostgreSQL and Redis to managed services only if the availability requirement justifies them. Durable workers and sign-in are already implemented.
 
 ## Recording checklist
 
-- Record against the final release SHA.
+- Walk through the final release SHA, whether recording or presenting live.
 - Use a clean browser and pre-indexed corpus.
 - Keep one HLD diagram, not several dense slides.
 - Show exact sources and at least one adaptive trace.

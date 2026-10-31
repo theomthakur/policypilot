@@ -6,6 +6,14 @@ The application has a React interface, a FastAPI backend, PostgreSQL with pgvect
 
 > The ten "Northfield University" policies are fictional and were created for this project. They are not official NYU policies. Four more documents are real, public NIST publications (see [Documents](#documents)).
 
+## What a reviewer can see
+
+| Personalized workspace | Grounded answer and execution trace |
+|---|---|
+| ![A signed-in PolicyPilot workspace with a personalized greeting and suggested questions.](docs/deployment-evidence/2026-10-30/compose-bob.png) | ![A PolicyPilot answer with a verified citation and its visible agent activity trace.](docs/deployment-evidence/2026-10-30/kind-alice.png) |
+
+These screenshots are from verified local Compose and Kubernetes runs. They do not represent a public hosted deployment.
+
 ## Status
 
 The submitted implementation is on `main`. The current canonical evaluation record is the **Final evaluated release** section at the top of [`docs/evaluation.md`](docs/evaluation.md).
@@ -18,6 +26,26 @@ The submitted implementation is on `main`. The current canonical evaluation reco
 - **Outside the demonstrated scope:** cross-node scaling and load testing, database replication, a live OpenShift deployment, university SSO, roles, and single logout.
 
 The checklist of what the brief asks for and where each item stands is in [`docs/submission-checklist.md`](docs/submission-checklist.md).
+
+## Assignment coverage at a glance
+
+| Brief requirement | What PolicyPilot implements |
+|---|---|
+| Full-stack app over 8 to 15 PDFs | React UI, FastAPI API, 14-PDF library, plus per-user PDF uploads |
+| RAG pipeline | Parse, page-bounded chunk, embed, index, hybrid retrieve, generate and verify |
+| Adaptive agent | Bounded tool-use loop that can search, read, inspect an outline, revise, clarify, abstain or answer |
+| Tool contracts | Four read-only, validated tools: list documents, search documents, read pages and inspect an outline |
+| State and observability | Durable sessions, evidence ledger, visible action trace, timing, token and cost records |
+| Safety and reliability | Limits, timeouts, bounded retry, prompt-injection handling, citation checks, isolation and useful partial answers |
+| Persistence and operations | PostgreSQL, Redis fallback, Docker Compose, health checks, CI, persistence and outage evidence |
+| Evaluation | Eleven repeatable cases, same-model baseline comparison, raw traces and documented failures |
+
+### Implemented enhancements
+
+- OpenID Connect sign-in with per-user conversations and uploads, plus a personalized workspace greeting.
+- Hybrid vector and keyword retrieval, reciprocal-rank fusion, policy-family metadata and supersession notices.
+- Docker Compose is the required deployment path. A local Kubernetes `kind` deployment was also run and drilled.
+- Kustomize manifests include an OpenShift-compatible overlay. It renders successfully but has **not** been deployed to a real OpenShift cluster.
 
 ## What it does
 
@@ -167,7 +195,7 @@ scripts/k8s_up.sh    # Kubernetes on a local kind cluster, with sign-in; then sc
 
 Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services. CI runs the full unit and integration suite and fails if an expected integration test is skipped.
 
-Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (25 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
+Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (31 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
 
 API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 
