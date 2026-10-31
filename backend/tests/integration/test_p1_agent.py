@@ -592,6 +592,18 @@ def test_citing_a_document_and_the_one_it_supersedes_adds_a_conflict_notice(
     assert "states that it supersedes" in notices[0]["text"]
 
 
+def test_documented_mfa_scope_is_eligible_for_conflict_handling() -> None:
+    """The real 2023 and 2025 policies disagree about university-wide MFA."""
+    from app.agent.loop import AgentRun
+
+    metadata = json.loads((Path(__file__).parents[3] / "corpus" / "pdfs" / "metadata.json").read_text())
+    relation = metadata["05-identity-mfa-standard-2025.pdf"]["supersedes"][0]
+    run = AgentRun.__new__(AgentRun)
+    run.question = "Is multi-factor authentication required for every Northfield account?"
+
+    assert run._in_scope(relation, None) is True
+
+
 def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

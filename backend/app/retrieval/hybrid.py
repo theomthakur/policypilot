@@ -160,7 +160,7 @@ async def _family_siblings(
 ) -> list[Hit]:
     """Other versions in the same policy family as a top hit, so a newer or older rule is never missed
     just because the question's wording matched only one of them. Families come from verified metadata."""
-    families = sorted({h.doc_family for h in hits[:3] if h.doc_family and h.authority == "institutional"})
+    families = sorted({h.doc_family for h in hits[:6] if h.doc_family and h.authority == "institutional"})
     if not families:
         return []
     have = sorted({h.document_id for h in hits})
