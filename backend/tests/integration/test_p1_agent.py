@@ -744,6 +744,37 @@ def test_no_conflict_notice_without_a_documented_relation(
 # ---- P1-E: follow-ups search the earlier sources first, then everything -----------------------------------
 
 
+def test_a_request_to_simplify_the_previous_answer_does_not_search(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(
+                (
+                    "chat_reply",
+                    {
+                        "message": (
+                            "In simple terms, the assignment is to build an app that finds useful text "
+                            "before it answers."
+                        )
+                    },
+                )
+            )
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "Explain that in simpler words",
+        ctx_kwargs={"history": [("What is the assignment?", "Build a RAG application over uploaded PDFs.")]},
+    )
+    assert outcome.stop_reason == "answered"
+    assert outcome.totals.tool_calls == 0
+    assert not events.of("tool_call")
+
+
 def test_follow_up_search_is_scoped_to_earlier_sources(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 
