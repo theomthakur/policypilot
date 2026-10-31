@@ -32,7 +32,7 @@ html, body.login-pf, body {
 .pf-v5-c-login {
   display: flex;
   min-height: 100vh;
-  padding: 32px 16px;
+  padding: 24px 16px;
   align-items: center;
   justify-content: center;
 }
@@ -53,7 +53,7 @@ html, body.login-pf, body {
 
 #kc-header {
   width: min(100% - 32px, 460px);
-  margin: 0 0 20px;
+  margin: 0 0 12px;
   color: var(--pp-ink);
   text-align: center;
 }
@@ -155,7 +155,7 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
 
 .alert, .pf-v5-c-alert { margin: 0 0 20px; color: var(--pp-ink); background: var(--pp-highlight); border: 1px solid var(--pp-line); border-radius: 10px; }
 .alert-error, .pf-m-danger { color: #781e38; background: #fbe8ee; border-color: #ebc4d1; }
-#kc-registration, #kc-registration-container, .login-pf-signup, .pf-v5-c-login__main-footer-band { margin-top: 22px; color: var(--pp-muted); text-align: center; }
+#kc-registration, #kc-registration-container, .login-pf-signup, .pf-v5-c-login__main-footer-band { margin-top: 14px; color: var(--pp-muted); text-align: center; }
 #kc-reset-password, #kc-forgot-password, a[href*='forgot-credentials'] { display: none !important; }
 
 @media (max-width: 520px) {
@@ -181,8 +181,10 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
   border-radius: 0;
   box-shadow: none;
 }
-.pf-v5-c-login__main .pf-v5-c-login__main-header { padding: 0 0 18px; }
+.pf-v5-c-login__main .pf-v5-c-login__main-header { padding: 0 0 12px; }
 .pf-v5-c-login__main .pf-v5-c-login__main-footer { padding: 0; }
+.pf-v5-c-login__main-footer-band { padding: 14px 0 0; }
+#kc-registration { margin-top: 0; }
 
 /* The wrapper is the field's box; the input inside it has no border, so nothing is drawn twice. */
 .pf-v5-c-form-control {
@@ -227,19 +229,20 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
 html, body, body.login-pf { background-attachment: fixed; background-repeat: no-repeat; background-size: cover; min-height: 100vh; }
 
 /* ---- Layout polish: stacked logo, centered caption, label gaps, tidy re-authenticate view --------------- */
-#kc-header-wrapper { flex-direction: column; gap: 14px; }
-#kc-header-wrapper::before { width: 64px; height: 64px; }
+#kc-header-wrapper { flex-direction: column; gap: 8px; }
+#kc-header-wrapper::before { width: 52px; height: 52px; }
 
 .pf-v5-c-login__main .pf-v5-c-login__main-body { display: flex; flex-direction: column; }
 .pf-v5-c-login__main-body::before { order: 0; text-align: center; }
 
-/* A clear gap between each label and its box */
+/* A clear, compact gap between each label and its box. */
 div.pf-v5-c-form__label { margin-bottom: 8px; }
-.pf-v5-c-form__group + .pf-v5-c-form__group { margin-top: 18px; }
+.pf-v5-c-form { row-gap: 16px; }
+.pf-v5-c-form__group, .pf-v5-c-form__group + .pf-v5-c-form__group { margin-top: 0; }
 
 /* Re-authenticate view: a short centered note first (it sits inside the username block), then the username
    and the password form. */
-.pf-v5-c-login__main-body > .pf-v5-c-form { margin-bottom: 18px; }
+.pf-v5-c-login__main-body > .pf-v5-c-form { margin-bottom: 12px; }
 .pf-v5-c-form .pf-v5-c-alert.pf-m-info {
   order: -1;
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -251,6 +254,17 @@ div.pf-v5-c-form__label { margin-bottom: 8px; }
 
 .pf-v5-c-form-control.pf-m-readonly input { color: var(--pp-muted); }
 #reset-login { flex: none; overflow: hidden; }
+#reset-login, .pf-v5-c-input-group__item {
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+#reset-login::before, #reset-login::after,
+.pf-v5-c-input-group__item::before, .pf-v5-c-input-group__item::after {
+  display: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
 #reset-login .kc-tooltip-text {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap;
