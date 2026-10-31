@@ -1242,6 +1242,7 @@ class AgentRun:
     async def _best_sentence(self, doc: Document, terms: list[str]) -> tuple[int, str] | None:
         """The sentence, on the pages of `doc` read this turn, that best answers the question (literal)."""
         wanted = _stems(self.question) | {t for term in terms for t in _stems(term)}
+        question_words = _content_words(self.question)
         best: tuple[float, int, str] | None = None
         for item in self.state.ledger.values():
             if item.document_id != doc.id:
@@ -1252,12 +1253,77 @@ class AgentRun:
                 hits = sum(t in lowered for t in terms)
                 if terms and not hits:
                     continue  # the sentence must touch the superseded provision itself
-                score = len(wanted & _stems(sentence)) + 3 * hits
+                sentence_words = _content_words(sentence)
+                question_hits = len(question_words & sentence_words)
+                if question_words and not question_hits:
+                    continue
+                operative = bool(
+                    re.search(
+                        r"\b(required|prohibited|must|may not|mandates|"
+                        r"not universally mandated|shall|only)\b",
+                        lowered,
+                    )
+                )
+                score = len(wanted & _stems(sentence)) + 3 * hits + 4 * question_hits + 5 * operative
                 if score and (best is None or score > best[0]):
                     literal = locate_quote(sentence, text or "")
                     if literal:
                         best = (score, item.page, literal)
         return (best[1], best[2]) if best else None
+
+    async def _refresh_conflict_evidence(self) -> None:
+        """Make one scoped comparison search when related policy versions are already in play.
+
+        A broad initial search can surface each document's cover page or an unrelated provision. The
+        comparison stays bounded, uses only the two already-seen documents, and records the normal tool
+        events so the final conflict explanation is auditable.
+        """
+        if self.totals.tool_calls >= self.settings.agent_max_tool_calls:
+            return
+        seen = {item.document_id for item in self.state.ledger.values()}
+        for newer, older, relation in await self._supersession_pairs():
+            if (
+                newer.id not in seen
+                or older.id not in seen
+                or not self._in_scope(relation, older)
+                or _is_historical(self.question, older.effective_date)
+            ):
+                continue
+            self.totals.tool_calls += 1
+            self.totals.tool_attempts += 1
+            args = {
+                "query": self.question[:300],
+                "document_ids": [str(newer.id), str(older.id)],
+                "top_k": 6,
+            }
+            await self.emit(
+                "tool_call",
+                "ok",
+                state="ACT",
+                tool="search_documents",
+                input=args,
+                attempt=1,
+                scope="policy_version_comparison",
+                summary="Comparing the related policy versions for this question.",
+            )
+            began = time.monotonic()
+            result = await run_tool(
+                self.tools, "search_documents", args, max_seconds=max(0.5, self._time_left())
+            )
+            await self.emit(
+                "tool_result",
+                result.status,
+                state="OBSERVE",
+                tool="search_documents",
+                attempt=1,
+                duration_ms=round((time.monotonic() - began) * 1000),
+                summary=result.summary,
+                result=self._result_summary("search_documents", result),
+            )
+            # This records the newly returned pages in the evidence ledger. The model does not need another
+            # turn because _conflict_template builds a literal, cited comparison from those pages.
+            _model_view("search_documents", result, self.state, self.cited)
+            return
 
     async def _conflict_template(self) -> dict[str, Any] | None:
         """When this turn read a document and the one it documents itself as superseding, and the question is
@@ -1401,12 +1467,7 @@ class AgentRun:
                 messages, call, "Citation check failed:\n- " + "\n- ".join(verified.failures[:5])
             )
             return None
-        if not self.state.conflict_repair_used:
-            missing = await self._uncited_superseding(verified.answer)
-            if missing and self._limit_hit() is None:
-                self.state.conflict_repair_used = True
-                self._tool_message(messages, call, missing)
-                return None
+        await self._refresh_conflict_evidence()
         templated = await self._conflict_template()
         if templated is not None:
             await self.emit(
@@ -1415,7 +1476,16 @@ class AgentRun:
                 state="EVALUATE",
                 summary="Two documents disagree and one replaces the other: answering from both passages.",
             )
-        answer = templated or await self._verify_summary(await self._normalize(verified.answer))
+            answer = templated
+        elif not self.state.conflict_repair_used:
+            missing = await self._uncited_superseding(verified.answer)
+            if missing and self._limit_hit() is None:
+                self.state.conflict_repair_used = True
+                self._tool_message(messages, call, missing)
+                return None
+            answer = await self._verify_summary(await self._normalize(verified.answer))
+        else:
+            answer = await self._verify_summary(await self._normalize(verified.answer))
         if partial_reason and answer["claims"]:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(

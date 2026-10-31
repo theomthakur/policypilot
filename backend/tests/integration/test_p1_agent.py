@@ -604,6 +604,36 @@ def test_documented_mfa_scope_is_eligible_for_conflict_handling() -> None:
     assert run._in_scope(relation, None) is True
 
 
+def test_conflict_evidence_is_refreshed_before_a_one_sided_answer(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _metadata_corpus(make_pdf, tmp_path)
+
+    def only_new(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Password Standard", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Passwords do not expire.",
+                    "claims": [
+                        {"text": "Passwords do not expire.", "evidence_ids": [key], "quote": QUOTE_NEW}
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "passwords expire prohibited"})), only_new])
+    outcome, events = _run(model, "Do passwords expire?")
+    assert outcome.stop_reason == "answered"
+    assert {c["title"] for c in outcome.answer["citations"]} == {"1. Password Standard", "1. Password Policy"}
+    assert [n["kind"] for n in outcome.answer["notices"]] == ["conflict"]
+    assert any(e.get("scope") == "policy_version_comparison" for e in events.of("tool_call"))
+
+
 def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
