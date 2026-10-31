@@ -46,11 +46,12 @@ from app.tools.injection import find_injection
 
 logger = logging.getLogger("policypilot.agent")
 
-# A greeting, thanks or "what can you do" is short; anything longer is treated as a real question.
-CHAT_MAX_WORDS = 6
 # Questions about the assistant itself are small talk however long they are.
 ABOUT_ME = re.compile(
     r"\b(what|how) (can|could|do|would) you (help|do|assist)\b|\bwho are you\b|\bwhat are you\b", re.I
+)
+SMALL_TALK = re.compile(
+    r"^\s*(?:hi|hello|hey|good (?:morning|afternoon|evening)|thanks?|thank you)[!,.\s]*$", re.I
 )
 REWRITE_FOLLOW_UP = re.compile(
     r"\b(explain|simplify|summari[sz]e|restate)\b.*\b(that|this|it|previous|above|simpler|plain)\b",
@@ -106,6 +107,12 @@ def _content_words(text: str) -> set[str]:
     """Distinctive lowercase words (4+ letters, plural stripped) used to compare labels and questions."""
     words = re.findall(r"[a-z]{4,}", text.lower())
     return {w.rstrip("s") for w in words if w not in _GENERIC}
+
+
+def _may_reply_without_search(question: str) -> bool:
+    """Only genuine small talk and a single unintelligible token may bypass the evidence workflow."""
+    stripped = question.strip()
+    return bool(ABOUT_ME.search(stripped) or SMALL_TALK.fullmatch(stripped) or len(_tokens(stripped)) <= 1)
 
 
 def _stems(text: str) -> set[str]:
@@ -500,7 +507,7 @@ class AgentRun:
                     summary="Plan: " + "; ".join(map(str, call.arguments.get("sub_questions", [])))[:260],
                 )
             elif call.name == "chat_reply":
-                if self.question_words >= CHAT_MAX_WORDS and not ABOUT_ME.search(self.question):
+                if not _may_reply_without_search(self.question):
                     # Not small talk. Instead of hoping the model searches, search for the user's own words
                     # and answer its chat_reply call with the results.
                     synthetic = ToolCall(call.id, "search_documents", {"query": self.question[:300]})

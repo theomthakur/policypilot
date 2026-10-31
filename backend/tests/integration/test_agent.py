@@ -619,6 +619,24 @@ def test_chat_reply_for_a_real_question_triggers_a_search_of_the_users_own_words
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
 
 
+def test_a_short_policy_topic_cannot_bypass_search(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("chat_reply", {"message": "There is no information about guest network access."})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "guest network")
+    result = next(message["content"] for message in model.calls[1] if message["role"] == "tool")
+    assert '"hits"' in result and "Guest" in result
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
+
+
 def test_pages_cited_in_the_previous_answer_are_flagged_for_follow_ups(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
