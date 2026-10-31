@@ -97,7 +97,7 @@ class AssessQuestionInput(_Strict):
     )  # a value the question states or implies
     default_reading: str | None = Field(default=None, max_length=80)  # an obvious default value, if any
     default_quote: str | None = Field(
-        default=None, max_length=300
+        default=None, max_length=1000
     )  # words from a result that state that default
     answers_differ: bool = False  # the quoted rules give different steps, limits or numbers per value
     missing_slot: str = Field(default="", max_length=120)

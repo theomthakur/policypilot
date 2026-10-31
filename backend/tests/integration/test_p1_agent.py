@@ -989,6 +989,16 @@ def test_a_default_without_a_quote_does_not_stop_a_clarifying_question(
         assert (outcome.stop_reason == "clarification_needed") is expect_ask, fields
 
 
+def test_a_long_grounded_default_quote_is_accepted() -> None:
+    from app.tools.contracts import AssessQuestionInput
+
+    quote = "A restrictive rule applies to this documented condition. " * 12
+    verdict = AssessQuestionInput.model_validate(
+        {"answerable": True, "default_reading": "restricted data", "default_quote": quote}
+    )
+    assert verdict.default_quote == quote
+
+
 def test_the_judge_also_sees_passages_for_the_users_exact_words(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
