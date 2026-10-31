@@ -94,7 +94,7 @@ Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of
 
 - [x] GitHub repository with implementation and setup instructions: code and README are on `main`.
 - [x] Reproducibility notes: corpus source, model and embedding IDs, prompts, tool schemas, environment template, evaluation command, expected cost (`docs/reproducibility.md`).
-- [x] System design and architecture diagram with components, agent states, tool calls, decision points, retrieval loop and stopping conditions (`docs/architecture.md`, `docs/system-design.md`, the in-app System design page).
+- [x] System design and architecture diagram with components, agent states, tool calls, decision points, retrieval loop and stopping conditions (`docs/system-design.md` and the in-app System design page).
 - [x] Agent and baseline evaluation results and failure analysis (`docs/evaluation.md`).
 - [x] Short recorded demo or reproducible walkthrough: the reproducible walkthrough and saved traces are in `docs/demo.md` and `docs/demo-evidence/`. It covers a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. CASE-4 passed r31's three tuned repeats, but the measurement is not blind, so the walkthrough states that limit honestly.
 - [x] Short summary of achievements, unfinished work and improvements (`docs/summary.md`).

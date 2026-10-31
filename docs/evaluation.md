@@ -33,7 +33,7 @@ The sections that follow are historical experiments kept as a record. Where a nu
 
 This section supersedes the headline numbers further down. The older sections (run r10, its failure analysis and citation log) are kept as the record of that run.
 
-**What changed since r10.** Prompt v9; a structured ambiguity check after the first search; code that normalizes abstentions; document metadata (authority, version, effective date, documented supersession) with policy-family discovery and a conflict repair; follow-up search scoped to earlier sources; a 0.9 ranking weight for NIST reference material; truthful counters. Code and tests: see `docs/remaining-execution-plan.md` (handoff log). Same model (`openai/gpt-4o-mini`, temperature 0, seed 42), same 14-document library.
+**What changed since r10.** Prompt v9; a structured ambiguity check after the first search; code that normalizes abstentions; document metadata (authority, version, effective date, documented supersession) with policy-family discovery and a conflict repair; follow-up search scoped to earlier sources; a 0.9 ranking weight for NIST reference material; truthful counters. The historical implementation handoff log is archived at [`archive/pre-release-2026-10-29/remaining-execution-plan.md`](archive/pre-release-2026-10-29/remaining-execution-plan.md). Same model (`openai/gpt-4o-mini`, temperature 0, seed 42), same 14-document library.
 
 ### Later the same day: fresh set, supersession template and facet gate (r18, `eval/heldout2.yaml`)
 

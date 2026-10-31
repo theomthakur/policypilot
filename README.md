@@ -235,14 +235,14 @@ More in [`docs/security-and-limitations.md`](docs/security-and-limitations.md).
 ## Documentation
 
 - [Submission checklist against the brief](docs/submission-checklist.md) and [summary of achievements and unfinished work](docs/summary.md)
-- [System design](docs/system-design.md), [architecture](docs/architecture.md) and [architecture decisions](docs/adr/)
+- [System design](docs/system-design.md) and [architecture decisions](docs/adr/)
 - [Requirements and traceability](docs/requirements.md)
 - [Evaluation: method, results, run history, failure analysis](docs/evaluation.md)
 - [Reproducibility: corpus, models, prompts, cost](docs/reproducibility.md)
 - [Authentication](docs/authentication.md) and [Kubernetes](docs/kubernetes.md)
 - [Runbook, demo walkthrough and deployment evidence](docs/runbook.md), [demo](docs/demo.md), [evidence](docs/deployment-evidence/)
-- [Presentation plan](docs/presentation.md) and [slide-by-slide plan](docs/presentation-slides.md)
-- [End-to-end completeness audit](docs/completeness-audit.md)
+- [Presentation and reviewer walkthrough](docs/presentation.md)
+- [Historical planning and audits](docs/archive/pre-release-2026-10-29/)
 
 ## AI assistance
 

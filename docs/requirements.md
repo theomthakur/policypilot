@@ -96,7 +96,7 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 ### J. Engineering quality
 | ID | Requirement | Acceptance test | Status |
 |---|---|---|---|
-| REQ-J1 | Clear code organization | Module boundaries per `docs/architecture.md` | done |
+| REQ-J1 | Clear code organization | Module boundaries per `docs/system-design.md` | done |
 | REQ-J2 | Tests, linting and type checks | CI required checks | done |
 | REQ-J3 | Documentation | Every file in the documentation set exists and cites the canonical r31 evaluation record | done |
 
@@ -132,7 +132,7 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 |---|---|---|---|
 | SUB-1 | Repository with implementation and setup instructions | `README.md` | done |
 | SUB-2 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, eval command, expected API cost | `docs/reproducibility.md` | done |
-| SUB-3 | Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | `docs/architecture.md` | done |
+| SUB-3 | Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | `docs/system-design.md` | done |
 | SUB-4 | Agent and baseline evaluation results and failure analysis | `docs/evaluation.md`, `eval/results/` | done |
 | SUB-5 | Demo or walkthrough: multi-document question, evidence-driven re-retrieval, clarification, failed tool call; saved traces | `docs/demo.md` | partial |
 | SUB-6 | Summary of achievements, unfinished work and improvements | `docs/summary.md` | done |

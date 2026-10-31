@@ -1,6 +1,6 @@
 # End-to-end completeness audit
 
-> **Historical, dated 2026-10-29 and superseded.** This audit describes the branch at `cab2068`. Many of its findings (session authorization, evaluation gaps, missing deployment evidence, skipped integration tests in CI) have since been addressed or re-measured; the current state is in [`submission-checklist.md`](submission-checklist.md), [`evaluation.md`](evaluation.md) and [`baseline-2026-10-30.md`](baseline-2026-10-30.md). Kept unchanged below for the record.
+> **Historical, dated 2026-10-29 and superseded.** This audit describes the branch at `cab2068`. Many of its findings have since been addressed or re-measured. For the current state, use [`submission-checklist.md`](../../submission-checklist.md), [`evaluation.md`](../../evaluation.md), and [`summary.md`](../../summary.md). Kept unchanged below for the record.
 
 **Audited branch:** `origin/integration/full-stack` at `cab2068`  
 **Audit date:** October 29, 2026  
