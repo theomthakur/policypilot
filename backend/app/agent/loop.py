@@ -1243,6 +1243,7 @@ class AgentRun:
         """The sentence, on the pages of `doc` read this turn, that best answers the question (literal)."""
         wanted = _stems(self.question) | {t for term in terms for t in _stems(term)}
         question_words = _content_words(self.question)
+        asks_about_universal_scope = bool(re.search(r"\b(every|all|universal)\b", self.question, re.I))
         best: tuple[float, int, str] | None = None
         for item in self.state.ledger.values():
             if item.document_id != doc.id:
@@ -1264,7 +1265,19 @@ class AgentRun:
                         lowered,
                     )
                 )
-                score = len(wanted & _stems(sentence)) + 3 * hits + 4 * question_hits + 5 * operative
+                universal_scope = 0
+                if asks_about_universal_scope:
+                    if re.search(r"\bnot\s+universally\b|\bnot\s+all\b", lowered):
+                        universal_scope = 20
+                    elif re.search(r"\b(all|every|universal)\b", lowered):
+                        universal_scope = 4
+                score = (
+                    len(wanted & _stems(sentence))
+                    + 3 * hits
+                    + 4 * question_hits
+                    + 5 * operative
+                    + universal_scope
+                )
                 if score and (best is None or score > best[0]):
                     literal = locate_quote(sentence, text or "")
                     if literal:
