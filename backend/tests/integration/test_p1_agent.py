@@ -828,6 +828,36 @@ def test_follow_up_search_is_scoped_to_earlier_sources(make_pdf: Callable[..., P
     }
 
 
+def test_follow_up_ignores_an_unavailable_model_document_filter(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    guest = _document_id("01-guest")
+    model = ScriptedModel(
+        [
+            respond(
+                (
+                    "search_documents",
+                    {
+                        "query": "guest network limits",
+                        "document_ids": ["00000000-0000-0000-0000-000000000001"],
+                    },
+                )
+            ),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "And what else?",
+        ctx_kwargs={"history": [("q", "a")], "cited": frozenset({(guest, 1)})},
+    )
+    assert [event.get("scope") for event in events.of("tool_call")] == ["previous_sources"]
+    assert outcome.stop_reason == "answered"
+
+
 def test_follow_up_on_a_new_topic_falls_back_to_all_documents(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

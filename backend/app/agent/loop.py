@@ -705,7 +705,7 @@ class AgentRun:
         self.totals.tool_calls += 1
 
         result: ToolResult | None = None
-        scope_ids = self._follow_up_scope(call)
+        scope_ids = await self._follow_up_scope(call)
         title_scope = self.state.title_match_document_ids if call.name == "search_documents" else []
         run_args = (
             {**call.arguments, "document_ids": title_scope}
@@ -823,16 +823,30 @@ class AgentRun:
         return None
 
     # ---- follow-up scoping (P1-E) -----------------------------------------------------------------
-    def _follow_up_scope(self, call: ToolCall) -> list[str]:
-        """Documents cited earlier in the conversation, used to scope the first search of a follow-up."""
+    async def _follow_up_scope(self, call: ToolCall) -> list[str]:
+        """Use earlier sources for a follow-up, including when the model invents an unavailable filter."""
         if (
             call.name != "search_documents"
             or self.state.last_query is not None
-            or call.arguments.get("document_ids")
             or not self.cited
         ):
             return []
-        return sorted({doc for doc, _ in self.cited})[:15]
+        earlier_sources = sorted({doc for doc, _ in self.cited})[:15]
+        requested = call.arguments.get("document_ids") or []
+        if not requested:
+            return earlier_sources
+        # Keep a deliberate valid filter. If every requested ID is unavailable, it is a model
+        # hallucination, so fall back to the documents that established the conversation's topic.
+        async with get_sessionmaker()() as db:
+            visible = select(Document.id).where(Document.id.in_(requested), Document.status == "ready")
+            if self.tools.session_id is None:
+                visible = visible.where(Document.session_id.is_(None))
+            else:
+                visible = visible.where(
+                    (Document.session_id.is_(None)) | (Document.session_id == self.tools.session_id)
+                )
+            valid = {str(doc_id) for doc_id in (await db.execute(visible)).scalars()}
+        return earlier_sources if not valid else []
 
     @staticmethod
     def _scoped_result_unhelpful(result: ToolResult) -> bool:
