@@ -54,7 +54,7 @@ describe('starter questions', () => {
   it('uses focused questions with one direct policy answer each', () => {
     expect(starterQuestions).toEqual([
       'What bandwidth limits apply to unregistered guest devices?',
-      'How are student accounts renewed?',
+      "How long after a student's last enrollment are student accounts deactivated?",
       'How long is data kept on HPC scratch storage?',
     ])
   })
