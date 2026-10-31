@@ -253,7 +253,7 @@ div.pf-v5-c-form__label { margin-bottom: 8px; }
 .pf-v5-c-form .pf-v5-c-alert.pf-m-info .pf-v5-c-alert__title { color: var(--pp-muted); font-size: 13px; font-weight: 500; }
 
 .pf-v5-c-form-control.pf-m-readonly input { color: var(--pp-muted); }
-#reset-login { flex: none; overflow: hidden; }
+#reset-login { display: none !important; }
 #reset-login, .pf-v5-c-input-group__item {
   margin: 0 !important;
   border: 0 !important;
