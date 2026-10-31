@@ -1588,7 +1588,9 @@ class AgentRun:
                 else f"{len(verified.failures)} citation check(s) failed."
             ),
         )
-        if not verified.ok and not self.state.repair_used and self._limit_hit() is None:
+        # A citation repair needs no new document read. Let it proceed at the tool-call limit using the
+        # evidence already in the ledger, but never start another model turn after the time budget expires.
+        if not verified.ok and not self.state.repair_used and self._limit_hit() != "limit_time":
             self.state.repair_used = True
             self._tool_message(
                 messages, call, "Citation check failed:\n- " + "\n- ".join(verified.failures[:5])
