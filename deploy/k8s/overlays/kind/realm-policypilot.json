@@ -1,7 +1,10 @@
 {
   "realm": "policypilot",
   "enabled": true,
+  "displayName": "PolicyPilot",
+  "loginTheme": "policypilot",
   "registrationAllowed": false,
+  "resetPasswordAllowed": false,
   "loginWithEmailAllowed": true,
   "sslRequired": "none",
   "accessTokenLifespan": 300,

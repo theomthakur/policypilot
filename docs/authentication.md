@@ -15,13 +15,20 @@ Design and reasons: [ADR 0009](adr/0009-oidc-sign-in-and-ownership.md). This pag
 ## Try it locally with Keycloak (Compose)
 
 ```sh
-export KC_ALICE_PASSWORD=$(openssl rand -hex 12) KC_BOB_PASSWORD=$(openssl rand -hex 12) \
-       AUTH_SECRET_KEY=$(openssl rand -hex 32)
+set -a && . ./.env.auth-demo && set +a
 docker compose -f docker-compose.yml -f docker-compose.auth.yml up -d --build
-# open http://localhost:8080 and sign in as alice or bob with the generated passwords
+# Open http://localhost:8080 and sign in as alice or bob with the local demo password.
 ```
 
 The realm (`deploy/keycloak/realm-policypilot.json`) defines a public client with PKCE and two users whose passwords come from the environment. Nothing secret is committed. The same realm is used by the kind overlay.
+
+### PolicyPilot login theme
+
+Local Compose mounts the `policypilot` Keycloak login theme from `deploy/keycloak/themes`. It uses the PolicyPilot mark, bundled Manrope and DM Mono fonts, and local CSS only. It does not fetch fonts, images, or styles from a third party. The theme provides a centered branded sign-in and registration experience, respects system dark mode, and is responsive on a narrow viewport.
+
+The committed realm keeps registration and password reset disabled. Local Compose alone starts a short-lived `keycloak-init` helper after Keycloak is available. That helper enables registration for local browser verification, while leaving password reset disabled. The kind overlay remains registration-disabled and mounts the same theme assets through its `keycloak-theme` ConfigMap.
+
+To install this theme on another Keycloak instance, copy `deploy/keycloak/themes/policypilot` into that instance's `/opt/keycloak/themes` directory, set the realm's `loginTheme` to `policypilot`, and restart Keycloak. Existing Keycloak data is not re-imported when the realm JSON changes, so update an existing development realm with the admin console or recreate only the local development realm when a fresh import is required.
 
 ## What a request goes through
 

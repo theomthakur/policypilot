@@ -31,7 +31,7 @@ await page.getByRole('link', { name: 'Sign in' }).click()
 await page.locator('#username').fill(args.user)
 await page.locator('#password').fill(password)
 await page.locator('#kc-login').click()
-await page.getByLabel(/Account menu/).waitFor({ timeout: 60000 }).catch(async (error) => {
+await page.locator('.account-button:visible').first().waitFor({ timeout: 60000 }).catch(async (error) => {
   await page.screenshot({ path: '/tmp/flow-failure.png' })
   console.error('stuck at', page.url())
   throw error

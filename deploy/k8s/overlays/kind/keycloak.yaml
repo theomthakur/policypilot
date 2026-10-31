@@ -58,9 +58,23 @@ spec:
           volumeMounts:
             - {name: data, mountPath: /opt/keycloak/data}
             - {name: realm, mountPath: /opt/keycloak/data/import}
+            - {name: theme, mountPath: /opt/keycloak/themes/policypilot}
             - {name: tmp, mountPath: /tmp}
       volumes:
         - {name: data, emptyDir: {}}
         - {name: tmp, emptyDir: {}}
         - name: realm
           configMap: {name: keycloak-realm}
+        - name: theme
+          configMap:
+            name: keycloak-theme
+            items:
+              - {key: theme.properties, path: login/theme.properties}
+              - {key: messages_en.properties, path: login/messages/messages_en.properties}
+              - {key: policypilot.css, path: login/resources/css/policypilot.css}
+              - {key: policy-pilot-mark.png, path: login/resources/img/policy-pilot-mark.png}
+              - {key: manrope-latin-400-normal.woff2, path: login/resources/fonts/manrope-latin-400-normal.woff2}
+              - {key: manrope-latin-500-normal.woff2, path: login/resources/fonts/manrope-latin-500-normal.woff2}
+              - {key: manrope-latin-600-normal.woff2, path: login/resources/fonts/manrope-latin-600-normal.woff2}
+              - {key: dm-mono-latin-400-normal.woff2, path: login/resources/fonts/dm-mono-latin-400-normal.woff2}
+              - {key: dm-mono-latin-500-normal.woff2, path: login/resources/fonts/dm-mono-latin-500-normal.woff2}
