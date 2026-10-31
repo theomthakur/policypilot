@@ -6,6 +6,7 @@ import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
 import { greeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
+import { latestPendingClarification } from './conversationState'
 
 export interface DisplayMessage {
   id: string
@@ -198,12 +199,9 @@ export function ConversationPanel({
     setContent('')
   }
 
-  const lastClarification = [...messages]
-    .reverse()
-    .find(
-      (message) =>
-        message.role === 'assistant' && message.answer?.clarification,
-    )
+  // A clarification is actionable only until the next turn completes. Looking through the full transcript
+  // left resolved cards clickable, which could submit the same choice twice.
+  const lastClarification = latestPendingClarification(messages)
 
   return (
     <section
