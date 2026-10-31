@@ -1499,7 +1499,9 @@ class AgentRun:
             answer = await self._verify_summary(await self._normalize(verified.answer))
         else:
             answer = await self._verify_summary(await self._normalize(verified.answer))
-        if partial_reason and answer["claims"]:
+        # A conflict template contains complete, verified claims from both related policies. It remains a
+        # finished answer even if the model spent its final tool slot before calling final_answer.
+        if partial_reason and answer["claims"] and templated is None:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(
             "answer",
