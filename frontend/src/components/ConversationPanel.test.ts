@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DisplayMessage } from './ConversationPanel'
+import { starterQuestions } from './starterQuestions'
 import {
   isClarificationReply,
   latestPendingClarification,
@@ -46,5 +47,15 @@ describe('latestPendingClarification', () => {
     const reply: DisplayMessage = { id: 'reply', role: 'user', text: 'Student' }
     expect(isClarificationReply([clarification, reply], 1)).toBe(true)
     expect(isClarificationReply([clarification, reply], 0)).toBe(false)
+  })
+})
+
+describe('starter questions', () => {
+  it('uses focused questions with one direct policy answer each', () => {
+    expect(starterQuestions).toEqual([
+      'What bandwidth limits apply to unregistered guest devices?',
+      'How are student accounts renewed?',
+      'How long is data kept on HPC scratch storage?',
+    ])
   })
 })

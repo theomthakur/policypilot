@@ -7,6 +7,7 @@ import { UserAvatar } from './UserAvatar'
 import { viewerFirstName } from './viewerIdentity'
 import { personalizedGreeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
+import { starterQuestions } from './starterQuestions'
 import {
   isClarificationReply,
   latestPendingClarification,
@@ -32,12 +33,6 @@ interface ConversationPanelProps {
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
 }
-
-const examples = [
-  'What MFA rules apply to remote research access?',
-  'Compare storage rules for restricted data and AI tools',
-  'How do I renew a sponsored guest account?',
-]
 
 function AnswerView({
   answer,
@@ -418,7 +413,7 @@ export function ConversationPanel({
         </form>
         {messages.length === 0 && (
           <div className="suggestions" aria-label="Suggested questions">
-            {examples.map((example) => (
+            {starterQuestions.map((example) => (
               <button
                 key={example}
                 type="button"
