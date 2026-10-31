@@ -6,3 +6,12 @@ export function greeting(now: Date = new Date()): string {
   if (hour < 17) return 'Good afternoon'
   return 'Good evening'
 }
+
+/** A warm greeting that uses only the first word of the signed-in profile name. */
+export function personalizedGreeting(
+  name: string | null | undefined,
+  now: Date = new Date(),
+): string {
+  const firstName = name?.trim().split(/\s+/)[0]
+  return firstName ? `${greeting(now)}, ${firstName}` : greeting(now)
+}

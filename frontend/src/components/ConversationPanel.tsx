@@ -4,7 +4,7 @@ import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
-import { greeting } from '../api/greeting'
+import { personalizedGreeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
 import { latestPendingClarification } from './conversationState'
 
@@ -23,6 +23,7 @@ interface ConversationPanelProps {
   sessionReady: boolean
   mode: 'agent' | 'baseline'
   developer: boolean
+  firstName: string | null
   onModeChange: (mode: 'agent' | 'baseline') => void
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
@@ -167,6 +168,7 @@ export function ConversationPanel({
   sessionReady,
   mode,
   developer,
+  firstName,
   onModeChange,
   onSend,
   onCitationOpen,
@@ -261,7 +263,9 @@ export function ConversationPanel({
           <div className="welcome-state">
             <div className="welcome-row">
               <PolicyPilotMark className="welcome-mark" />
-              <h3>{greeting()}. What would you like to know?</h3>
+              <h3>
+                {personalizedGreeting(firstName)}. What would you like to know?
+              </h3>
             </div>
           </div>
         )}

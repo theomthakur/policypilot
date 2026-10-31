@@ -349,6 +349,7 @@ export function App() {
     auth.data?.mode !== undefined &&
     auth.data.mode !== 'off' &&
     !auth.data.authenticated
+  const firstName = auth.data?.user?.name ?? null
   const [signInEnded, setSignInEnded] = useState(false)
   // "Your sign-in ended" is only true for someone who had signed in during this visit; a first visit also
   // gets a 401 from the requests that start before the sign-in state is known, and that must not say so.
@@ -918,6 +919,7 @@ export function App() {
                 sessionReady={Boolean(sessionId)}
                 mode={mode}
                 developer={developer}
+                firstName={firstName}
                 onModeChange={setMode}
                 onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}
