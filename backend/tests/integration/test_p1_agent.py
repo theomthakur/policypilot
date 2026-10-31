@@ -1084,7 +1084,7 @@ def test_a_summary_sentence_with_a_figure_the_pages_lack_is_removed(
     outcome, _ = _run(model, "What is the guest limit?")
     summary = outcome.answer["summary"]
     assert "10 Mbps" in summary and "48 hours" not in summary and "Ask the desk" in summary
-    assert any("removed" in n["text"] for n in outcome.answer["notices"])
+    assert outcome.answer["notices"] == []
 
 
 def test_a_skipped_assessment_is_visible_in_the_trace(make_pdf: Callable[..., Path], tmp_path: Path) -> None:

@@ -300,6 +300,15 @@ async def verify_answer(
         {"kind": n.kind, "text": strip_evidence_ids(n.text), "citation_indexes": indexes_for(n.evidence_ids)}
         for n in draft.notices
     ]
+    # An uncited assumption is not a useful safety signal. Once the answer has verified claims, it is
+    # usually an unrelated caveat the model added while searching. Keep evidence-backed caveats, but do
+    # not let an unsupported aside make a complete answer look uncertain.
+    if claims:
+        notices = [
+            notice
+            for notice in notices
+            if notice["kind"] != "assumption" or notice["citation_indexes"]
+        ]
     # A draft can mix supported and unsupported claims. Never leave the unsupported assertions in
     # the reader-facing summary and then merely label the response partial. The retained claims
     # are model-written prose, backed by literal page quotes, so they are a safe complete answer.

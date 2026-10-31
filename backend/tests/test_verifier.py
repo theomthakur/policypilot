@@ -216,6 +216,17 @@ async def test_an_abstention_never_keeps_the_models_affirmative_summary() -> Non
     assert any(n["kind"] == "missing_evidence" for n in answer["notices"])
 
 
+async def test_a_complete_answer_drops_an_uncited_assumption() -> None:
+    draft = FinalAnswerInput(
+        summary="Guest download is 10 Mbps.",
+        claims=[DraftClaim(text="Guest download is 10 Mbps.", evidence_ids=["E1"], quote="10 Mbps download")],
+        notices=[Notice(kind="assumption", text="An unrelated limit may also apply.")],
+    )
+    result = await verify_answer(draft, LEDGER, page_text)
+    assert result.answer["claims"]
+    assert result.answer["notices"] == []
+
+
 async def test_an_abstention_does_not_show_a_partial_notice() -> None:
     from app.agent.loop import AgentRun
 

@@ -1230,8 +1230,8 @@ class AgentRun:
         return outcome or await self._partial("limit_tool_calls")
 
     async def _verify_summary(self, answer: dict[str, Any]) -> dict[str, Any]:
-        """Claims are quote-checked, the summary prose is not. Drop any summary sentence stating a figure that
-        no cited page contains, and say so. Words and names are not checked; numbers are."""
+        """Claims are quote-checked, while summary prose is not. Drop a summary sentence that states a figure
+        no cited page contains. The retained verified claims remain the complete reader-facing answer."""
         if not answer["citations"] or not answer["summary"]:
             return answer
         pages = [
@@ -1255,13 +1255,6 @@ class AgentRun:
                 "\n".join(line for line in kept_lines if line.strip()).strip()
                 or " ".join(str(c["text"]) for c in answer["claims"])
                 or ABSTAIN_TEXT
-            )
-            answer["notices"].append(
-                {
-                    "kind": "partial",
-                    "text": f"{dropped} sentence(s) with figures no cited page contains were removed.",
-                    "citation_indexes": [],
-                }
             )
         return answer
 
