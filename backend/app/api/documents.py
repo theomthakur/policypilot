@@ -15,7 +15,7 @@ from app import storage
 from app.api.deps import Authenticated, CurrentSession, DbSession, Passcode
 from app.api.errors import ApiError
 from app.config import get_settings
-from app.db.models import Document, DocumentPage, IngestionRun
+from app.db.models import Document, DocumentPage, IngestionRun, Session
 from app.jobs import queue
 from app.state import ingest_progress
 from app.state.corpus import get_corpus_version
@@ -87,10 +87,14 @@ def _upload_result(document: Document, run: IngestionRun, duplicate: bool) -> di
 
 
 def visible_to(session_id: uuid.UUID | None) -> Any:
-    """Shared corpus plus this session's uploads (REQ-F6, REQ-F7)."""
+    """Shared corpus plus the signed-in person's uploads across their conversations."""
     if session_id is None:
         return Document.session_id.is_(None)
-    return or_(Document.session_id.is_(None), Document.session_id == session_id)
+    if get_settings().auth_mode == "off":
+        return or_(Document.session_id.is_(None), Document.session_id == session_id)
+    owner_id = select(Session.owner_user_id).where(Session.id == session_id).scalar_subquery()
+    owner_sessions = select(Session.id).where(Session.owner_user_id == owner_id)
+    return or_(Document.session_id.is_(None), Document.session_id.in_(owner_sessions))
 
 
 async def _visible_document(db: DbSession, document_id: uuid.UUID, session_id: uuid.UUID | None) -> Document:

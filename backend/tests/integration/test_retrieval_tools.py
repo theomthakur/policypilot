@@ -168,3 +168,59 @@ def test_session_uploads_are_invisible_to_other_sessions(
     mine, theirs, fallback_titles = _run(go())
     assert mine >= 1 and theirs == 0
     assert "Private Notes" in fallback_titles
+
+
+def test_signed_in_persons_uploads_follow_them_to_a_new_conversation(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.config import get_settings
+    from app.db.models import Document, IngestionRun, Session, User
+    from app.db.session import get_sessionmaker
+    from app.ingest.pipeline import ingest_document
+    from app.tools.contracts import SearchDocumentsInput
+    from app.tools.impl import ToolContext, search_documents
+
+    personal = make_pdf(["Personal Notes\n\nThe private launch codename is Skylark."], name="personal.pdf")
+
+    async def go() -> tuple[int, int, int]:
+        async with get_sessionmaker()() as db:
+            owner, stranger = User(issuer="https://idp", subject="owner"), User(
+                issuer="https://idp", subject="stranger"
+            )
+            db.add_all([owner, stranger])
+            await db.flush()
+            first = Session(owner_user_id=owner.id)
+            second = Session(owner_user_id=owner.id)
+            other = Session(owner_user_id=stranger.id)
+            db.add_all([first, second, other])
+            await db.flush()
+            doc = Document(
+                title="personal.pdf",
+                filename="personal.pdf",
+                storage_name="personal.pdf",
+                sha256="b" * 64,
+                source="upload",
+                session_id=first.id,
+            )
+            db.add(doc)
+            await db.flush()
+            run = IngestionRun(document_id=doc.id)
+            db.add(run)
+            await db.commit()
+            ids = (doc.id, run.id, first.id, second.id, other.id)
+        await ingest_document(ids[0], ids[1], personal)
+        settings = get_settings().model_copy(update={"auth_mode": "oidc"})
+        query = SearchDocumentsInput(query="private launch codename")
+        first_result = await search_documents(ToolContext(settings, ids[2]), query)
+        second_result = await search_documents(ToolContext(settings, ids[3]), query)
+        other_result = await search_documents(ToolContext(settings, ids[4]), query)
+        return (
+            len((first_result.data or {}).get("hits", [])),
+            len((second_result.data or {}).get("hits", [])),
+            len((other_result.data or {}).get("hits", [])),
+        )
+
+    first_hits, second_hits, other_hits = _run(go())
+    assert first_hits >= 1
+    assert second_hits >= 1
+    assert other_hits == 0

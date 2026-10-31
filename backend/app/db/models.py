@@ -118,7 +118,7 @@ class Document(Base):
     )
 
     __table_args__ = (
-        # The shared corpus is unique by hash; uploads are unique by hash per session.
+        # The shared corpus is unique by hash; upload rows retain the conversation that first added them.
         UniqueConstraint("sha256", "session_id", name="uq_documents_sha256_session"),
         Index("ix_documents_session", "session_id"),
     )

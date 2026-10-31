@@ -305,6 +305,12 @@ def test_two_users_cannot_see_each_others_conversations_or_uploads(
     doc_id, run_id = uploaded.json()["document"]["id"], uploaded.json()["ingestion_run"]["id"]
     assert client.get(f"/api/v1/sessions/{alice_session}").status_code == 200
     assert doc_id in {d["id"] for d in client.get("/api/v1/documents").json()["items"]}
+
+    # Uploads belong to Alice's personal library, not only to the conversation that added them.
+    assert client.post("/api/v1/sessions", headers={"Origin": ORIGIN}).status_code == 201
+    assert doc_id in {d["id"] for d in client.get("/api/v1/documents").json()["items"]}
+    assert client.get(f"/api/v1/documents/{doc_id}").status_code == 200
+    client.cookies.set("pp_session", alice_session)
     alice = _jar(client)
 
     client.cookies.clear()

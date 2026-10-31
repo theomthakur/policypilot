@@ -12,7 +12,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
-from app.db.models import Document, DocumentPage
+from app.db.models import Document, DocumentPage, Session
 from app.db.session import get_sessionmaker
 from app.retrieval import cache as search_cache
 from app.retrieval.hybrid import SearchResult, hybrid_search
@@ -62,22 +62,31 @@ def _error(code: ErrorCode, message: str, retryable: bool = False) -> ToolResult
     )
 
 
-def _visible(session_id: uuid.UUID | None) -> Any:
+def _visible(session_id: uuid.UUID | None, account_library: bool) -> Any:
     if session_id is None:
         return Document.session_id.is_(None)
+    if account_library:
+        owner_id = select(Session.owner_user_id).where(Session.id == session_id).scalar_subquery()
+        owner_sessions = select(Session.id).where(Session.owner_user_id == owner_id)
+        return or_(Document.session_id.is_(None), Document.session_id.in_(owner_sessions))
     return or_(Document.session_id.is_(None), Document.session_id == session_id)
 
 
 async def _visible_doc(
-    db: AsyncSession, document_id: uuid.UUID, session_id: uuid.UUID | None
+    db: AsyncSession, document_id: uuid.UUID, session_id: uuid.UUID | None, account_library: bool
 ) -> Document | None:
-    query = select(Document).where(Document.id == document_id, _visible(session_id))
+    query = select(Document).where(Document.id == document_id, _visible(session_id, account_library))
     return (await db.execute(query)).scalar_one_or_none()
 
 
 async def list_documents(ctx: ToolContext, args: ListDocumentsInput) -> ToolResult:
     async with get_sessionmaker()() as db:
-        query = select(Document).where(_visible(ctx.session_id)).order_by(Document.filename).limit(args.limit)
+        query = (
+            select(Document)
+            .where(_visible(ctx.session_id, ctx.settings.auth_mode != "off"))
+            .order_by(Document.filename)
+            .limit(args.limit)
+        )
         if args.status == "ready":
             query = query.where(Document.status == "ready")
         if args.title_contains:
@@ -156,7 +165,7 @@ async def search_documents(ctx: ToolContext, args: SearchDocumentsInput) -> Tool
                         select(Document.id).where(
                             Document.id.in_(document_ids),
                             Document.status == "ready",
-                            _visible(ctx.session_id),
+                            _visible(ctx.session_id, ctx.settings.auth_mode != "off"),
                         )
                     )
                 ).scalars()
@@ -169,7 +178,14 @@ async def search_documents(ctx: ToolContext, args: SearchDocumentsInput) -> Tool
             data = {**data, "cached": True}
         else:
             result = await hybrid_search(
-                db, args.query, ctx.session_id, document_ids, args.page_start, args.page_end, args.top_k
+                db,
+                args.query,
+                ctx.session_id,
+                document_ids,
+                args.page_start,
+                args.page_end,
+                args.top_k,
+                account_library=ctx.settings.auth_mode != "off",
             )
             data = _result_to_data(result, version, cached=False)
             await search_cache.set_cached(key, data)
@@ -201,7 +217,10 @@ async def read_document_pages(ctx: ToolContext, args: ReadDocumentPagesInput) ->
     async with get_sessionmaker()() as db:
         doc = (
             await db.execute(
-                select(Document).where(Document.id == args.document_id, _visible(ctx.session_id))
+                select(Document).where(
+                    Document.id == args.document_id,
+                    _visible(ctx.session_id, ctx.settings.auth_mode != "off"),
+                )
             )
         ).scalar_one_or_none()
         if doc is None:
@@ -236,7 +255,10 @@ async def get_document_outline(ctx: ToolContext, args: GetDocumentOutlineInput) 
     async with get_sessionmaker()() as db:
         doc = (
             await db.execute(
-                select(Document).where(Document.id == args.document_id, _visible(ctx.session_id))
+                select(Document).where(
+                    Document.id == args.document_id,
+                    _visible(ctx.session_id, ctx.settings.auth_mode != "off"),
+                )
             )
         ).scalar_one_or_none()
         if doc is None:
