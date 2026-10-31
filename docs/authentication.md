@@ -14,6 +14,8 @@ Design and reasons: [ADR 0009](adr/0009-oidc-sign-in-and-ownership.md). This pag
 
 ## Try it locally with Keycloak (Compose)
 
+Shortest way: `scripts/run_with_sign_in.sh` creates the test passwords in a git-ignored `.env.auth-demo` on first use and starts everything with the themed sign-in and registration pages. The commands below do the same by hand.
+
 ```sh
 set -a && . ./.env.auth-demo && set +a
 docker compose -f docker-compose.yml -f docker-compose.auth.yml up -d --build
