@@ -79,6 +79,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw error
   }
 
+  // DELETE endpoints intentionally return 204 with no body. Parsing that empty
+  // response as JSON turns a successful deletion into a client-side error.
+  if (response.status === 204) return undefined as T
+
   return (await response.json()) as T
 }
 
