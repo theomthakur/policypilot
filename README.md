@@ -167,7 +167,7 @@ scripts/k8s_up.sh    # Kubernetes on a local kind cluster, with sign-in; then sc
 
 Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services. CI runs the full unit and integration suite and fails if an expected integration test is skipped.
 
-Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (23 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
+Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (25 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
 
 API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 
