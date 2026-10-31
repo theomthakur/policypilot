@@ -20,14 +20,14 @@ The generated set contains 10 text-based PDFs and 85 pages (banner, real tables,
 The runtime configuration is versioned in `.env.example`:
 
 - Chat client: OpenAI-compatible API.
-- Planned evaluation chat model: `openai/gpt-4o-mini` through the configured provider.
+- Final evaluation chat model: `openai/gpt-4o-mini` through the configured provider. The ambiguity judgment call uses `openai/gpt-4o`.
 - Embedding provider: local FastEmbed ONNX.
 - Embedding model: `BAAI/bge-small-en-v1.5`.
 - Embedding dimension: 384.
 - Chat temperature: 0.
 - Best-effort seed: 42.
 
-Before the final run, verify provider availability and record the exact provider/model identifier and date in `eval/results/.../results.json`. Agent and baseline must use the same model, corpus, chunks, retriever, and temperature. Do not silently substitute a model between modes.
+The final evaluated release is recorded at the top of [`evaluation.md`](evaluation.md): prompt v10, temperature 0, seed 42, 14 documents, and the r31 raw results. Agent and baseline use the same answer model, corpus, chunks, retriever, and temperature. Do not silently substitute a model between modes.
 
 Prompts and their version identifiers live with the backend agent implementation. Tool schemas are canonical in `contracts/tools.schema.json`; answer and trace schemas are in `contracts/answer.schema.json` and `contracts/trace-event.schema.json`.
 
@@ -69,9 +69,9 @@ Set at minimum:
 POLICYPILOT_BASE_URL=http://localhost:8080/api/v1 .venv/bin/python eval/run.py
 ```
 
-The evaluator calls the public API only. It creates an isolated session per case/system and compares `agent` with `baseline` when the comparison is meaningful. CASE-4 and CASE-8 are explicitly excluded from the baseline score because a fixed one-pass flow cannot clarify or retry.
+The evaluator calls the public API only. It creates an isolated session per case/system and compares `agent` with `baseline` when the comparison is meaningful. CASE-4 and CASE-8 are explicitly excluded from the baseline score because a fixed one-pass flow cannot clarify or retry. The final repeated command was `scripts/run_final_evaluation.sh r31 <python>`; its raw outputs and the current scores are listed at the top of [`evaluation.md`](evaluation.md).
 
-Automated quote matching confirms provenance, not semantic entailment. Complete the manual source log in `docs/evaluation.md` before publishing final scores.
+Automated quote matching confirms provenance, not semantic entailment. The final scores are published with that limitation. A separate human 20-citation spot-check remains required before submission.
 
 ## Cost calculation
 

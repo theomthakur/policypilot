@@ -4,6 +4,8 @@
 
 Everything below this block is the history of how the numbers were reached. This block is the current, canonical result.
 
+Raw reports for the canonical run are in [`eval/results/r31-tuned-1/report.md`](../eval/results/r31-tuned-1/report.md), [`r31-tuned-2`](../eval/results/r31-tuned-2/report.md), [`r31-tuned-3`](../eval/results/r31-tuned-3/report.md), [`r31-heldout2-1`](../eval/results/r31-heldout2-1/report.md), [`r31-heldout2-2`](../eval/results/r31-heldout2-2/report.md), [`r31-heldout-1`](../eval/results/r31-heldout-1/report.md), and [`r31-heldout-2`](../eval/results/r31-heldout-2/report.md). When an older section differs, this block takes precedence.
+
 - **Code:** branch `integration/full-stack`, evaluated at commit `f6981bc`. Every commit after the agent's last behaviour change (`4102de1`) is documentation or scripts only, so these runs describe the submitted agent.
 - **Prompt version:** v10. **Agent model:** `openai/gpt-4o-mini`; **ambiguity judge:** `openai/gpt-4o`; temperature 0, seed 42; 14-document library, corpus manifest SHA-256 `e80b6f47...2a69` (`corpus/manifest.json`).
 - **Date:** 31 Oct 2026 (US Eastern), runs `r31-*` in `eval/results/`. Commands: `scripts/run_final_evaluation.sh r31 <python>`.

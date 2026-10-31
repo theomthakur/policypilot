@@ -1,13 +1,13 @@
 # Submission checklist against the take-home brief
 
-Status as of 30 Oct 2026, from the integrated branch (`integration/full-stack`). Legend: **[x] done** (built and verified by a test, a run or saved output), **[~] partial** (works, something named is open), **[ ] pending** (not done). The wording of each requirement is paraphrased from the brief.
+Status as of 31 Oct 2026, from the integrated branch (`integration/full-stack`). Legend: **[x] done** (built and verified by a test, a run or saved output), **[~] partial** (works, something named is open), **[ ] pending** (not done). The wording of each requirement is paraphrased from the brief. Evaluation facts below defer to the canonical **Final evaluated release** block in [`evaluation.md`](evaluation.md).
 
 ## 1. The problem statement
 
 - [x] Full-stack agentic RAG app over about 8 to 15 text PDFs from one domain. (10 synthetic university IT policies, 85 pages, plus 4 real public NIST documents: 14 PDFs, 231 pages.)
 - [x] Users can upload documents and ask simple or multi-part questions.
 - [x] The agent chooses tools, inspects results, and decides between retrieving more, asking for clarification, or answering with document and page citations.
-- [~] Asking for clarification works in the code and in tests, but the real model does not reliably ask when it should (see CASE-4 below).
+- [~] Asking for clarification works in the code and passed all three r31 CASE-4 runs, but the measurement is small and not blind (see CASE-4 below).
 - [x] Working containerized deployment (Docker Compose runs all four services and passes the smoke test locally).
 - [x] The corpus is included, with a reproducible generator and a manifest (`corpus/`). Documents support cross-document questions.
 - [~] Unfinished work is documented (`docs/summary.md`, `docs/evaluation.md`).
@@ -61,29 +61,29 @@ Status as of 30 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [x] Repeatable evaluation script with 11 cases, expected behavior and expected sources (`eval/run.py`, `eval/cases.yaml`).
 - [x] Actual results and a failure analysis (`docs/evaluation.md`), compared with a single-pass retrieve-once baseline on the same corpus and model, with traces committed and exclusions explained (CASE-4 and CASE-8 are not applicable to the baseline).
 - [x] The write-up says where iteration helps and where it only adds cost; the agent does not win every case.
-- [~] Manual citation check: done for the last run by the assistant that built the system, not by a person (`docs/evaluation.md`: 21 of 21 claims have their numbers and terms on the cited page, and a read-through found them supported). Please spot-check about 20 cited pages yourself.
+- [~] The automatic verifier confirms literal quotes on cited pages. An independent human spot-check of about 20 citations remains pending; it should not be represented as completed by the system builder.
 
 **J. Engineering quality**
-- [x] Clear module layout, ADRs, 173 backend tests and 23 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
+- [x] Clear module layout, ADRs, backend unit and integration coverage, 25 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [x] Tests pass locally and in GitHub Actions.
 
-## 3. Required test cases (three repeats, r15 to r17, agent vs baseline)
+## 3. Required test cases (three r31 tuned repeats, agent vs baseline)
 
-Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/run-2026-10-29-gpt-4o-mini-r10/`.
+Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/r31-*`. The three tuned runs are the current source of truth.
 
 - [x] 1 Simple lookup: pass, pass
 - [x] 2 Multi-document A: pass, pass
 - [x] 3 Multi-document B: agent 3 of 3, baseline 0 of 3 (it cites one document)
-- [ ] 4 Ambiguous question: **fail** in 3 of 3 repeats (r15 to r17). The structured ambiguity check asks in some runs (r13, r14 asked, then answered) but not reliably; held-out HELD-4 also 0 of 2. Baseline not applicable.
+- [x] 4 Ambiguous question: **pass** in 3 of 3 r31 repeats. Baseline not applicable. The set is tuned and not blind, so this is not a general reliability claim.
 - [x] 5 Insufficient evidence: **pass** in 3 of 3 repeats (explicit abstention, `missing_evidence` notice, no citations); the old strict wording check is kept as `legacy_checks`.
-- [x] 6 Conflicting sources: **3 of 3** repeats after the conflict template (r15 to r17 before it: 1 of 3). When the question is about a superseded provision in force today and both documents were read, the answer is built from the two literal passages with a conflict notice; documented exceptions (service accounts) and historical questions are left alone. Baseline 0 of 3. The template is metadata-driven, so it helps only where a document states its own supersession.
+- [x] 6 Conflicting sources: **3 of 3** r31 repeats. When the question is about a superseded provision in force today and both documents were read, the answer is built from the two literal passages with a conflict notice; documented exceptions (service accounts) and historical questions are left alone. Baseline 0 of 3. The template is metadata-driven, so it helps only where a document states its own supersession.
 - [x] 7 Prompt injection: pass, pass
 - [x] 8 Tool failure or timeout: pass; baseline not applicable
-- [ ] 9 Adaptive re-retrieval (extra): **fail** 0 of 3 (the answer cites the data-classification page but not the cloud-services page); held-out HELD-9, a similar vocabulary mismatch, passed 2 of 2 for the agent.
+- [ ] 9 Adaptive re-retrieval (extra): **fail** 0 of 3 r31 repeats. The agent asked needlessly once, missed a fact once, and hit the call limit once. The separate older HELD-9 also failed both r31 runs.
 - [x] 10 One document, many parts (extra): pass, pass
-- [~] 11 Follow-up question (extra): agent **2 of 3**, baseline 0 of 3 (the failed run searched the NIST incident document and ran out of searches).
+- [~] 11 Follow-up question (extra): agent **2 of 3**, baseline 0 of 3. The failed run reached the call limit.
 
-Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of 27; 9 newer questions, two runs, agent 18 of 18, baseline 10 of 14; 10 older held-out questions, two runs, agent 12 of 20, baseline 12 of 18. No set is blind. The canonical result, the manual citation review and the limits are in `docs/evaluation.md`.
+Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of 27; 9 newer questions, two runs, agent 18 of 18, baseline 10 of 14; 10 older held-out questions, two runs, agent 12 of 20, baseline 12 of 18. No set is blind. The canonical result, automatic quote-verification limit, and known failures are in `docs/evaluation.md`.
 
 ## 4. Technology
 
@@ -92,14 +92,14 @@ Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of
 
 ## 5. What to submit
 
-- [~] GitHub repository with implementation and setup instructions: code and README are on `integration/full-stack`; `main` still holds only the first commit, so open pull requests and merge.
+- [x] GitHub repository with implementation and setup instructions: code and README are on `integration/full-stack`. A merge to `main` is an optional release step.
 - [x] Reproducibility notes: corpus source, model and embedding IDs, prompts, tool schemas, environment template, evaluation command, expected cost (`docs/reproducibility.md`).
 - [x] System design and architecture diagram with components, agent states, tool calls, decision points, retrieval loop and stopping conditions (`docs/architecture.md`, `docs/system-design.md`, the in-app System design page).
 - [x] Agent and baseline evaluation results and failure analysis (`docs/evaluation.md`).
-- [ ] Short recorded demo or walkthrough: you record it. A script and saved traces are in `docs/demo.md`. It must show a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. **Caveat:** with the real model the clarification does not trigger reliably (CASE-4 passed 0 of 3 repeats). Show it with a question where it does ("How do I renew my account?" asked and was answered in runs r13 and r14), or say so openly.
+- [ ] Short recorded demo or walkthrough: you record it. A script and saved traces are in `docs/demo.md`. It must show a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. CASE-4 passed r31's three tuned repeats, but the measurement is not blind, so show the behavior honestly rather than presenting it as guaranteed.
 - [x] Short summary of achievements, unfinished work and improvements (`docs/summary.md`).
-- [~] Deployment runbook and evidence: runbook, Dockerfiles, Compose and CI are done; local evidence is saved (smoke test, restart persistence, Redis outage, health output).
-- [ ] Still missing: a public HTTPS URL, immutable release tag and image digests, a public end-to-end check, an update and rollback drill.
+- [x] Deployment runbook and evidence: runbook, Dockerfiles, Compose and CI are done; local evidence is saved (smoke test, restart persistence, Redis outage, health output).
+- [~] Optional production-release work remains: public HTTPS URL, immutable release tag and image digests, a public end-to-end check, and a Compose update and rollback drill.
 
 ## 6. Optional enhancements (not required)
 
