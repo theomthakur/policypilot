@@ -637,6 +637,31 @@ def test_a_short_policy_topic_cannot_bypass_search(
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
 
 
+def test_follow_up_scope_falls_back_when_it_only_matches_one_generic_topic_word() -> None:
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import ToolResult
+
+    scoped = ToolResult(
+        status="ok",
+        summary="One sponsored-account result.",
+        data={
+            "hits": [
+                {
+                    "title": "Account Lifecycle Standard",
+                    "section": "Sponsored accounts",
+                    "excerpt": "Sponsored guest accounts provide limited university access.",
+                    "text_rank": 1,
+                }
+            ],
+            "weak": False,
+            "off_topic": False,
+        },
+    )
+    assert AgentRun._scoped_result_unhelpful(
+        scoped, "What is the Wi-Fi limit for unregistered guest devices?"
+    )
+
+
 def test_pages_cited_in_the_previous_answer_are_flagged_for_follow_ups(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

@@ -875,11 +875,12 @@ class AgentRun:
             terms = {term for term in _content_words(query) if len(term) >= 5}
         if not terms:
             return False
+        required_matches = min(2, len(terms))
         for hit in hits:
             text = " ".join(
                 str(hit.get(field) or "") for field in ("title", "section", "excerpt")
             )
-            if terms & _content_words(text):
+            if len(terms & _content_words(text)) >= required_matches:
                 return False
         return True
 
