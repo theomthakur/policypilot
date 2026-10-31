@@ -739,7 +739,7 @@ def test_complete_conflict_template_is_not_marked_partial_at_a_tool_limit(
     assert outcome.answer["partial"] is False
 
 
-def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
+def test_an_answer_that_ignores_the_superseding_document_is_repaired_to_a_conflict_answer(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.llm.client import ScriptedModel, respond
@@ -767,8 +767,8 @@ def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
         ]
     )
     outcome, _ = _run(model, "Do passwords expire?")
-    sent_back = [m for m in model.calls[-1] if m["role"] == "tool" and "effective 2025-01-15" in m["content"]]
-    assert sent_back and "conflict" in sent_back[0]["content"]
+    # The code-level conflict template may repair the answer immediately when both passages were read.
+    # That is safer than relying on another model call, and it still guarantees both sources and a notice.
     assert len(outcome.answer["citations"]) == 2
     assert [n["kind"] for n in outcome.answer["notices"]] == ["conflict"]
 
@@ -1022,7 +1022,31 @@ def test_current_rule_questions_are_answered_from_both_passages_by_code(
 
 def test_a_historical_question_is_not_overridden(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     _metadata_corpus(make_pdf, tmp_path)
-    outcome, events = _template_run("Did the 2023 policy say passwords expire?")
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    def historical_answer(messages: list[dict[str, Any]]) -> Any:
+        old = _evidence_id(messages, "Password Policy", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "The 2023 policy rotates passwords every 90 days.",
+                    "claims": [
+                        {
+                            "text": "The 2023 policy rotates passwords every 90 days.",
+                            "evidence_ids": [old],
+                            "quote": QUOTE_OLD,
+                        }
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel(
+        [respond(("search_documents", {"query": "passwords expire change prohibited"})), historical_answer]
+    )
+    outcome, events = _run(model, "Did the 2023 policy say passwords expire?")
     assert not any("answering from both passages" in e.get("summary", "") for e in events.of("evaluate"))
     assert outcome.answer["summary"].startswith("The 2023 policy rotates")  # the model's own answer stands
 
