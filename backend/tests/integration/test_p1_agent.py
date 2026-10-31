@@ -802,7 +802,7 @@ def test_a_request_to_simplify_the_previous_answer_does_not_search(
     assert outcome.stop_reason == "answered"
     assert outcome.totals.tool_calls == 0
     assert not events.of("tool_call")
-    assert outcome.answer["summary"].startswith("In simpler terms:")
+    assert outcome.answer["summary"].startswith("In simple terms,")
 
 
 def test_follow_up_search_is_scoped_to_earlier_sources(make_pdf: Callable[..., Path], tmp_path: Path) -> None:

@@ -454,6 +454,25 @@ class AgentRun:
         This is a presentation request rather than a new factual question, so it must never trigger a
         search or an unsupported missing-evidence answer.
         """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Rewrite the previous answer in plain, everyday English. Keep only its facts, add no "
+                    "new information, and use at most three short sentences. "
+                    "Call chat_reply with the rewrite."
+                ),
+            },
+            {"role": "user", "content": f"Previous answer:\n{previous[:1200]}"},
+        ]
+        try:
+            response = await self._model_call(messages, force_tool="chat_reply")
+            call = next((item for item in response.tool_calls if item.name == "chat_reply"), None)
+            if call is not None:
+                return await self._chat(call)
+        # A restatement should remain available even if the optional model rewrite fails.
+        except Exception:
+            pass
         summary = f"In simpler terms: {previous.strip()}"[:1500]
         answer = {
             "summary": summary,
