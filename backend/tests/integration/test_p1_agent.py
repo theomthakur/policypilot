@@ -278,6 +278,53 @@ def test_interpretations_that_are_not_in_the_results_never_trigger_a_question(
     assert events.of("assessment")[0]["assessment"]["supported"] == 0
 
 
+def test_variant_relevance_accepts_a_matching_result_excerpt() -> None:
+    """A branch rule may not repeat the policy topic, even when its result excerpt does."""
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import AssessQuestionInput
+
+    run = AgentRun.__new__(AgentRun)
+    run.question = "What are the records retention requirements?"
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "interpretations": [
+                {"label": "Student records", "quote": "Student records are retained for 7 years."},
+                {"label": "Faculty records", "quote": "Faculty records are retained for 10 years."},
+            ],
+        }
+    )
+    hits = [
+        {
+            "document_id": "retention-policy",
+            "page": 1,
+            "excerpt": "Records retention requirements. Student records are retained for 7 years.",
+        },
+        {
+            "document_id": "retention-policy",
+            "page": 2,
+            "excerpt": "Records retention requirements. Faculty records are retained for 10 years.",
+        },
+    ]
+
+    variants = run._backed_variants(verdict, hits)
+
+    assert [entry["label"] for entry in variants.options] == ["Student records", "Faculty records"]
+
+
+def test_generic_location_name_does_not_count_as_a_named_variant() -> None:
+    """A shared institution name cannot suppress a needed clarification."""
+    from app.agent.loop import _GENERIC_STEMS, _tokens
+
+    labels = [_tokens("Northfield student account"), _tokens("Sponsored account")]
+    unique = [
+        (tokens - set().union(*(other for other in labels if other is not tokens))) - _GENERIC_STEMS
+        for tokens in labels
+    ]
+
+    assert not (_tokens("Northfield account") & set().union(*unique))
+
+
 def test_specific_question_is_not_interrupted_by_the_assessment(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

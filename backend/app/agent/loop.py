@@ -85,8 +85,9 @@ def build_user_message(ctx: QuestionContext) -> str:
     if ctx.history:
         parts.append(
             "If this message follows up on the conversation above, answer only what is new: do not repeat "
-            "the earlier answer, and search for details its sources did not cover. If the documents hold "
-            "nothing more, say so in one sentence."
+            "the earlier answer. If the earlier sources already answer the follow-up, call final_answer "
+            "without searching again. Search only when a new fact is needed. If the documents hold nothing "
+            "more, say so in one sentence."
         )
     return "\n\n".join(parts)
 
@@ -861,6 +862,7 @@ class AgentRun:
                         "quote": item.quote,
                         "document_id": str(hit["document_id"]),
                         "page": hit["page"],
+                        "excerpt": excerpt,
                         "detail": detail,
                     },
                 )
@@ -879,7 +881,11 @@ class AgentRun:
                 entry["detail"]["status"] = "rules_alike"
             best = []
         # The quotes have to be about what was asked: a list of what exists (scope bullets) shares nothing.
-        relevant = [e for e in best if (_tokens(e["quote"]) - _GENERIC_STEMS) & question_tokens]
+        relevant = [
+            e
+            for e in best
+            if ((_tokens(e["quote"]) | _tokens(e.get("excerpt", ""))) - _GENERIC_STEMS) & question_tokens
+        ]
         if len(best) >= 2 and len(relevant) < 2:
             for entry in best:
                 entry["detail"]["status"] = "not_about_the_question"
@@ -936,7 +942,10 @@ class AgentRun:
         # The decision is made here from the structured fields, not from the model's own "answerable" flag
         # (a judge that lists four quoted variants and then says "answerable" contradicts itself).
         label_tokens = [_tokens(d["label"]) for d in variants.details]
-        unique = [t - set().union(*(u for u in label_tokens if u is not t)) for t in label_tokens]
+        unique = [
+            (t - set().union(*(u for u in label_tokens if u is not t))) - _GENERIC_STEMS
+            for t in label_tokens
+        ]
         value_named = bool(
             _tokens(verdict.value_in_question or "") & set().union(*unique)
             if label_tokens
