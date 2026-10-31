@@ -227,6 +227,7 @@ async def test_an_abstention_does_not_show_a_partial_notice() -> None:
     run = AgentRun.__new__(AgentRun)
     answer = await run._normalize(verified.answer)
     assert answer["partial"] is False
+    assert answer["summary"] == "I could not find this in the available documents."
     assert [notice["kind"] for notice in answer["notices"]] == ["missing_evidence"]
 
 

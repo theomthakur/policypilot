@@ -754,7 +754,7 @@ class AgentRun:
             self.totals.retries += 1
             await asyncio.sleep(min(0.2 * attempt, max(0.0, self._time_left())))
         assert result is not None
-        if scope_ids and self._scoped_result_unhelpful(result):
+        if scope_ids and self._scoped_result_unhelpful(result, str(call.arguments.get("query", ""))):
             # The earlier sources did not help with this follow-up: search the whole library instead.
             began = time.monotonic()
             self.totals.tool_attempts += 1
@@ -849,16 +849,32 @@ class AgentRun:
         return earlier_sources if not valid else []
 
     @staticmethod
-    def _scoped_result_unhelpful(result: ToolResult) -> bool:
+    def _scoped_result_unhelpful(result: ToolResult, query: str) -> bool:
         data = result.data or {}
         hits = data.get("hits") or []
-        return (
+        if (
             result.status != "ok"
             or not hits
             or bool(data.get("weak"))
             or bool(data.get("off_topic"))
             or not any(h.get("text_rank") for h in hits)  # no passage shares a word with the question
-        )
+        ):
+            return True
+        # A scoped follow-up can look healthy because of generic words such as "every" or "access",
+        # while missing the user's actual new topic. Prefer distinctive terms and fall back to the full
+        # library when none appears in the title, section, or excerpt.
+        terms = {term for term in _content_words(query) if len(term) >= 6}
+        if not terms:
+            terms = {term for term in _content_words(query) if len(term) >= 5}
+        if not terms:
+            return False
+        for hit in hits:
+            text = " ".join(
+                str(hit.get(field) or "") for field in ("title", "section", "excerpt")
+            )
+            if terms & _content_words(text):
+                return False
+        return True
 
     async def _literal_hits(self) -> list[dict[str, Any]]:
         """The model's first query often rewords the question and drops what makes it ambiguous. Search once
@@ -1255,17 +1271,9 @@ class AgentRun:
             # no claim was returned, so the UI should show the single, clear missing-evidence state.
             answer["notices"] = [n for n in notices if n["kind"] != "partial"]
             notices = answer["notices"]
-            # No claim survived, so nothing the model wrote may stay as an assertion. If it asserted claims
-            # that failed, replace its summary; if it abstained itself, keep its explanation minus figures.
-            if answer.get("unverified_claims"):
-                answer["summary"] = ABSTAIN_TEXT
-            else:
-                kept = [
-                    x
-                    for x in re.split(r"(?<=[.!?])\s+", str(answer["summary"]))
-                    if x.strip() and not re.search(r"\d", x)
-                ]
-                answer["summary"] = " ".join(kept) or ABSTAIN_TEXT
+            # No claim survived, so no model-written policy detail may remain in the summary. A generic
+            # abstention is preferable to a plausible but uncited aside about a different policy.
+            answer["summary"] = ABSTAIN_TEXT
             if not any(n["kind"] == "missing_evidence" for n in notices):
                 notices.append(
                     {
