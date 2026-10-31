@@ -113,7 +113,7 @@ _STOPWORDS = frozenset(
         *("a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from", "has", "have"),
         *("how", "i", "if", "in", "is", "it", "its", "my", "of", "on", "or", "the", "to", "what", "when"),
         *("where", "which", "who", "why", "will", "with", "would", "you", "your", "we", "our", "me", "this"),
-        *("that", "there", "they", "their"),
+        *("that", "there", "they", "their", "get", "gets", "got", "may", "must", "should", "could"),
     }
 )
 _GENERIC_STEMS = frozenset({"accou", "user", "users", "types", "type", "north", "unive", "polic", "stand"})
@@ -858,7 +858,7 @@ class AgentRun:
                     continue
                 if distinguishing and not distinguishing & _tokens(excerpt):
                     detail["status"] = "label_not_in_passage"
-                    break
+                    continue
                 verified.setdefault(str(hit["document_id"]), {}).setdefault(
                     item.label.strip().lower(),
                     {

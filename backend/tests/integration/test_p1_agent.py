@@ -325,6 +325,45 @@ def test_generic_location_name_does_not_count_as_a_named_variant() -> None:
     assert not (_tokens("Northfield account") & set().union(*unique))
 
 
+def test_variant_scan_continues_after_an_incomplete_duplicate_excerpt() -> None:
+    """A later result can contain the label that an earlier duplicate excerpt omitted."""
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import AssessQuestionInput
+
+    run = AgentRun.__new__(AgentRun)
+    run.question = "How do accounts renew?"
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "interpretations": [
+                {"label": "Student account", "quote": "renew automatically each term"},
+            ],
+        }
+    )
+    hits = [
+        {
+            "document_id": "renewal-policy",
+            "page": 1,
+            "excerpt": "Accounts renew automatically each term.",
+        },
+        {
+            "document_id": "renewal-policy",
+            "page": 2,
+            "excerpt": "Student accounts renew automatically each term.",
+        },
+    ]
+
+    variants = run._backed_variants(verdict, hits)
+
+    assert variants.options[0]["page"] == 2
+
+
+def test_auxiliary_words_are_not_ambiguity_relevance_tokens() -> None:
+    from app.agent.loop import _tokens
+
+    assert "get" not in _tokens("When does an inactive account get suspended?")
+
+
 def test_specific_question_is_not_interrupted_by_the_assessment(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
