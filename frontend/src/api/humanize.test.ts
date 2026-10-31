@@ -31,6 +31,15 @@ describe('plain-English trace wording', () => {
         hits: 0,
       }).title,
     ).toBe('Found nothing')
+    expect(
+      humanizeEvent({
+        type: 'tool_result',
+        status: 'empty',
+        tool: 'search_documents',
+        summary: '',
+        hits: 1,
+      }).title,
+    ).toBe('Found passages')
   })
 
   it('hides the noise events and explains problems and limits', () => {

@@ -122,12 +122,12 @@ export function humanizeEvent(e: HumanInput): HumanEvent {
       }
       if (e.tool === 'search_documents') {
         const hits = e.hits ?? 0
-        if (e.status === 'empty' || hits === 0)
-          return say('Found nothing', 'No passage matched.')
-        return say(
-          'Found passages',
-          `Found ${hits} passage${hits === 1 ? '' : 's'}${e.weak ? ', but none looked convincing' : ''}.`,
-        )
+        if (hits > 0)
+          return say(
+            'Found passages',
+            `Found ${hits} passage${hits === 1 ? '' : 's'}${e.weak ? ', but none looked convincing' : ''}.`,
+          )
+        return say('Found nothing', 'No passage matched.')
       }
       if (e.tool === 'list_documents') return say('Library checked', e.summary)
       if (e.tool === 'read_document_pages')
