@@ -1,6 +1,6 @@
 # Submission checklist against the take-home brief
 
-Status as of 31 Oct 2026, from the integrated branch (`integration/full-stack`). Legend: **[x] done** (built and verified by a test, a run or saved output), **[~] partial** (works, something named is open), **[ ] pending** (not done). The wording of each requirement is paraphrased from the brief. Evaluation facts below defer to the canonical **Final evaluated release** block in [`evaluation.md`](evaluation.md).
+Status as of 31 Oct 2026, for the `main` release. Legend: **[x] done** (built and verified by a test, a run or saved output), **[~] partial** (works, something named is open), **[ ] pending** (not done). The wording of each requirement is paraphrased from the brief. Evaluation facts below defer to the canonical **Final evaluated release** block in [`evaluation.md`](evaluation.md).
 
 ## 1. The problem statement
 
@@ -42,7 +42,7 @@ Status as of 31 Oct 2026, from the integrated branch (`integration/full-stack`).
 
 **F. Execution safety**
 - [x] Configurable step, tool-call, time and token limits; tool timeouts; one bounded retry; a useful partial answer when a limit is hit.
-- [x] Retrieved instructions are treated as untrusted (CASE-7 passes); tools only see the corpus and the session's own uploads.
+- [x] Retrieved instructions are treated as untrusted (CASE-7 passes); tools only see the corpus and, for signed-in users, that user's own uploads.
 - [x] Sessions are isolated: another session's cookie gets 404 on sessions, turns, event streams, uploads and ingestion progress (tests).
 
 **G. Persistence and Redis**
@@ -64,7 +64,7 @@ Status as of 31 Oct 2026, from the integrated branch (`integration/full-stack`).
 - [~] The automatic verifier confirms literal quotes on cited pages. An independent human spot-check of about 20 citations remains pending; it should not be represented as completed by the system builder.
 
 **J. Engineering quality**
-- [x] Clear module layout, ADRs, backend unit and integration coverage, 25 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
+- [x] Clear module layout, ADRs, backend unit and integration coverage, 31 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [x] Tests pass locally and in GitHub Actions.
 
 ## 3. Required test cases (three r31 tuned repeats, agent vs baseline)
@@ -92,11 +92,11 @@ Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of
 
 ## 5. What to submit
 
-- [x] GitHub repository with implementation and setup instructions: code and README are on `integration/full-stack`. A merge to `main` is an optional release step.
+- [x] GitHub repository with implementation and setup instructions: code and README are on `main`.
 - [x] Reproducibility notes: corpus source, model and embedding IDs, prompts, tool schemas, environment template, evaluation command, expected cost (`docs/reproducibility.md`).
 - [x] System design and architecture diagram with components, agent states, tool calls, decision points, retrieval loop and stopping conditions (`docs/architecture.md`, `docs/system-design.md`, the in-app System design page).
 - [x] Agent and baseline evaluation results and failure analysis (`docs/evaluation.md`).
-- [ ] Short recorded demo or walkthrough: you record it. A script and saved traces are in `docs/demo.md`. It must show a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. CASE-4 passed r31's three tuned repeats, but the measurement is not blind, so show the behavior honestly rather than presenting it as guaranteed.
+- [x] Short recorded demo or reproducible walkthrough: the reproducible walkthrough and saved traces are in `docs/demo.md` and `docs/demo-evidence/`. It covers a multi-document question, evidence-driven re-retrieval, a clarification and a failed tool call. CASE-4 passed r31's three tuned repeats, but the measurement is not blind, so the walkthrough states that limit honestly.
 - [x] Short summary of achievements, unfinished work and improvements (`docs/summary.md`).
 - [x] Deployment runbook and evidence: runbook, Dockerfiles, Compose and CI are done; local evidence is saved (smoke test, restart persistence, Redis outage, health output).
 - [~] Optional production-release work remains: public HTTPS URL, immutable release tag and image digests, a public end-to-end check, and a Compose update and rollback drill.

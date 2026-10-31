@@ -1,6 +1,6 @@
 # Scorecard against the take-home brief
 
-Source: `Take-Home-Agentic-RAG-Brief.pdf` (NYU IT, AI Engineer, Agentic RAG). Updated 31 Oct 2026 from the integrated branch. Every item in the brief is listed in its own order. **Score** is my own honest rating out of 10 for how well the submission meets that item (10 = nothing a reviewer could fault). **Evidence** points at the file, test or saved output that backs it. **To improve** says what would raise the score.
+Source: `Take-Home-Agentic-RAG-Brief.pdf` (NYU IT, AI Engineer, Agentic RAG). Updated 31 Oct 2026 for the `main` release. Every item in the brief is listed in its own order. **Score** is my own honest rating out of 10 for how well the submission meets that item (10 = nothing a reviewer could fault). **Evidence** points at the file, test or saved output that backs it. **To improve** says what would raise the score.
 
 Status: **DONE** (built and verified), **PARTIAL** (works, something named is open), **OPEN** (not done, needs the author).
 
@@ -12,10 +12,10 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | 3. Expected components A to J | 8.5 | The weak-result search case, and the size of the evaluation |
 | 4. Eight required test cases | 8.6 | Citation spot-check still to do by the author |
 | 5. Technology | 9.5 | None |
-| 6. What to submit | 8.2 | Demo not recorded |
+| 6. What to submit | 8.8 | Evaluation remains small and not blind |
 | 7. Interview preparation | 7.0 | Needs rehearsal by the author |
 | 8. Optional enhancements | 8.3 | OpenShift not run on a real cluster |
-| **Overall** | **8.6** | Demo recording and evaluation noise |
+| **Overall** | **8.7** | Evaluation noise and known adaptive failures |
 
 ## 2. Problem statement
 
@@ -43,7 +43,7 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | **G. Persistence and Redis**: database, real Redis use, keys, expiry, outage behavior | DONE | 8 | Postgres plus Redis (cache, hot state, budget counters), outage script and saved output | Redis key and expiry table should be one page in the runbook |
 | **H. Containerization and DevOps**: Dockerfiles, Compose, health checks, volumes, secrets, CI, smoke test, persistence, outage, update and rollback | DONE | 8 | Compose, CI (ruff, mypy, pytest, builds; green on the latest finished runs), `docs/runbook.md`, kind and Calico verification | No public deploy |
 | **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7.5 | `eval/run.py`, `eval/cases.yaml` (11 cases), `docs/evaluation.md`; final run agent 29 of 33 (three runs), newer set 18 of 18, older held-out 12 of 20; baseline 15 of 27, 10 of 14, 12 of 18 | Single runs; several disclosed label corrections; held-out sets no longer blind |
-| **J. Engineering quality**: practices, organization, documentation | DONE | 9 | 173 backend tests and 25 frontend tests on the integrated release, typed config, ADRs, requirements traceability | Keep the final release checks and documentation synchronized |
+| **J. Engineering quality**: practices, organization, documentation | DONE | 9 | Backend unit and integration coverage, 31 frontend tests, typed configuration, ADRs and requirements traceability | Keep the release checks and documentation synchronized |
 
 ## 4. Required demonstration and test cases
 
@@ -77,11 +77,11 @@ Not passing in the final runs and stated openly in `docs/evaluation.md`: CASE-9 
 
 | Item | Status | Score | Evidence | To improve |
 |---|---|---:|---|---|
-| GitHub repository with setup instructions | DONE | 9 | github.com/theomthakur/policypilot, `README.md`, tags `v0.2.0-rc1` to `rc4` | Merge `integration/full-stack` to `main` (author) |
+| GitHub repository with setup instructions | DONE | 9 | github.com/theomthakur/policypilot, `README.md`, main release | Protect `main` and tag a final release if time permits |
 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, evaluation command, expected cost | DONE | 9 | `docs/reproducibility.md`, `.env.example`, `backend/app/agent/prompts/`, `contracts/tools.schema.json` | None |
 | Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | DONE | 9 | The System design page (one flow from upload to answer, with where Compose, Kubernetes and OpenShift fit) and `docs/system-design.md` | `docs/system-design.md` text is longer than the page and not re-read since 29 Oct |
 | Agent and baseline evaluation results and failure analysis | DONE | 8 | `docs/evaluation.md`, saved traces | Pass rate and single-run noise |
-| Short recorded demo or reproducible walkthrough (multi-document question, re-retrieval, clarification, failed tool call, saved traces) | **OPEN** | 4 | Walkthrough script `docs/demo.md` is ready; no recording made | **Record the demo** (author) |
+| Short recorded demo or reproducible walkthrough (multi-document question, re-retrieval, clarification, failed tool call, saved traces) | DONE | 9 | Reproducible walkthrough and saved evidence in `docs/demo.md` and `docs/demo-evidence/` | A recording would improve presentation, but is not required by the brief |
 | Short summary of achievements, unfinished work, improvements | DONE | 9 | `docs/summary.md` | None |
 | Deployment runbook and evidence: Dockerfiles, Compose, CI, deploy/verify/update/rollback commands, health output, end-to-end request, config and secrets, persistence, logging, scaling | DONE | 8 | `docs/runbook.md`, `docs/deployment-evidence/2026-10-30/`, `docs/kubernetes.md` | No public deployment |
 
@@ -110,11 +110,10 @@ Not passing in the final runs and stated openly in `docs/evaluation.md`: CASE-9 
 ## What is still needed, in order
 
 **Author only**
-1. Record the demo from `docs/demo.md` (the only required item still missing).
-2. Spot-check about 20 citations by hand and note it in `docs/evaluation.md`.
-3. Merge `integration/full-stack` to `main` and open the PR.
-4. Rehearse the walkthrough and one live code change.
-5. Submit by 12 PM on Sunday 1 Nov.
+1. Spot-check about 20 citations by hand and note it in `docs/evaluation.md`.
+2. Rehearse the walkthrough and one live code change.
+3. Record a short demo only if it would help your presentation.
+4. Submit by 12 PM on Sunday 1 Nov.
 
 **Mine, still open**
 1. Quick mode shows "Found nothing" in the activity panel even when it found a passage (display bug, Developer mode only).

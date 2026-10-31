@@ -2,9 +2,9 @@
 
 Every requirement has an ID. Pull requests reference the IDs they satisfy, and the **Status** column is updated when the work merges. Source: the assignment brief (sections 2 to 6).
 
-Status values: `planned`, `in progress`, `done` (implemented and verified by a test, a run or a saved output), `partial` (works, but something named below is still open). Updated 31 Oct 2026 against the integrated branch. The current evaluation facts are the **Final evaluated release** at the top of [`evaluation.md`](evaluation.md). REQ-C3 (CASE-9 fails), D2, I6 (independent human citation spot-check), CASE-9, CASE-11, and SUB-5 stay partial.
+Status values: `planned`, `in progress`, `done` (implemented and verified by a test, a run or a saved output), `partial` (works, but something named below is still open). Updated 31 Oct 2026 for the `main` release. The current evaluation facts are the **Final evaluated release** at the top of [`evaluation.md`](evaluation.md). REQ-C3 (CASE-9 fails), D2, I6 (independent human citation spot-check), CASE-9 and CASE-11 stay partial. SUB-5 is complete through the reproducible walkthrough.
 
-**What `partial` means here:** C3 is implemented and tested, but CASE-9 failed all three r31 runs. CASE-11 passed two of three r31 runs. D2 is validated by Pydantic models, not by `contracts/tools.schema.json`. I6 has automatic quote verification, while independent human review is still pending. SUB-5 is the required recorded demo. Older run history is retained in `evaluation.md` but does not override its canonical block.
+**What `partial` means here:** C3 is implemented and tested, but CASE-9 failed all three r31 runs. CASE-11 passed two of three r31 runs. D2 is validated by Pydantic models, not by `contracts/tools.schema.json`. I6 has automatic quote verification, while independent human review is still pending. SUB-5 is satisfied by the reproducible walkthrough in `docs/demo.md`; a recorded demo is optional because the brief accepts either form. Older run history is retained in `evaluation.md` but does not override its canonical block.
 
 ## Functional requirements
 

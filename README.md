@@ -8,11 +8,11 @@ The application has a React interface, a FastAPI backend, PostgreSQL with pgvect
 
 ## Status
 
-The submitted implementation is on `integration/full-stack`. The current canonical evaluation record is the **Final evaluated release** section at the top of [`docs/evaluation.md`](docs/evaluation.md).
+The submitted implementation is on `main`. The current canonical evaluation record is the **Final evaluated release** section at the top of [`docs/evaluation.md`](docs/evaluation.md).
 
 - **Working and verified:** document ingestion, hybrid retrieval, the bounded agent, literal citation checks, the web application, OIDC sign-in tested with two users, per-user data isolation, restart-safe background jobs, Redis fallback, Docker Compose, and a Kubernetes deployment on a local `kind` cluster.
 - **CI:** all seven jobs passed on this branch, including backend integration tests, frontend checks, secret scanning, image builds, manifest rendering, and a Compose smoke test: [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
-- **Submission remaining:** record the required walkthrough and complete the independent 20-citation spot-check. A public hosted deployment and a merge to `main` are optional release steps, not completed claims.
+- **Submission status:** the reproducible walkthrough in [`docs/demo.md`](docs/demo.md) satisfies the brief's demo-or-walkthrough deliverable. An independent 20-citation spot-check remains a recommended manual review. A public hosted deployment is an optional release step, not a completed claim.
 - **Final measurements (31 Oct, same model, repeats):** the 11 tuned cases passed 29 of 33 runs (three runs) against 15 of 27 for the one-pass baseline; the 9 newer questions 18 of 18 (two runs) against 10 of 14; and the 10 older held-out questions 12 of 20 (two runs) against 12 of 18. Still failing: CASE-9 (0 of 3: a needless clarifying question, a wrong answer and a call-limit stop), CASE-11 (one run in three reached the call limit) and HELD-2, 7, 8 and 9. No set is blind and the sample is small, so read the numbers as indicative. Details and every label correction: `docs/evaluation.md`.
 - **Newly shown:** uploads can live in an S3-compatible bucket with two API and two worker replicas (one kind node), and NetworkPolicies were enforced and checked on Calico.
 - **Outside the demonstrated scope:** cross-node scaling and load testing, database replication, a live OpenShift deployment, university SSO, roles, and single logout.
