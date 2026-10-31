@@ -3946,3 +3946,80 @@ th {
   font-weight: 600;
   letter-spacing: -0.03em;
 }
+
+/* Account: who is signed in, and a visible Sign out */
+.sidebar-account {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.account-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 2px 11px;
+}
+.account-avatar {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--violet-soft);
+  color: var(--violet-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.account-text strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-text small {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-signout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.account-signout:hover {
+  background: var(--violet-soft);
+  color: var(--violet-text);
+}
+.pane-sidebar.is-collapsed .account-info,
+.pane-sidebar.is-collapsed .account-signout .nav-label {
+  display: none;
+}
+.pane-sidebar.is-collapsed .account-signout {
+  justify-content: center;
+  padding: 0;
+}

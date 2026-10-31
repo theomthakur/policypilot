@@ -123,6 +123,25 @@ function IconClock() {
   )
 }
 
+function IconLogout() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+      <path d="M16 8l4 4-4 4M20 12H9" />
+    </svg>
+  )
+}
+
 function IconSidebar() {
   return (
     <svg
@@ -727,14 +746,32 @@ export function App() {
           >
             <ThemeIcon theme={theme} />
           </button>
-          {auth.data?.user && (
-            <AccountMenu
-              name={auth.data.user.name}
-              email={auth.data.user.email}
-              onSignOut={() => void signOut()}
-            />
-          )}
         </div>
+        {auth.data?.user && (
+          <div className="sidebar-account">
+            <div className="account-info">
+              <span className="account-avatar" aria-hidden="true">
+                {(auth.data.user.name || auth.data.user.email || 'A')
+                  .charAt(0)
+                  .toUpperCase()}
+              </span>
+              <span className="account-text">
+                <strong>{auth.data.user.name ?? 'Signed in'}</strong>
+                {auth.data.user.email && <small>{auth.data.user.email}</small>}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="account-signout"
+              title="Sign out"
+              aria-label="Sign out"
+              onClick={() => void signOut()}
+            >
+              <IconLogout />
+              <span className="nav-label">Sign out</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )
