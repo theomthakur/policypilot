@@ -1242,6 +1242,7 @@ class AgentRun:
     async def _best_sentence(self, doc: Document, terms: list[str]) -> tuple[int, str] | None:
         """The sentence, on the pages of `doc` read this turn, that best answers the question (literal)."""
         wanted = _stems(self.question) | {t for term in terms for t in _stems(term)}
+        question_words = _content_words(self.question)
         best: tuple[float, int, str] | None = None
         for item in self.state.ledger.values():
             if item.document_id != doc.id:
@@ -1252,7 +1253,19 @@ class AgentRun:
                 hits = sum(t in lowered for t in terms)
                 if terms and not hits:
                     continue  # the sentence must touch the superseded provision itself
-                score = len(wanted & _stems(sentence)) + 3 * hits
+                sentence_words = _content_words(sentence)
+                question_hits = len(question_words & sentence_words)
+                # A broad supersession can mention several provisions. Do not turn a sentence about an
+                # unrelated provision into the answer merely because it shares one metadata term.
+                if question_words and not question_hits:
+                    continue
+                operative = bool(
+                    re.search(
+                        r"\b(required|prohibited|must|may not|not universally mandated|shall|only)\b",
+                        lowered,
+                    )
+                )
+                score = len(wanted & _stems(sentence)) + 3 * hits + 4 * question_hits + 5 * operative
                 if score and (best is None or score > best[0]):
                     literal = locate_quote(sentence, text or "")
                     if literal:
