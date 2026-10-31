@@ -999,6 +999,19 @@ def test_a_long_grounded_default_quote_is_accepted() -> None:
     assert verdict.default_quote == quote
 
 
+def test_a_long_interpretation_quote_is_accepted() -> None:
+    from app.tools.contracts import AssessQuestionInput
+
+    quote = "The policy applies to restricted material " * 12
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "interpretations": [{"label": "Restricted material", "quote": quote}],
+        }
+    )
+    assert verdict.interpretations[0].quote == quote
+
+
 def test_the_judge_also_sees_passages_for_the_users_exact_words(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
