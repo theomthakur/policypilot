@@ -379,6 +379,7 @@ class AgentRun:
         self.cited = ctx.cited
         self.ctx = ctx
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
+        await self._pin_named_document()
         if ctx.history and REWRITE_FOLLOW_UP.search(ctx.question):
             return await self._rewrite_previous_answer(ctx.history[-1][1])
         messages: list[dict[str, Any]] = [
@@ -424,6 +425,28 @@ class AgentRun:
             outcome = await self._handle_calls(response.tool_calls, messages)
             if outcome is not None:
                 return outcome
+
+    async def _pin_named_document(self) -> None:
+        """Restrict searches when the question substantially matches a visible document title."""
+        question_terms = _content_words(self.question)
+        if len(question_terms) < 2:
+            return
+        async with get_sessionmaker()() as db:
+            query = select(Document).where(Document.status == "ready")
+            if self.tools.session_id is None:
+                query = query.where(Document.session_id.is_(None))
+            else:
+                query = query.where(
+                    (Document.session_id.is_(None)) | (Document.session_id == self.tools.session_id)
+                )
+            docs = (await db.execute(query)).scalars().all()
+        matched = []
+        for doc in docs:
+            title_terms = _content_words(doc.title)
+            overlap = question_terms & title_terms
+            if len(title_terms) >= 2 and len(overlap) >= 2 and 5 * len(overlap) >= 3 * len(title_terms):
+                matched.append(str(doc.id))
+        self.state.title_match_document_ids = matched[:3]
 
     async def _rewrite_previous_answer(self, previous: str) -> Outcome:
         """Handle a request to restate the immediately preceding, already-grounded answer.
@@ -664,7 +687,14 @@ class AgentRun:
 
         result: ToolResult | None = None
         scope_ids = self._follow_up_scope(call)
-        run_args = {**call.arguments, "document_ids": scope_ids} if scope_ids else call.arguments
+        title_scope = self.state.title_match_document_ids if call.name == "search_documents" else []
+        run_args = (
+            {**call.arguments, "document_ids": title_scope}
+            if title_scope
+            else {**call.arguments, "document_ids": scope_ids}
+            if scope_ids
+            else call.arguments
+        )
         for attempt in range(1, s.agent_max_tool_retries + 2):
             began = time.monotonic()
             self.totals.tool_attempts += 1
