@@ -46,6 +46,7 @@ export interface IngestionRun {
 export interface UploadResponse {
   document: PolicyDocument
   ingestion_run: IngestionRun
+  duplicate: boolean
 }
 
 export interface Citation {

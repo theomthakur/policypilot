@@ -6,6 +6,7 @@ import {
   adaptHealth,
   adaptIngestion,
   adaptTurn,
+  adaptUpload,
 } from './adapt'
 
 describe('backend to view-model adapters', () => {
@@ -50,6 +51,29 @@ describe('backend to view-model adapters', () => {
       status: 'ready',
       progress: 1,
     })
+  })
+
+  it('preserves a duplicate-upload response for the upload panel', () => {
+    expect(
+      adaptUpload({
+        duplicate: true,
+        document: {
+          id: 'd1',
+          title: 'Policy',
+          filename: 'policy.pdf',
+          page_count: 1,
+          status: 'ready',
+          source: 'upload',
+        },
+        ingestion_run: {
+          id: 'r1',
+          status: 'succeeded',
+          stage: 'done',
+          pages_done: 1,
+          page_count: 1,
+        },
+      }),
+    ).toMatchObject({ duplicate: true, document: { id: 'd1' } })
   })
 
   it('turns string health checks into status objects', () => {

@@ -38,6 +38,7 @@ export function DocumentsPanel({
   const [dragging, setDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null)
   const [run, setRun] = useState<IngestionRun | null>(null)
 
   const documents = useQuery({
@@ -73,6 +74,7 @@ export function DocumentsPanel({
   const handleFile = async (file?: File) => {
     if (!file) return
     setUploadError(null)
+    setUploadNotice(null)
     if (
       file.type !== 'application/pdf' &&
       !file.name.toLowerCase().endsWith('.pdf')
@@ -84,6 +86,11 @@ export function DocumentsPanel({
     try {
       const response = await uploadDocument(file, setUploadProgress)
       setRun(response.ingestion_run)
+      if (response.duplicate) {
+        setUploadNotice(
+          `Already in your library: ${response.document.filename}. Reusing the existing document.`,
+        )
+      }
       await queryClient.invalidateQueries({ queryKey: ['documents'] })
     } catch (error) {
       setUploadError(errorMessage(error))
@@ -148,6 +155,11 @@ export function DocumentsPanel({
         <p className="inline-status" aria-live="polite">
           <span className="spinner" aria-hidden="true" />{' '}
           {run.stage || 'Indexing document'}
+        </p>
+      )}
+      {uploadNotice && (
+        <p className="inline-status" aria-live="polite">
+          {uploadNotice}
         </p>
       )}
       {(uploadError || run?.error) && (

@@ -105,10 +105,12 @@ export function adaptIngestion(raw: Raw): IngestionRun {
 export function adaptUpload(raw: Raw): {
   document: PolicyDocument
   ingestion_run: IngestionRun
+  duplicate: boolean
 } {
   return {
     document: adaptDocument(asRecord(raw.document)),
     ingestion_run: adaptIngestion(asRecord(raw.ingestion_run)),
+    duplicate: raw.duplicate === true,
   }
 }
 

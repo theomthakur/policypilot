@@ -344,6 +344,29 @@ def test_two_users_cannot_see_each_others_conversations_or_uploads(
     assert client.get(f"/api/v1/sessions/{alice_session}").status_code == 200
 
 
+def test_same_user_reupload_in_a_new_conversation_reuses_the_existing_document(
+    oidc_env: Provider, make_pdf: Callable[..., Path]
+) -> None:
+    pdf = make_pdf(
+        ["1. Private\n\nA personal library document should not be ingested twice."],
+        name="same.pdf",
+    )
+    client = _signed_in_client("alice", oidc_env)
+    assert client.post("/api/v1/sessions", headers={"Origin": ORIGIN}).status_code == 201
+    first = client.post(
+        "/api/v1/documents", files={"file": ("same.pdf", pdf.read_bytes(), "application/pdf")}
+    )
+    assert first.status_code == 201
+
+    assert client.post("/api/v1/sessions", headers={"Origin": ORIGIN}).status_code == 201
+    second = client.post(
+        "/api/v1/documents", files={"file": ("renamed.pdf", pdf.read_bytes(), "application/pdf")}
+    )
+    assert second.status_code == 200
+    assert second.json()["duplicate"] is True
+    assert second.json()["document"]["id"] == first.json()["document"]["id"]
+
+
 def test_a_user_can_pick_a_conversation_back_up_after_signing_in_again(oidc_env: Provider) -> None:
     client = _signed_in_client("alice", oidc_env)
     client.post("/api/v1/sessions", headers={"Origin": ORIGIN})

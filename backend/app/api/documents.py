@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import or_, select
 
 from app import storage
-from app.api.deps import Authenticated, CurrentSession, DbSession, Passcode
+from app.api.deps import Authenticated, CurrentSession, CurrentUser, DbSession, Passcode
 from app.api.errors import ApiError
 from app.config import get_settings
 from app.db.models import Document, DocumentPage, IngestionRun, Session
@@ -122,6 +122,7 @@ async def upload_document(
     response: Response,
     db: DbSession,
     session_id: CurrentSession,
+    user: CurrentUser,
 ) -> dict[str, Any]:
     if session_id is None:
         raise ApiError(400, "INVALID_ARGUMENT", "Create a session (POST /sessions) before uploading.")
@@ -134,13 +135,15 @@ async def upload_document(
         raise ApiError(400, "UNSUPPORTED_PDF", "Only PDF files are accepted.")
     sha = hashlib.sha256(data).hexdigest()
 
+    # Signed-in people can see their uploads across conversations, so deduplicate across that same
+    # personal library as well. In passcode-only mode there is no person identity, so session scope
+    # is the privacy boundary and remains the duplicate scope.
+    duplicate_scope = or_(Document.session_id.is_(None), Document.session_id == session_id)
+    if user is not None:
+        owner_sessions = select(Session.id).where(Session.owner_user_id == user.id)
+        duplicate_scope = or_(Document.session_id.is_(None), Document.session_id.in_(owner_sessions))
     existing = (
-        await db.execute(
-            select(Document).where(
-                Document.sha256 == sha,
-                or_(Document.session_id.is_(None), Document.session_id == session_id),
-            )
-        )
+        await db.execute(select(Document).where(Document.sha256 == sha, duplicate_scope))
     ).scalar_one_or_none()
     if existing is not None:
         run = (
