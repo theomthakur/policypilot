@@ -3572,6 +3572,29 @@ th {
   padding: 0;
   list-style: none;
 }
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 10px 8px;
+}
+.history-clear {
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.history-clear:hover:not(:disabled) {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+}
+.history-clear:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
 .history-group {
   display: block;
   padding: 10px 8px 4px;

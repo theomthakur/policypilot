@@ -12,6 +12,7 @@ interface HistoryPanelProps {
   disabled: boolean
   onOpen: (id: string) => void
   onDelete: (id: string) => void
+  onClear: () => void
 }
 
 function when(at: number): string {
@@ -31,6 +32,7 @@ export function HistoryPanel({
   disabled,
   onOpen,
   onDelete,
+  onClear,
 }: HistoryPanelProps) {
   if (items.length === 0) {
     return (
@@ -41,39 +43,51 @@ export function HistoryPanel({
   }
   let lastLabel = ''
   return (
-    <ul className="history-list">
-      {items.map((item) => {
-        const label = when(item.at)
-        const heading = label !== lastLabel
-        lastLabel = label
-        return (
-          <li key={item.id}>
-            {heading && <span className="history-group">{label}</span>}
-            <div
-              className={`history-item${item.id === currentId ? ' active' : ''}`}
-            >
-              <button
-                type="button"
-                className="history-open"
-                title={item.title}
-                disabled={disabled}
-                onClick={() => onOpen(item.id)}
+    <>
+      <div className="history-actions">
+        <button
+          type="button"
+          className="history-clear"
+          disabled={disabled}
+          onClick={onClear}
+        >
+          Clear history
+        </button>
+      </div>
+      <ul className="history-list">
+        {items.map((item) => {
+          const label = when(item.at)
+          const heading = label !== lastLabel
+          lastLabel = label
+          return (
+            <li key={item.id}>
+              {heading && <span className="history-group">{label}</span>}
+              <div
+                className={`history-item${item.id === currentId ? ' active' : ''}`}
               >
-                {item.title}
-              </button>
-              <button
-                type="button"
-                className="history-delete"
-                aria-label={`Remove "${item.title}" from history`}
-                title="Remove from history"
-                onClick={() => onDelete(item.id)}
-              >
-                <CloseIcon size={12} />
-              </button>
-            </div>
-          </li>
-        )
-      })}
-    </ul>
+                <button
+                  type="button"
+                  className="history-open"
+                  title={item.title}
+                  disabled={disabled}
+                  onClick={() => onOpen(item.id)}
+                >
+                  {item.title}
+                </button>
+                <button
+                  type="button"
+                  className="history-delete"
+                  aria-label={`Remove "${item.title}" from history`}
+                  title="Remove from history"
+                  onClick={() => onDelete(item.id)}
+                >
+                  <CloseIcon size={12} />
+                </button>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }

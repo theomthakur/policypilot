@@ -510,6 +510,25 @@ export function App() {
     })
   }
 
+  const clearHistory = async () => {
+    if (
+      !window.confirm(
+        'Clear all conversation tabs from this browser and start a new session?',
+      )
+    ) {
+      return
+    }
+    saveHistory([])
+    setHistory([])
+    localStorage.removeItem(SESSION_KEY)
+    setSessionId(null)
+    setMessages([])
+    setActiveTurnId(null)
+    completedTurn.current = null
+    clarificationTurn.current = null
+    await createSession()
+  }
+
   const openSession = async (id: string) => {
     navigateTo('workspace')
     if (busy || id === sessionId) return
@@ -707,6 +726,7 @@ export function App() {
             disabled={busy}
             onOpen={(id) => void openSession(id)}
             onDelete={removeHistory}
+            onClear={() => void clearHistory()}
           />
         ) : sidebarTab === 'documents' ? (
           <DocumentsPanel
