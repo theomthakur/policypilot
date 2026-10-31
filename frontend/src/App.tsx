@@ -334,10 +334,16 @@ export function App() {
     auth.data.mode !== 'off' &&
     !auth.data.authenticated
   const [signInEnded, setSignInEnded] = useState(false)
+  // "Your sign-in ended" is only true for someone who had signed in during this visit; a first visit also
+  // gets a 401 from the requests that start before the sign-in state is known, and that must not say so.
+  const wasSignedIn = useRef(false)
+  useEffect(() => {
+    if (auth.data?.authenticated) wasSignedIn.current = true
+  }, [auth.data?.authenticated])
 
   useEffect(() => {
     const ended = () => {
-      setSignInEnded(true)
+      if (wasSignedIn.current) setSignInEnded(true)
       void queryClient.invalidateQueries({ queryKey: ['auth'] })
     }
     window.addEventListener('policypilot:signin-required', ended)
