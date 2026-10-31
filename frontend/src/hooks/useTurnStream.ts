@@ -25,6 +25,7 @@ const initialState: TurnStreamState = {
 export function useTurnStream(turnId: string | null): TurnStreamState {
   const [state, setState] = useState<TurnStreamState>(initialState)
   const pollTimer = useRef<number | null>(null)
+  const pollFailures = useRef(0)
 
   useEffect(() => {
     if (!turnId) {
@@ -34,6 +35,7 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
 
     let cancelled = false
     let source: EventSource | null = null
+    pollFailures.current = 0
 
     const finishPolling = () => {
       if (pollTimer.current !== null) window.clearTimeout(pollTimer.current)
@@ -46,6 +48,7 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
       try {
         const turn = await api.getTurn(turnId)
         if (cancelled) return
+        pollFailures.current = 0
         setState((current) => ({
           ...current,
           events: turn.trace.length > 0 ? turn.trace : current.events,
@@ -67,14 +70,20 @@ export function useTurnStream(turnId: string | null): TurnStreamState {
         }
       } catch (error) {
         if (!cancelled) {
-          setState((current) => ({
-            ...current,
-            status: 'failed',
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Unable to load this turn.',
-          }))
+          pollFailures.current += 1
+          if (pollFailures.current < 4) {
+            setState((current) => ({ ...current, status: 'polling', error: null }))
+            pollTimer.current = window.setTimeout(poll, 1000)
+          } else {
+            setState((current) => ({
+              ...current,
+              status: 'failed',
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Unable to load this turn.',
+            }))
+          }
         }
       }
     }
