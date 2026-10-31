@@ -32,7 +32,7 @@ html, body.login-pf, body {
 .pf-v5-c-login {
   display: flex;
   min-height: 100vh;
-  padding: 32px 16px;
+  padding: 24px 16px;
   align-items: center;
   justify-content: center;
 }
@@ -53,7 +53,7 @@ html, body.login-pf, body {
 
 #kc-header {
   width: min(100% - 32px, 460px);
-  margin: 0 0 20px;
+  margin: 0 0 12px;
   color: var(--pp-ink);
   text-align: center;
 }
@@ -155,7 +155,7 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
 
 .alert, .pf-v5-c-alert { margin: 0 0 20px; color: var(--pp-ink); background: var(--pp-highlight); border: 1px solid var(--pp-line); border-radius: 10px; }
 .alert-error, .pf-m-danger { color: #781e38; background: #fbe8ee; border-color: #ebc4d1; }
-#kc-registration, #kc-registration-container, .login-pf-signup, .pf-v5-c-login__main-footer-band { margin-top: 22px; color: var(--pp-muted); text-align: center; }
+#kc-registration, #kc-registration-container, .login-pf-signup, .pf-v5-c-login__main-footer-band { margin-top: 14px; color: var(--pp-muted); text-align: center; }
 #kc-reset-password, #kc-forgot-password, a[href*='forgot-credentials'] { display: none !important; }
 
 @media (max-width: 520px) {
@@ -181,8 +181,19 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
   border-radius: 0;
   box-shadow: none;
 }
-.pf-v5-c-login__main .pf-v5-c-login__main-header { padding: 0 0 18px; }
+.pf-v5-c-login__main .pf-v5-c-login__main-header { padding: 0 0 12px; }
 .pf-v5-c-login__main .pf-v5-c-login__main-footer { padding: 0; }
+.pf-v5-c-login__main-footer-band { padding: 14px 0 0; }
+#kc-registration { margin-top: 0; }
+#kc-registration-container, .pf-v5-c-login__main-footer-band {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+#kc-registration-container::before, #kc-registration-container::after,
+.pf-v5-c-login__main-footer-band::before, .pf-v5-c-login__main-footer-band::after {
+  display: none !important;
+  border: 0 !important;
+}
 
 /* The wrapper is the field's box; the input inside it has no border, so nothing is drawn twice. */
 .pf-v5-c-form-control {
@@ -227,19 +238,20 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
 html, body, body.login-pf { background-attachment: fixed; background-repeat: no-repeat; background-size: cover; min-height: 100vh; }
 
 /* ---- Layout polish: stacked logo, centered caption, label gaps, tidy re-authenticate view --------------- */
-#kc-header-wrapper { flex-direction: column; gap: 14px; }
-#kc-header-wrapper::before { width: 64px; height: 64px; }
+#kc-header-wrapper { flex-direction: column; gap: 8px; }
+#kc-header-wrapper::before { width: 52px; height: 52px; }
 
 .pf-v5-c-login__main .pf-v5-c-login__main-body { display: flex; flex-direction: column; }
 .pf-v5-c-login__main-body::before { order: 0; text-align: center; }
 
-/* A clear gap between each label and its box */
+/* A clear, compact gap between each label and its box. */
 div.pf-v5-c-form__label { margin-bottom: 8px; }
-.pf-v5-c-form__group + .pf-v5-c-form__group { margin-top: 18px; }
+.pf-v5-c-form { row-gap: 16px; }
+.pf-v5-c-form__group, .pf-v5-c-form__group + .pf-v5-c-form__group { margin-top: 0; }
 
 /* Re-authenticate view: a short centered note first (it sits inside the username block), then the username
    and the password form. */
-.pf-v5-c-login__main-body > .pf-v5-c-form { margin-bottom: 18px; }
+.pf-v5-c-login__main-body > .pf-v5-c-form { margin-bottom: 12px; }
 .pf-v5-c-form .pf-v5-c-alert.pf-m-info {
   order: -1;
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -250,8 +262,129 @@ div.pf-v5-c-form__label { margin-bottom: 8px; }
 .pf-v5-c-form .pf-v5-c-alert.pf-m-info .pf-v5-c-alert__title { color: var(--pp-muted); font-size: 13px; font-weight: 500; }
 
 .pf-v5-c-form-control.pf-m-readonly input { color: var(--pp-muted); }
-#reset-login { flex: none; overflow: hidden; }
+#reset-login {
+  display: inline-flex !important;
+  width: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--pp-brand);
+  background: var(--pp-highlight);
+  border: 1px solid var(--pp-line) !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+#reset-login:hover, #reset-login:focus-visible {
+  color: #fff;
+  background: var(--pp-brand);
+  border-color: var(--pp-brand) !important;
+}
+#reset-login::before, #reset-login::after { display: none !important; }
+#reset-login i { margin: 0; }
+.pf-v5-c-input-group:has(#reset-login) { gap: 8px; }
+.pf-v5-c-input-group:has(#reset-login) .pf-v5-c-input-group__item { margin: 0 !important; }
+#kc-attempted-username {
+  min-width: 0;
+  font-size: 13px;
+  text-overflow: clip;
+}
+#reset-login, .pf-v5-c-input-group__item {
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+#reset-login::before, #reset-login::after,
+.pf-v5-c-input-group__item::before, .pf-v5-c-input-group__item::after {
+  display: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
 #reset-login .kc-tooltip-text {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* Keep the re-authentication account row as one predictable two-column field. */
+.pf-v5-c-input-group {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  width: 100%;
+  gap: 8px;
+  align-items: stretch;
+}
+.pf-v5-c-input-group__item,
+.pf-v5-c-input-group__item.pf-m-fill {
+  width: auto !important;
+  min-width: 0;
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.pf-v5-c-input-group__item:last-child {
+  width: 46px !important;
+}
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control,
+#reset-login {
+  width: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--pp-brand);
+  background: var(--pp-highlight);
+  border: 1px solid var(--pp-line) !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:hover,
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:focus-visible,
+#reset-login:hover,
+#reset-login:focus-visible {
+  color: #fff;
+  background: var(--pp-brand);
+  border-color: var(--pp-brand) !important;
+}
+/* Keycloak's tooltip decoration is the thin line that appeared after the account switcher. */
+#reset-login .kc-tooltip-text,
+#reset-login .kc-tooltip-text::before,
+#reset-login .kc-tooltip-text::after,
+.pf-v5-c-input-group__item:has(#reset-login)::before,
+.pf-v5-c-input-group__item:has(#reset-login)::after {
+  display: none !important;
+  content: none !important;
+}
+#kc-attempted-username {
+  display: block !important;
+  width: 100% !important;
+  height: 46px !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  padding: 11px 12px !important;
+  color: var(--pp-muted);
+  font-size: 14px;
+  line-height: 22px;
+  text-align: left;
+  text-overflow: clip;
+  box-sizing: border-box;
+}
+
+/* The sign-in hierarchy is deliberately centered. Labels stay left-aligned for scanability. */
+#kc-page-title,
+.pf-v5-c-login__main-header,
+#kc-content-wrapper::before,
+.pf-v5-c-login__main-body::before,
+.pf-v5-c-form .pf-v5-c-alert.pf-m-info,
+#kc-registration,
+#kc-registration-container,
+.pf-v5-c-login__main-footer-band,
+#kc-login {
+  text-align: center;
+}
+#kc-registration,
+#kc-registration-container,
+.pf-v5-c-login__main-footer-band {
+  display: block;
+  width: 100%;
 }

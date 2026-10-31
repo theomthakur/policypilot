@@ -257,6 +257,46 @@ def test_tool_call_limit_wraps_up_from_existing_evidence(
     assert outcome.answer["citations"][0]["verified"]
 
 
+def test_tool_call_limit_allows_one_citation_repair_from_existing_evidence(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    """A final answer may repair a bad quote without spending another document call."""
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+
+    def bad_quote(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Guest", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Guests get 10 Mbps down.",
+                    "claims": [
+                        {
+                            "text": "Guests get 10 Mbps down.",
+                            "evidence_ids": [key],
+                            "quote": "Guests get 10 Mbps.",
+                        }
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            bad_quote,
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "q", agent_max_tool_calls=1)
+    assert outcome.stop_reason == "answered"
+    assert outcome.answer["citations"][0]["verified"]
+    repair_messages = [message["content"] for message in model.calls[2] if message["role"] == "tool"]
+    assert any("Citation check failed" in content for content in repair_messages)
+
+
 def test_injected_instructions_are_flagged_and_not_followed(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
@@ -564,6 +604,18 @@ def test_greeting_gets_a_direct_reply_without_searching(
     assert "tool_call" not in events.types() and events.of("answer")
 
 
+def test_a_combined_thanks_and_goodbye_never_searches(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel([respond(("chat_reply", {"message": "You are welcome. Have a good day!"}))])
+    outcome, events = _run(model, "Thank you, good day!")
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 0
+    assert not events.of("tool_call")
+
+
 def test_a_failed_page_read_does_not_crash_the_turn(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 
@@ -617,6 +669,49 @@ def test_chat_reply_for_a_real_question_triggers_a_search_of_the_users_own_words
     result = next(m["content"] for m in model.calls[1] if m["role"] == "tool")
     assert '"hits"' in result and "Guest" in result  # the search ran and answered the chat_reply call
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
+
+
+def test_a_short_policy_topic_cannot_bypass_search(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("chat_reply", {"message": "There is no information about guest network access."})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, _ = _run(model, "guest network")
+    result = next(message["content"] for message in model.calls[1] if message["role"] == "tool")
+    assert '"hits"' in result and "Guest" in result
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
+
+
+def test_follow_up_scope_falls_back_when_it_only_matches_one_generic_topic_word() -> None:
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import ToolResult
+
+    scoped = ToolResult(
+        status="ok",
+        summary="One sponsored-account result.",
+        data={
+            "hits": [
+                {
+                    "title": "Account Lifecycle Standard",
+                    "section": "Sponsored accounts",
+                    "excerpt": "Sponsored guest accounts provide limited university access.",
+                    "text_rank": 1,
+                }
+            ],
+            "weak": False,
+            "off_topic": False,
+        },
+    )
+    assert AgentRun._scoped_result_unhelpful(
+        scoped, "What is the Wi-Fi limit for unregistered guest devices?"
+    )
 
 
 def test_pages_cited_in_the_previous_answer_are_flagged_for_follow_ups(

@@ -1,18 +1,23 @@
 # PolicyPilot documentation
 
-## Review first
+## Start here
 
-1. [High-level system design](architecture.md) - complete HLD, flows, boundaries, safety, reliability and scaling.
-2. [Presentation and demo plan](presentation.md) - 20-minute walkthrough, live-demo order and reviewer questions.
-3. [Requirements and traceability](requirements.md) - assignment requirement to acceptance-evidence map.
-4. [Architecture decisions](adr/README.md) - decisions, rejected alternatives and consequences.
+1. [System design](system-design.md) - current high-level design, actual boundaries, and what is implemented versus only designed.
+2. [Submission checklist](submission-checklist.md) - assignment requirement to evidence map.
+3. [Evaluation](evaluation.md) - canonical final measurements, raw reports, baseline comparison, and known limitations.
+4. [Demo walkthrough](demo.md) - a reproducible reviewer path through the application.
+5. [Summary](summary.md) - what the submitted release does, does not do, and would need next.
 
-## Release evidence to complete
+## Supporting reference
 
-- `evaluation.md`: agent versus baseline results and failure analysis.
-- `demo.md`: final deployed walkthrough and video link.
-- `reproducibility.md`: exact models, prompts, hashes, dependencies and cost assumptions.
-- `runbook.md`: deployment, update, rollback, backup and recovery.
-- `summary.md`: completed, partial and unfinished work at the submitted commit.
+- [Requirements and traceability](requirements.md)
+- [Reproducibility](reproducibility.md)
+- [Authentication](authentication.md)
+- [Deployment runbook](runbook.md) and [local Kubernetes evidence](kubernetes.md)
+- [Security and limitations](security-and-limitations.md)
+- [Architecture decisions](adr/README.md)
+- [AI-assisted development](ai-assisted-development.md)
 
-No planned document should be treated as proof that a capability works. The final summary must link every completed claim to a test, trace, result or deployment artifact.
+## Historical material
+
+Earlier plans, baseline measurements, a duplicate HLD, and a pre-release audit live in [`archive/pre-release-2026-10-29/`](archive/pre-release-2026-10-29/). They are retained for traceability only and do not describe the submitted release.

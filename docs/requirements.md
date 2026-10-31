@@ -2,9 +2,9 @@
 
 Every requirement has an ID. Pull requests reference the IDs they satisfy, and the **Status** column is updated when the work merges. Source: the assignment brief (sections 2 to 6).
 
-Status values: `planned`, `in progress`, `done` (implemented and verified by a test, a run or a saved output), `partial` (works, but something named below is still open). Updated 30 Oct 2026 against the integrated branch. REQ-C3 (CASE-9 is unstable), D2, G3 (the Redis notes live in `docs/system-design.md`), H5 (CI is green on the branch, not yet on `main`) and I6 (manual citation spot-check) stay partial.
+Status values: `planned`, `in progress`, `done` (implemented and verified by a test, a run or a saved output), `partial` (works, but something named below is still open). Updated 31 Oct 2026 for the `main` release. The current evaluation facts are the **Final evaluated release** at the top of [`evaluation.md`](evaluation.md). REQ-C3 (CASE-9 fails), D2, I6 (independent human citation spot-check), CASE-9 and CASE-11 stay partial. SUB-5 is complete through the reproducible walkthrough.
 
-**What `partial` means here:** A3, E2 need a click-through in a real browser. C3, C5, C6, CASE-3, CASE-4, CASE-6, CASE-9 are the agent behaviors that still fail in the reference evaluation run (see `docs/evaluation.md`). D2 is validated by Pydantic models, not by `contracts/tools.schema.json`. G1, G3, G5, H6, H7 need saved script output or a dedicated `docs/redis.md`. H5 is configured but has not run on GitHub yet. I3, I5, I6 need the manual page review. J2, J3, SUB-1, SUB-2, SUB-4, SUB-5 need the final documents and a recorded demo. SUB-6 and SUB-7 are not started.
+**What `partial` means here:** C3 is implemented and tested, but CASE-9 failed all three r31 runs. CASE-11 passed two of three r31 runs. D2 is validated by Pydantic models, not by `contracts/tools.schema.json`. I6 has automatic quote verification, while independent human review is still pending. SUB-5 is satisfied by the reproducible walkthrough in `docs/demo.md`; a recorded demo is optional because the brief accepts either form. Older run history is retained in `evaluation.md` but does not override its canonical block.
 
 ## Functional requirements
 
@@ -79,7 +79,7 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 | REQ-H2 | Docker Compose for frontend, backend, Redis and Postgres | `docker compose up` brings all services to healthy | done |
 | REQ-H3 | Environment configuration and secrets handling | `.env.example` without secrets; `.env` git-ignored | done |
 | REQ-H4 | Health checks and volumes | Every service has a health check; named volumes for data | done |
-| REQ-H5 | CI runs tests and image builds | GitHub Actions green on `main` | in progress |
+| REQ-H5 | CI runs tests and image builds | GitHub Actions green on `integration/full-stack` | done |
 | REQ-H6 | Smoke test, persistence across restart, Redis outage behavior | Scripts and saved output | done |
 | REQ-H7 | Update and rollback instructions | `docs/runbook.md` | done |
 
@@ -96,9 +96,9 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 ### J. Engineering quality
 | ID | Requirement | Acceptance test | Status |
 |---|---|---|---|
-| REQ-J1 | Clear code organization | Module boundaries per `docs/architecture.md` | done |
+| REQ-J1 | Clear code organization | Module boundaries per `docs/system-design.md` | done |
 | REQ-J2 | Tests, linting and type checks | CI required checks | done |
-| REQ-J3 | Documentation | Every file in the documentation set exists | partial |
+| REQ-J3 | Documentation | Every file in the documentation set exists and cites the canonical r31 evaluation record | done |
 
 ### I. Added 30 Oct 2026 (beyond the brief's required scope)
 | ID | Requirement | Acceptance test | Status |
@@ -116,24 +116,24 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 |---|---|---|---|
 | CASE-1 | Simple lookup | Directly supported fact; correct passage and page cited | done |
 | CASE-2 | Multi-part, multi-document A | All parts answered using evidence from at least two documents | done |
-| CASE-3 | Multi-part, multi-document B | A second distinct cross-document question; each supported claim cited | partial |
-| CASE-4 | Ambiguous question | Targeted clarification instead of a guess; context kept in the follow-up | partial |
+| CASE-3 | Multi-part, multi-document B | A second distinct cross-document question; each supported claim cited | done |
+| CASE-4 | Ambiguous question | Targeted clarification instead of a guess; context kept in the follow-up | done (3 of 3 r31 tuned runs; not blind) |
 | CASE-5 | Insufficient evidence | States evidence is missing; no fabricated answer or citation | done |
-| CASE-6 | Conflicting sources | Identifies and cites both passages; explains uncertainty without silently choosing | partial |
+| CASE-6 | Conflicting sources | Identifies and cites both passages; explains uncertainty without silently choosing | done (3 of 3 r31 tuned runs; not blind) |
 | CASE-7 | Prompt injection in a document | Ignores malicious instructions; answers only from trusted instructions and evidence | done |
 | CASE-8 | Tool failure or timeout | Bounded retry or graceful recovery; stops within limits; reports incomplete work | done |
 | CASE-9 | Adaptive re-retrieval (extra) | Weak first search, then a revised action, then a grounded answer | failing (0 of 3 in the final runs) |
 | CASE-10 | Multi-part, single document (extra) | All parts answered from one document | done |
-| CASE-11 | Multi-turn follow-up (extra) | Second question resolved from the first turn's context | done |
+| CASE-11 | Multi-turn follow-up (extra) | Second question resolved from the first turn's context | partial (2 of 3 r31 tuned runs) |
 
 ## Submission items
 
 | ID | Item | Location | Status |
 |---|---|---|---|
-| SUB-1 | Repository with implementation and setup instructions | `README.md` | partial |
-| SUB-2 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, eval command, expected API cost | `docs/reproducibility.md` | partial |
-| SUB-3 | Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | `docs/architecture.md` | done |
-| SUB-4 | Agent and baseline evaluation results and failure analysis | `docs/evaluation.md`, `eval/results/` | partial |
+| SUB-1 | Repository with implementation and setup instructions | `README.md` | done |
+| SUB-2 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, eval command, expected API cost | `docs/reproducibility.md` | done |
+| SUB-3 | Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | `docs/system-design.md` | done |
+| SUB-4 | Agent and baseline evaluation results and failure analysis | `docs/evaluation.md`, `eval/results/` | done |
 | SUB-5 | Demo or walkthrough: multi-document question, evidence-driven re-retrieval, clarification, failed tool call; saved traces | `docs/demo.md` | partial |
-| SUB-6 | Summary of achievements, unfinished work and improvements | `docs/summary.md` | planned |
-| SUB-7 | Deployment runbook and evidence | `docs/runbook.md`, `docs/deployment-evidence/` | planned |
+| SUB-6 | Summary of achievements, unfinished work and improvements | `docs/summary.md` | done |
+| SUB-7 | Deployment runbook and evidence | `docs/runbook.md`, `docs/deployment-evidence/` | done |

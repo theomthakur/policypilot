@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { greeting } from './greeting'
+import { greeting, personalizedGreeting } from './greeting'
 
 const at = (hour: number) => new Date(2026, 9, 29, hour, 30)
 
@@ -11,5 +11,15 @@ describe('greeting', () => {
     expect(greeting(at(16))).toBe('Good afternoon')
     expect(greeting(at(17))).toBe('Good evening')
     expect(greeting(at(23))).toBe('Good evening')
+  })
+
+  it('uses the first profile-name word when one is available', () => {
+    expect(personalizedGreeting('Alice Analyst', at(8))).toBe(
+      'Good morning, Alice',
+    )
+    expect(personalizedGreeting('  Om Thakur  ', at(17))).toBe(
+      'Good evening, Om',
+    )
+    expect(personalizedGreeting(null, at(12))).toBe('Good afternoon')
   })
 })

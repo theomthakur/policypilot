@@ -110,7 +110,19 @@ def _or_query(terms: list[str]) -> str:
 
 _VISIBLE = """
     d.status = 'ready'
-    AND (d.session_id IS NULL OR d.session_id = :session_id)
+    AND (
+        d.session_id IS NULL
+        OR d.session_id = :session_id
+        OR (
+            :account_library
+            AND d.session_id IN (
+                SELECT uploaded_session.id
+                FROM sessions uploaded_session
+                JOIN sessions current_session ON current_session.id = :session_id
+                WHERE uploaded_session.owner_user_id = current_session.owner_user_id
+            )
+        )
+    )
     AND (:no_filter OR c.document_id = ANY(:document_ids))
     AND (CAST(:page_start AS int) IS NULL OR c.page_number >= :page_start)
     AND (CAST(:page_end AS int) IS NULL OR c.page_number <= :page_end)
@@ -160,7 +172,7 @@ async def _family_siblings(
 ) -> list[Hit]:
     """Other versions in the same policy family as a top hit, so a newer or older rule is never missed
     just because the question's wording matched only one of them. Families come from verified metadata."""
-    families = sorted({h.doc_family for h in hits[:3] if h.doc_family and h.authority == "institutional"})
+    families = sorted({h.doc_family for h in hits[:6] if h.doc_family and h.authority == "institutional"})
     if not families:
         return []
     have = sorted({h.document_id for h in hits})
@@ -196,12 +208,14 @@ async def hybrid_search(
     page_start: int | None = None,
     page_end: int | None = None,
     top_k: int | None = None,
+    account_library: bool | None = None,
 ) -> SearchResult:
     settings = get_settings()
     top_k = top_k or settings.search_top_k_default
     vector = await asyncio.to_thread(get_embedder().embed_query, query)
     params: dict[str, object] = {
         "session_id": session_id,
+        "account_library": settings.auth_mode != "off" if account_library is None else account_library,
         "no_filter": not document_ids,
         "document_ids": document_ids or [],
         "page_start": page_start,

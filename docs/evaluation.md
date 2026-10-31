@@ -4,6 +4,8 @@
 
 Everything below this block is the history of how the numbers were reached. This block is the current, canonical result.
 
+Raw reports for the canonical run are in [`eval/results/r31-tuned-1/report.md`](../eval/results/r31-tuned-1/report.md), [`r31-tuned-2`](../eval/results/r31-tuned-2/report.md), [`r31-tuned-3`](../eval/results/r31-tuned-3/report.md), [`r31-heldout2-1`](../eval/results/r31-heldout2-1/report.md), [`r31-heldout2-2`](../eval/results/r31-heldout2-2/report.md), [`r31-heldout-1`](../eval/results/r31-heldout-1/report.md), and [`r31-heldout-2`](../eval/results/r31-heldout-2/report.md). When an older section differs, this block takes precedence.
+
 - **Code:** branch `integration/full-stack`, evaluated at commit `f6981bc`. Every commit after the agent's last behaviour change (`4102de1`) is documentation or scripts only, so these runs describe the submitted agent.
 - **Prompt version:** v10. **Agent model:** `openai/gpt-4o-mini`; **ambiguity judge:** `openai/gpt-4o`; temperature 0, seed 42; 14-document library, corpus manifest SHA-256 `e80b6f47...2a69` (`corpus/manifest.json`).
 - **Date:** 31 Oct 2026 (US Eastern), runs `r31-*` in `eval/results/`. Commands: `scripts/run_final_evaluation.sh r31 <python>`.
@@ -31,7 +33,7 @@ The sections that follow are historical experiments kept as a record. Where a nu
 
 This section supersedes the headline numbers further down. The older sections (run r10, its failure analysis and citation log) are kept as the record of that run.
 
-**What changed since r10.** Prompt v9; a structured ambiguity check after the first search; code that normalizes abstentions; document metadata (authority, version, effective date, documented supersession) with policy-family discovery and a conflict repair; follow-up search scoped to earlier sources; a 0.9 ranking weight for NIST reference material; truthful counters. Code and tests: see `docs/remaining-execution-plan.md` (handoff log). Same model (`openai/gpt-4o-mini`, temperature 0, seed 42), same 14-document library.
+**What changed since r10.** Prompt v9; a structured ambiguity check after the first search; code that normalizes abstentions; document metadata (authority, version, effective date, documented supersession) with policy-family discovery and a conflict repair; follow-up search scoped to earlier sources; a 0.9 ranking weight for NIST reference material; truthful counters. The historical implementation handoff log is archived at [`archive/pre-release-2026-10-29/remaining-execution-plan.md`](archive/pre-release-2026-10-29/remaining-execution-plan.md). Same model (`openai/gpt-4o-mini`, temperature 0, seed 42), same 14-document library.
 
 ### Later the same day: fresh set, supersession template and facet gate (r18, `eval/heldout2.yaml`)
 

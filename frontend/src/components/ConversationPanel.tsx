@@ -4,8 +4,13 @@ import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
-import { greeting } from '../api/greeting'
+import { viewerFirstName } from './viewerIdentity'
+import { personalizedGreeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
+import {
+  isClarificationReply,
+  latestPendingClarification,
+} from './conversationState'
 
 export interface DisplayMessage {
   id: string
@@ -22,6 +27,7 @@ interface ConversationPanelProps {
   sessionReady: boolean
   mode: 'agent' | 'baseline'
   developer: boolean
+  firstName: string | null
   onModeChange: (mode: 'agent' | 'baseline') => void
   onSend: (content: string, replyToClarification?: boolean) => void
   onCitationOpen: (citation: Citation) => void
@@ -166,6 +172,7 @@ export function ConversationPanel({
   sessionReady,
   mode,
   developer,
+  firstName,
   onModeChange,
   onSend,
   onCitationOpen,
@@ -198,12 +205,9 @@ export function ConversationPanel({
     setContent('')
   }
 
-  const lastClarification = [...messages]
-    .reverse()
-    .find(
-      (message) =>
-        message.role === 'assistant' && message.answer?.clarification,
-    )
+  // A clarification is actionable only until the next turn completes. Looking through the full transcript
+  // left resolved cards clickable, which could submit the same choice twice.
+  const lastClarification = latestPendingClarification(messages)
 
   return (
     <section
@@ -263,52 +267,75 @@ export function ConversationPanel({
           <div className="welcome-state">
             <div className="welcome-row">
               <PolicyPilotMark className="welcome-mark" />
-              <h3>{greeting()}. What would you like to know?</h3>
+              <h3>
+                {personalizedGreeting(firstName)}. What would you like to know?
+              </h3>
             </div>
           </div>
         )}
 
-        {messages.map((message) => (
-          <article
-            className={`message message-${message.role}`}
-            key={message.id}
-          >
-            <div
-              className={
-                message.role === 'assistant'
-                  ? 'assistant-avatar'
-                  : 'user-avatar'
-              }
-              aria-hidden="true"
+        {messages.map((message, index) => {
+          const archivedClarification =
+            message.role === 'assistant' &&
+            message.answer?.clarification &&
+            lastClarification?.id !== message.id
+          const clarificationReply = isClarificationReply(messages, index)
+
+          return (
+            <article
+              className={`message message-${message.role}`}
+              key={message.id}
             >
-              {message.role === 'assistant' ? (
-                <PolicyPilotMark />
-              ) : (
-                <UserAvatar />
-              )}
-            </div>
-            <div className="message-content">
-              <span className="message-author">
-                {message.role === 'assistant' ? 'PolicyPilot' : 'You'}
-              </span>
-              {message.meta && (
-                <span className="message-meta">{message.meta}</span>
-              )}
-              {message.text && <p>{message.text}</p>}
-              {message.answer && (
-                <AnswerView
-                  answer={message.answer}
-                  onCitationOpen={onCitationOpen}
-                />
-              )}
-              {message.role === 'assistant' && message.answer && (
-                <div className="message-tools">
-                  <CopyButton answer={message.answer} />
-                </div>
-              )}
-            </div>
-          </article>
-        ))}
+              <div
+                className={
+                  message.role === 'assistant'
+                    ? 'assistant-avatar'
+                    : 'user-avatar'
+                }
+                aria-hidden="true"
+              >
+                {message.role === 'assistant' ? (
+                  <PolicyPilotMark />
+                ) : (
+                  <UserAvatar name={firstName} />
+                )}
+              </div>
+              <div className="message-content">
+                <span className="message-author">
+                  {message.role === 'assistant'
+                    ? 'PolicyPilot'
+                    : viewerFirstName(firstName)}
+                </span>
+                {clarificationReply && (
+                  <span className="clarification-response-label">
+                    Selected clarification response
+                  </span>
+                )}
+                {message.meta && (
+                  <span className="message-meta">{message.meta}</span>
+                )}
+                {message.text && <p>{message.text}</p>}
+                {archivedClarification && (
+                  <div className="clarification-record">
+                    <span>Clarification asked</span>
+                    <p>{message.answer?.clarification?.prompt}</p>
+                  </div>
+                )}
+                {message.answer && (
+                  <AnswerView
+                    answer={message.answer}
+                    onCitationOpen={onCitationOpen}
+                  />
+                )}
+                {message.role === 'assistant' && message.answer && (
+                  <div className="message-tools">
+                    <CopyButton answer={message.answer} />
+                  </div>
+                )}
+              </div>
+            </article>
+          )
+        })}
 
         {!busy && lastAnswerHasSources(messages) && (
           <div className="followups" aria-label="Suggested follow-up questions">

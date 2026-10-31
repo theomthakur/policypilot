@@ -46,11 +46,18 @@ from app.tools.injection import find_injection
 
 logger = logging.getLogger("policypilot.agent")
 
-# A greeting, thanks or "what can you do" is short; anything longer is treated as a real question.
-CHAT_MAX_WORDS = 6
 # Questions about the assistant itself are small talk however long they are.
 ABOUT_ME = re.compile(
     r"\b(what|how) (can|could|do|would) you (help|do|assist)\b|\bwho are you\b|\bwhat are you\b", re.I
+)
+SMALL_TALK = re.compile(
+    r"^\s*(?:hi|hello|hey|good (?:morning|afternoon|evening|day)|bye|goodbye|"
+    r"(?:thanks?|thank you)(?:[!,.\s]+(?:good day|bye|goodbye))?)[!,.\s]*$",
+    re.I,
+)
+REWRITE_FOLLOW_UP = re.compile(
+    r"\b(explain|simplify|summari[sz]e|restate)\b.*\b(that|this|it|previous|above|simpler|plain)\b",
+    re.I,
 )
 
 
@@ -85,8 +92,9 @@ def build_user_message(ctx: QuestionContext) -> str:
     if ctx.history:
         parts.append(
             "If this message follows up on the conversation above, answer only what is new: do not repeat "
-            "the earlier answer, and search for details its sources did not cover. If the documents hold "
-            "nothing more, say so in one sentence."
+            "the earlier answer. If the earlier sources already answer the follow-up, call final_answer "
+            "without searching again. Search only when a new fact is needed. If the documents hold nothing "
+            "more, say so in one sentence."
         )
     return "\n\n".join(parts)
 
@@ -103,6 +111,12 @@ def _content_words(text: str) -> set[str]:
     return {w.rstrip("s") for w in words if w not in _GENERIC}
 
 
+def _may_reply_without_search(question: str) -> bool:
+    """Only genuine small talk and a single unintelligible token may bypass the evidence workflow."""
+    stripped = question.strip()
+    return bool(ABOUT_ME.search(stripped) or SMALL_TALK.fullmatch(stripped) or len(_tokens(stripped)) <= 1)
+
+
 def _stems(text: str) -> set[str]:
     return {w.rstrip("s") for w in re.findall(r"[a-z]{3,}", text.lower())}
 
@@ -112,7 +126,7 @@ _STOPWORDS = frozenset(
         *("a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from", "has", "have"),
         *("how", "i", "if", "in", "is", "it", "its", "my", "of", "on", "or", "the", "to", "what", "when"),
         *("where", "which", "who", "why", "will", "with", "would", "you", "your", "we", "our", "me", "this"),
-        *("that", "there", "they", "their"),
+        *("that", "there", "they", "their", "get", "gets", "got", "may", "must", "should", "could"),
     }
 )
 _GENERIC_STEMS = frozenset({"accou", "user", "users", "types", "type", "north", "unive", "polic", "stand"})
@@ -374,6 +388,9 @@ class AgentRun:
         self.cited = ctx.cited
         self.ctx = ctx
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
+        await self._pin_named_document()
+        if ctx.history and REWRITE_FOLLOW_UP.search(ctx.question):
+            return await self._rewrite_previous_answer(ctx.history[-1][1])
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": prompts.load("system")},
             {"role": "user", "content": build_user_message(ctx)},
@@ -418,6 +435,66 @@ class AgentRun:
             if outcome is not None:
                 return outcome
 
+    async def _pin_named_document(self) -> None:
+        """Restrict searches when the question substantially matches a visible document title."""
+        question_terms = _content_words(self.question)
+        if len(question_terms) < 2:
+            return
+        async with get_sessionmaker()() as db:
+            query = select(Document).where(Document.status == "ready")
+            if self.tools.session_id is None:
+                query = query.where(Document.session_id.is_(None))
+            else:
+                query = query.where(
+                    (Document.session_id.is_(None)) | (Document.session_id == self.tools.session_id)
+                )
+            docs = (await db.execute(query)).scalars().all()
+        matched = []
+        for doc in docs:
+            title_terms = _content_words(doc.title)
+            overlap = question_terms & title_terms
+            if len(title_terms) >= 2 and len(overlap) >= 2 and 5 * len(overlap) >= 3 * len(title_terms):
+                matched.append(str(doc.id))
+        self.state.title_match_document_ids = matched[:3]
+
+    async def _rewrite_previous_answer(self, previous: str) -> Outcome:
+        """Handle a request to restate the immediately preceding, already-grounded answer.
+
+        This is a presentation request rather than a new factual question, so it must never trigger a
+        search or an unsupported missing-evidence answer.
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Rewrite the previous answer in plain, everyday English. Keep only its facts, add no "
+                    "new information, and use at most three short sentences. "
+                    "Call chat_reply with the rewrite."
+                ),
+            },
+            {"role": "user", "content": f"Previous answer:\n{previous[:1200]}"},
+        ]
+        try:
+            response = await self._model_call(messages, force_tool="chat_reply")
+            call = next((item for item in response.tool_calls if item.name == "chat_reply"), None)
+            if call is not None:
+                return await self._chat(call)
+        # A restatement should remain available even if the optional model rewrite fails.
+        except Exception:
+            pass
+        summary = f"In simpler terms: {previous.strip()}"[:1500]
+        answer = {
+            "summary": summary,
+            "claims": [],
+            "citations": [],
+            "notices": [],
+            "unverified_claims": [],
+            "stop_reason": "answered",
+            "partial": False,
+        }
+        await self.emit("answer", "ok", state="EMIT", summary=summary[:300], stop_reason="answered")
+        return self._finish("answered", answer)
+
     async def _handle_calls(self, calls: list[ToolCall], messages: list[dict[str, Any]]) -> Outcome | None:
         names = [c.name for c in calls]
         has_data = any(n in DATA_TOOLS for n in names)
@@ -432,7 +509,7 @@ class AgentRun:
                     summary="Plan: " + "; ".join(map(str, call.arguments.get("sub_questions", [])))[:260],
                 )
             elif call.name == "chat_reply":
-                if self.question_words >= CHAT_MAX_WORDS and not ABOUT_ME.search(self.question):
+                if not _may_reply_without_search(self.question):
                     # Not small talk. Instead of hoping the model searches, search for the user's own words
                     # and answer its chat_reply call with the results.
                     synthetic = ToolCall(call.id, "search_documents", {"query": self.question[:300]})
@@ -589,6 +666,16 @@ class AgentRun:
                 summary="Blocked: identical call already made.",
             )
             self._tool_message(messages, call, "Duplicate call blocked. Rephrase or choose another tool.")
+            # On a follow-up, a repeated page read means the model already has the same focused evidence
+            # in its ledger. End with a grounded answer instead of letting it spend the remaining turn
+            # re-requesting that page and turning an otherwise complete answer into a limit failure.
+            if (
+                call.name == "read_document_pages"
+                and self.ctx
+                and (self.ctx.history or self.ctx.clarification)
+                and st.ledger_has_good
+            ):
+                return await self._answer_from_existing_evidence(messages)
             return None
         if call.name == "search_documents" and st.last_query is not None:
             query = str(call.arguments.get("query", ""))
@@ -627,8 +714,15 @@ class AgentRun:
         self.totals.tool_calls += 1
 
         result: ToolResult | None = None
-        scope_ids = self._follow_up_scope(call)
-        run_args = {**call.arguments, "document_ids": scope_ids} if scope_ids else call.arguments
+        scope_ids = await self._follow_up_scope(call)
+        title_scope = self.state.title_match_document_ids if call.name == "search_documents" else []
+        run_args = (
+            {**call.arguments, "document_ids": title_scope}
+            if title_scope
+            else {**call.arguments, "document_ids": scope_ids}
+            if scope_ids
+            else call.arguments
+        )
         for attempt in range(1, s.agent_max_tool_retries + 2):
             began = time.monotonic()
             self.totals.tool_attempts += 1
@@ -669,7 +763,7 @@ class AgentRun:
             self.totals.retries += 1
             await asyncio.sleep(min(0.2 * attempt, max(0.0, self._time_left())))
         assert result is not None
-        if scope_ids and self._scoped_result_unhelpful(result):
+        if scope_ids and self._scoped_result_unhelpful(result, str(call.arguments.get("query", ""))):
             # The earlier sources did not help with this follow-up: search the whole library instead.
             began = time.monotonic()
             self.totals.tool_attempts += 1
@@ -738,28 +832,59 @@ class AgentRun:
         return None
 
     # ---- follow-up scoping (P1-E) -----------------------------------------------------------------
-    def _follow_up_scope(self, call: ToolCall) -> list[str]:
-        """Documents cited earlier in the conversation, used to scope the first search of a follow-up."""
+    async def _follow_up_scope(self, call: ToolCall) -> list[str]:
+        """Use earlier sources for a follow-up, including when the model invents an unavailable filter."""
         if (
             call.name != "search_documents"
             or self.state.last_query is not None
-            or call.arguments.get("document_ids")
             or not self.cited
         ):
             return []
-        return sorted({doc for doc, _ in self.cited})[:15]
+        earlier_sources = sorted({doc for doc, _ in self.cited})[:15]
+        requested = call.arguments.get("document_ids") or []
+        if not requested:
+            return earlier_sources
+        # Keep a deliberate valid filter. If every requested ID is unavailable, it is a model
+        # hallucination, so fall back to the documents that established the conversation's topic.
+        async with get_sessionmaker()() as db:
+            visible = select(Document.id).where(Document.id.in_(requested), Document.status == "ready")
+            if self.tools.session_id is None:
+                visible = visible.where(Document.session_id.is_(None))
+            else:
+                visible = visible.where(
+                    (Document.session_id.is_(None)) | (Document.session_id == self.tools.session_id)
+                )
+            valid = {str(doc_id) for doc_id in (await db.execute(visible)).scalars()}
+        return earlier_sources if not valid else []
 
     @staticmethod
-    def _scoped_result_unhelpful(result: ToolResult) -> bool:
+    def _scoped_result_unhelpful(result: ToolResult, query: str) -> bool:
         data = result.data or {}
         hits = data.get("hits") or []
-        return (
+        if (
             result.status != "ok"
             or not hits
             or bool(data.get("weak"))
             or bool(data.get("off_topic"))
             or not any(h.get("text_rank") for h in hits)  # no passage shares a word with the question
-        )
+        ):
+            return True
+        # A scoped follow-up can look healthy because of generic words such as "every" or "access",
+        # while missing the user's actual new topic. Prefer distinctive terms and fall back to the full
+        # library when none appears in the title, section, or excerpt.
+        terms = {term for term in _content_words(query) if len(term) >= 6}
+        if not terms:
+            terms = {term for term in _content_words(query) if len(term) >= 5}
+        if not terms:
+            return False
+        required_matches = min(2, len(terms))
+        for hit in hits:
+            text = " ".join(
+                str(hit.get(field) or "") for field in ("title", "section", "excerpt")
+            )
+            if len(terms & _content_words(text)) >= required_matches:
+                return False
+        return True
 
     async def _literal_hits(self) -> list[dict[str, Any]]:
         """The model's first query often rewords the question and drops what makes it ambiguous. Search once
@@ -812,9 +937,12 @@ class AgentRun:
             or ctx is None
             or not self.settings.agent_assess_ambiguity
             or ctx.clarification
-            or ctx.history
             or result.status != "ok"
         ):
+            return False
+        # A stated year asks for a particular version of a policy. Asking the user to choose a version after
+        # they have already supplied one is needless clarification and obscures historical answers.
+        if _HISTORICAL.search(ctx.question) or re.search(r"\b(?:19|20)\d{2}\b", ctx.question):
             return False
         return bool((result.data or {}).get("hits"))
 
@@ -853,7 +981,7 @@ class AgentRun:
                     continue
                 if distinguishing and not distinguishing & _tokens(excerpt):
                     detail["status"] = "label_not_in_passage"
-                    break
+                    continue
                 verified.setdefault(str(hit["document_id"]), {}).setdefault(
                     item.label.strip().lower(),
                     {
@@ -861,6 +989,7 @@ class AgentRun:
                         "quote": item.quote,
                         "document_id": str(hit["document_id"]),
                         "page": hit["page"],
+                        "excerpt": excerpt,
                         "detail": detail,
                     },
                 )
@@ -879,7 +1008,11 @@ class AgentRun:
                 entry["detail"]["status"] = "rules_alike"
             best = []
         # The quotes have to be about what was asked: a list of what exists (scope bullets) shares nothing.
-        relevant = [e for e in best if (_tokens(e["quote"]) - _GENERIC_STEMS) & question_tokens]
+        relevant = [
+            e
+            for e in best
+            if ((_tokens(e["quote"]) | _tokens(e.get("excerpt", ""))) - _GENERIC_STEMS) & question_tokens
+        ]
         if len(best) >= 2 and len(relevant) < 2:
             for entry in best:
                 entry["detail"]["status"] = "not_about_the_question"
@@ -936,7 +1069,10 @@ class AgentRun:
         # The decision is made here from the structured fields, not from the model's own "answerable" flag
         # (a judge that lists four quoted variants and then says "answerable" contradicts itself).
         label_tokens = [_tokens(d["label"]) for d in variants.details]
-        unique = [t - set().union(*(u for u in label_tokens if u is not t)) for t in label_tokens]
+        unique = [
+            (t - set().union(*(u for u in label_tokens if u is not t))) - _GENERIC_STEMS
+            for t in label_tokens
+        ]
         value_named = bool(
             _tokens(verdict.value_in_question or "") & set().union(*unique)
             if label_tokens
@@ -1132,20 +1268,21 @@ class AgentRun:
     async def _normalize(self, answer: dict[str, Any]) -> dict[str, Any]:
         """Code-level guarantees on the final answer, whatever the model wrote."""
         notices: list[dict[str, Any]] = answer["notices"]
+        # A missing-evidence notice contradicts a grounded answer. The model may hedge after it has
+        # already produced verified claims, but the UI must never show both messages together.
+        if answer.get("claims"):
+            answer["notices"] = [n for n in notices if n["kind"] != "missing_evidence"]
+            notices = answer["notices"]
         if answer["stop_reason"] == "insufficient_evidence":
             # An abstention carries an explicit missing-evidence notice and never a citation or claim.
             answer["claims"], answer["citations"], answer["partial"] = [], [], False
-            # No claim survived, so nothing the model wrote may stay as an assertion. If it asserted claims
-            # that failed, replace its summary; if it abstained itself, keep its explanation minus figures.
-            if answer.get("unverified_claims"):
-                answer["summary"] = ABSTAIN_TEXT
-            else:
-                kept = [
-                    x
-                    for x in re.split(r"(?<=[.!?])\s+", str(answer["summary"]))
-                    if x.strip() and not re.search(r"\d", x)
-                ]
-                answer["summary"] = " ".join(kept) or ABSTAIN_TEXT
+            # A model sometimes labels its own abstention as partial. It is not a partial answer when
+            # no claim was returned, so the UI should show the single, clear missing-evidence state.
+            answer["notices"] = [n for n in notices if n["kind"] != "partial"]
+            notices = answer["notices"]
+            # No claim survived, so no model-written policy detail may remain in the summary. A generic
+            # abstention is preferable to a plausible but uncited aside about a different policy.
+            answer["summary"] = ABSTAIN_TEXT
             if not any(n["kind"] == "missing_evidence" for n in notices):
                 notices.append(
                     {
@@ -1219,6 +1356,8 @@ class AgentRun:
     async def _best_sentence(self, doc: Document, terms: list[str]) -> tuple[int, str] | None:
         """The sentence, on the pages of `doc` read this turn, that best answers the question (literal)."""
         wanted = _stems(self.question) | {t for term in terms for t in _stems(term)}
+        question_words = _content_words(self.question)
+        asks_about_universal_scope = bool(re.search(r"\b(every|all|universal)\b", self.question, re.I))
         best: tuple[float, int, str] | None = None
         for item in self.state.ledger.values():
             if item.document_id != doc.id:
@@ -1229,12 +1368,89 @@ class AgentRun:
                 hits = sum(t in lowered for t in terms)
                 if terms and not hits:
                     continue  # the sentence must touch the superseded provision itself
-                score = len(wanted & _stems(sentence)) + 3 * hits
+                sentence_words = _content_words(sentence)
+                question_hits = len(question_words & sentence_words)
+                if question_words and not question_hits:
+                    continue
+                operative = bool(
+                    re.search(
+                        r"\b(required|prohibited|must|may not|mandates|"
+                        r"not universally mandated|shall|only)\b",
+                        lowered,
+                    )
+                )
+                universal_scope = 0
+                if asks_about_universal_scope:
+                    if re.search(r"\bnot\s+universally\b|\bnot\s+all\b", lowered):
+                        universal_scope = 20
+                    elif re.search(r"\b(all|every|universal)\b", lowered):
+                        universal_scope = 4
+                score = (
+                    len(wanted & _stems(sentence))
+                    + 3 * hits
+                    + 4 * question_hits
+                    + 5 * operative
+                    + universal_scope
+                )
                 if score and (best is None or score > best[0]):
                     literal = locate_quote(sentence, text or "")
                     if literal:
                         best = (score, item.page, literal)
         return (best[1], best[2]) if best else None
+
+    async def _refresh_conflict_evidence(self) -> None:
+        """Make one scoped comparison search when related policy versions are already in play.
+
+        A broad initial search can surface each document's cover page or an unrelated provision. The
+        comparison stays bounded, uses only the two already-seen documents, and records the normal tool
+        events so the final conflict explanation is auditable.
+        """
+        if self.totals.tool_calls >= self.settings.agent_max_tool_calls:
+            return
+        seen = {item.document_id for item in self.state.ledger.values()}
+        for newer, older, relation in await self._supersession_pairs():
+            if (
+                newer.id not in seen
+                or older.id not in seen
+                or not self._in_scope(relation, older)
+                or _is_historical(self.question, older.effective_date)
+            ):
+                continue
+            self.totals.tool_calls += 1
+            self.totals.tool_attempts += 1
+            args = {
+                "query": self.question[:300],
+                "document_ids": [str(newer.id), str(older.id)],
+                "top_k": 6,
+            }
+            await self.emit(
+                "tool_call",
+                "ok",
+                state="ACT",
+                tool="search_documents",
+                input=args,
+                attempt=1,
+                scope="policy_version_comparison",
+                summary="Comparing the related policy versions for this question.",
+            )
+            began = time.monotonic()
+            result = await run_tool(
+                self.tools, "search_documents", args, max_seconds=max(0.5, self._time_left())
+            )
+            await self.emit(
+                "tool_result",
+                result.status,
+                state="OBSERVE",
+                tool="search_documents",
+                attempt=1,
+                duration_ms=round((time.monotonic() - began) * 1000),
+                summary=result.summary,
+                result=self._result_summary("search_documents", result),
+            )
+            # This records the newly returned pages in the evidence ledger. The model does not need another
+            # turn because _conflict_template builds a literal, cited comparison from those pages.
+            _model_view("search_documents", result, self.state, self.cited)
+            return
 
     async def _conflict_template(self) -> dict[str, Any] | None:
         """When this turn read a document and the one it documents itself as superseding, and the question is
@@ -1372,18 +1588,15 @@ class AgentRun:
                 else f"{len(verified.failures)} citation check(s) failed."
             ),
         )
-        if not verified.ok and not self.state.repair_used and self._limit_hit() is None:
+        # A citation repair needs no new document read. Let it proceed at the tool-call limit using the
+        # evidence already in the ledger, but never start another model turn after the time budget expires.
+        if not verified.ok and not self.state.repair_used and self._limit_hit() != "limit_time":
             self.state.repair_used = True
             self._tool_message(
                 messages, call, "Citation check failed:\n- " + "\n- ".join(verified.failures[:5])
             )
             return None
-        if not self.state.conflict_repair_used:
-            missing = await self._uncited_superseding(verified.answer)
-            if missing and self._limit_hit() is None:
-                self.state.conflict_repair_used = True
-                self._tool_message(messages, call, missing)
-                return None
+        await self._refresh_conflict_evidence()
         templated = await self._conflict_template()
         if templated is not None:
             await self.emit(
@@ -1392,8 +1605,19 @@ class AgentRun:
                 state="EVALUATE",
                 summary="Two documents disagree and one replaces the other: answering from both passages.",
             )
-        answer = templated or await self._verify_summary(await self._normalize(verified.answer))
-        if partial_reason and answer["claims"]:
+            answer = templated
+        elif not self.state.conflict_repair_used:
+            missing = await self._uncited_superseding(verified.answer)
+            if missing and self._limit_hit() is None:
+                self.state.conflict_repair_used = True
+                self._tool_message(messages, call, missing)
+                return None
+            answer = await self._verify_summary(await self._normalize(verified.answer))
+        else:
+            answer = await self._verify_summary(await self._normalize(verified.answer))
+        # A conflict template contains complete, verified claims from both related policies. It remains a
+        # finished answer even if the model spent its final tool slot before calling final_answer.
+        if partial_reason and answer["claims"] and templated is None:
             answer["stop_reason"], answer["partial"] = partial_reason, True
         await self.emit(
             "answer",

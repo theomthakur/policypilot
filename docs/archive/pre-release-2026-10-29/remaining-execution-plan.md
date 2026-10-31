@@ -279,7 +279,7 @@ If time contracts, reduce infrastructure breadth to a tested single-replica Kube
 
 ## 12. Copyable implementation instruction
 
-> Read `docs/remaining-execution-plan.md`, the assignment PDF and current source. Implement only your assigned work package. Confirm the baseline and current status before edits. Preserve existing UI, corpus, real-model results and the required Docker Compose path. Agree shared schema/migration changes with the integrator. Add focused tests, run relevant checks, and produce a handoff with changed files, commands/results, commit SHA, unresolved risks and the next dependency. Do not hardcode evaluation answers, weaken substantive checks, invent results, expose credentials, claim untested deployment features, or send any email. Document any deviation from this plan and its reason.
+> Read this archived plan, the assignment PDF and current source. Implement only your assigned work package. Confirm the baseline and current status before edits. Preserve existing UI, corpus, real-model results and the required Docker Compose path. Agree shared schema/migration changes with the integrator. Add focused tests, run relevant checks, and produce a handoff with changed files, commands/results, commit SHA, unresolved risks and the next dependency. Do not hardcode evaluation answers, weaken substantive checks, invent results, expose credentials, claim untested deployment features, or send any email. Document any deviation from this plan and its reason.
 
 ## 13. Technical references
 
@@ -300,7 +300,7 @@ Append entries; never replace earlier measurements.
 | Date | Package | Implementer | Commit | Tests/evidence | Remaining |
 |---|---|---|---|---|---|
 | 2026-10-29 | Plan | ChatGPT | Baseline 0bc1d99 | Assignment/code/evaluation review | All work above is proposed; implementation not started by this plan |
-| 2026-10-30 | P0 | Claude (for Om) | 478daec | `docs/baseline-2026-10-30.md` | none |
+| 2026-10-30 | P0 | Claude (for Om) | 478daec | `baseline-2026-10-30.md` | none |
 | 2026-10-30 | P1 A,B,C,E,F | Claude | 71bd453, fca2629, 6ee9baf, current | 20 new agent tests (`tests/integration/test_p1_agent.py`); real-model runs r11 to r17 (`docs/evaluation.md`) | P1-D (evidence-driven re-search) not built. CASE-4 and CASE-6 do not pass reliably; the ambiguity check is evidence-backed but still imperfect on held-out questions |
 | 2026-10-30 | P2 | Claude | fca2629 | 17 auth tests against a local RSA-signed OIDC provider; real Keycloak two-user browser run in `docs/deployment-evidence/2026-10-30/compose-auth.md` | not tried against a university provider; no single logout, no roles |
 | 2026-10-30 | P3 | Claude | 8b6f50f | 10 job tests; real worker SIGKILL drill on kind (attempt 2, `turn_resumed`) | uploads still on a local volume; no S3/MinIO adapter |

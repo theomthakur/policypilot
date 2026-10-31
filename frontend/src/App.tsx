@@ -21,7 +21,7 @@ import { SignInScreen } from './components/SignInScreen'
 import { AccountMenu } from './components/AccountMenu'
 import { failureAnswer } from './api/failure'
 import { newId } from './api/ids'
-import { systemTheme, usePreference } from './hooks/usePreference'
+import { usePreference } from './hooks/usePreference'
 import { AnimatedMark } from './components/AnimatedMark'
 import { PolicyPilotMark } from './components/PolicyPilotMark'
 import { ArchitecturePage } from './components/ArchitecturePage'
@@ -306,10 +306,7 @@ export function App() {
     'pp_developer',
     false,
   )
-  const [theme, setTheme] = usePreference<'light' | 'dark'>(
-    'pp_theme',
-    systemTheme(),
-  )
+  const [theme, setTheme] = usePreference<'light' | 'dark'>('pp_theme', 'light')
   const mode = developer ? chosenMode : 'agent'
 
   useEffect(() => {
@@ -352,6 +349,7 @@ export function App() {
     auth.data?.mode !== undefined &&
     auth.data.mode !== 'off' &&
     !auth.data.authenticated
+  const firstName = auth.data?.user?.name ?? null
   const [signInEnded, setSignInEnded] = useState(false)
   // "Your sign-in ended" is only true for someone who had signed in during this visit; a first visit also
   // gets a 401 from the requests that start before the sign-in state is known, and that must not say so.
@@ -359,6 +357,16 @@ export function App() {
   useEffect(() => {
     if (auth.data?.authenticated) wasSignedIn.current = true
   }, [auth.data?.authenticated])
+
+  // A completed sign-in or account creation starts a new conversation. Previous work remains in History,
+  // but an old browser session must never reopen automatically after the person authenticates.
+  useEffect(() => {
+    if (!needsSignIn) return
+    localStorage.removeItem(SESSION_KEY)
+    setSessionId(null)
+    setMessages([])
+    setActiveTurnId(null)
+  }, [needsSignIn])
 
   useEffect(() => {
     const ended = () => {
@@ -398,33 +406,25 @@ export function App() {
   const turn = useTurnStream(activeTurnId)
   const busy = turn.status === 'streaming' || turn.status === 'polling'
 
-  const latestOwned = auth.data?.latest_session_id ?? null
-  const createSession = useCallback(
-    async (forceNew = false) => {
-      if (creatingSession.current) return
-      creatingSession.current = true
-      try {
-        // After signing in again, pick the last conversation back up instead of starting an empty one.
-        const response =
-          !forceNew && latestOwned
-            ? await api.resumeSession(latestOwned)
-            : await api.createSession()
-        localStorage.setItem(SESSION_KEY, response.session_id)
-        setSessionId(response.session_id)
-        setMessages([])
-        setActiveTurnId(null)
-        completedTurn.current = null
-        void queryClient.invalidateQueries({
-          queryKey: ['session', response.session_id],
-        })
-        // Private uploads are listed per conversation, so the list changes when the conversation does.
-        void queryClient.invalidateQueries({ queryKey: ['documents'] })
-      } finally {
-        creatingSession.current = false
-      }
-    },
-    [latestOwned, queryClient],
-  )
+  const createSession = useCallback(async () => {
+    if (creatingSession.current) return
+    creatingSession.current = true
+    try {
+      const response = await api.createSession()
+      localStorage.setItem(SESSION_KEY, response.session_id)
+      setSessionId(response.session_id)
+      setMessages([])
+      setActiveTurnId(null)
+      completedTurn.current = null
+      void queryClient.invalidateQueries({
+        queryKey: ['session', response.session_id],
+      })
+      // Personal uploads follow the signed-in person across conversations; refresh after switching chats.
+      void queryClient.invalidateQueries({ queryKey: ['documents'] })
+    } finally {
+      creatingSession.current = false
+    }
+  }, [queryClient])
 
   useEffect(() => {
     const requireAuth = () => setAuthRequired(true)
@@ -570,7 +570,7 @@ export function App() {
     setSessionId(null)
     setMessages([])
     setActiveTurnId(null)
-    await createSession(true)
+    await createSession()
   }
 
   const submitPasscode = async (passcode: string) => {
@@ -921,6 +921,7 @@ export function App() {
                 sessionReady={Boolean(sessionId)}
                 mode={mode}
                 developer={developer}
+                firstName={firstName}
                 onModeChange={setMode}
                 onSend={(content, reply) => void sendMessage(content, reply)}
                 onCitationOpen={setCitation}

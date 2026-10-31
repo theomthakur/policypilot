@@ -20,9 +20,9 @@ On the final run (31 Oct 2026) the agent passed 29 of 33 runs of the 11 tuned ca
 
 ## Unfinished
 
-- **Clarification is better but not proven:** CASE-4 ("How do I renew my Northfield account?") passed all three final runs and HELD-4 both; they now ask which kind applies, and no specific question was asked about needlessly. It has been measured on few questions, one run each, so a live variation can still miss. CASE-6 (a newer policy replacing an older one) passed in the latest re-run after an earlier token-limit failure.
-- **The verifier checks each claim, not every sentence of the prose.** Extra sentences were true in the cases I checked by hand, but nothing enforces it.
-- **No public deployment, no recorded demo, and the work is still on `integration/full-stack`, not `main`.** Those are yours to do. CI has run on GitHub for this branch and passed all seven jobs ([run](https://github.com/theomthakur/policypilot/actions/runs/41068139547)).
+- **Clarification is promising but not proven:** CASE-4 passed all three r31 tuned runs. The r31 result is still small and not blind, so it is evidence of behavior rather than a guarantee. CASE-6 also passed all three r31 tuned runs.
+- **The verifier checks each claim, not every sentence of the prose.** It proves literal quotes appear on cited pages, but it does not prove full semantic support. The independent citation spot-check remains pending.
+- **The reproducible walkthrough is complete.** The brief permits a recorded demo or a reproducible walkthrough, and `docs/demo.md` provides the latter. An independent 20-citation spot-check remains recommended. CI passed all seven jobs on the release candidate ([run](https://github.com/theomthakur/policypilot/actions/runs/41068139547)). A public deployment is an optional release step, not a claim made here.
 - **Kubernetes limits:** one kind node (the S3-backed two-replica overlay was never run across nodes), one PostgreSQL pod (no replication), no autoscaler or load test, and the OpenShift overlay was only rendered. NetworkPolicies were enforced and checked on Calico, not on kind's default CNI.
 - **Sign-in** was tested against Keycloak only. There are no roles, no single logout, and rate limits are per client address.
 - Small evaluation, one model, no load testing.

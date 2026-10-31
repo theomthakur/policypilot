@@ -278,6 +278,92 @@ def test_interpretations_that_are_not_in_the_results_never_trigger_a_question(
     assert events.of("assessment")[0]["assessment"]["supported"] == 0
 
 
+def test_variant_relevance_accepts_a_matching_result_excerpt() -> None:
+    """A branch rule may not repeat the policy topic, even when its result excerpt does."""
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import AssessQuestionInput
+
+    run = AgentRun.__new__(AgentRun)
+    run.question = "What are the records retention requirements?"
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "interpretations": [
+                {"label": "Student records", "quote": "Student records are retained for 7 years."},
+                {"label": "Faculty records", "quote": "Faculty records are retained for 10 years."},
+            ],
+        }
+    )
+    hits = [
+        {
+            "document_id": "retention-policy",
+            "page": 1,
+            "excerpt": "Records retention requirements. Student records are retained for 7 years.",
+        },
+        {
+            "document_id": "retention-policy",
+            "page": 2,
+            "excerpt": "Records retention requirements. Faculty records are retained for 10 years.",
+        },
+    ]
+
+    variants = run._backed_variants(verdict, hits)
+
+    assert [entry["label"] for entry in variants.options] == ["Student records", "Faculty records"]
+
+
+def test_generic_location_name_does_not_count_as_a_named_variant() -> None:
+    """A shared institution name cannot suppress a needed clarification."""
+    from app.agent.loop import _GENERIC_STEMS, _tokens
+
+    labels = [_tokens("Northfield student account"), _tokens("Sponsored account")]
+    unique = [
+        (tokens - set().union(*(other for other in labels if other is not tokens))) - _GENERIC_STEMS
+        for tokens in labels
+    ]
+
+    assert not (_tokens("Northfield account") & set().union(*unique))
+
+
+def test_variant_scan_continues_after_an_incomplete_duplicate_excerpt() -> None:
+    """A later result can contain the label that an earlier duplicate excerpt omitted."""
+    from app.agent.loop import AgentRun
+    from app.tools.contracts import AssessQuestionInput
+
+    run = AgentRun.__new__(AgentRun)
+    run.question = "How do accounts renew?"
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "interpretations": [
+                {"label": "Student account", "quote": "renew automatically each term"},
+            ],
+        }
+    )
+    hits = [
+        {
+            "document_id": "renewal-policy",
+            "page": 1,
+            "excerpt": "Accounts renew automatically each term.",
+        },
+        {
+            "document_id": "renewal-policy",
+            "page": 2,
+            "excerpt": "Student accounts renew automatically each term.",
+        },
+    ]
+
+    variants = run._backed_variants(verdict, hits)
+
+    assert variants.options[0]["page"] == 2
+
+
+def test_auxiliary_words_are_not_ambiguity_relevance_tokens() -> None:
+    from app.agent.loop import _tokens
+
+    assert "get" not in _tokens("When does an inactive account get suspended?")
+
+
 def test_specific_question_is_not_interrupted_by_the_assessment(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
@@ -318,24 +404,66 @@ def test_a_single_interpretation_never_triggers_a_question(
     assert outcome.stop_reason == "answered"
 
 
-def test_no_assessment_after_a_clarification_reply_or_with_history(
+def test_no_assessment_after_a_clarification_reply(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.llm.client import ScriptedModel, respond
 
     _load(make_pdf, tmp_path)
-    for kwargs in (
-        {"clarification": ("Which account?", "Student"), "original_question": "Renew my account"},
-        {"history": [("Earlier question", "Earlier answer")]},
-    ):
-        model = ScriptedModel(
-            [
-                respond(("search_documents", {"query": "guest network bandwidth"})),
-                _answer_step("Guest", 1, QUOTE_MBPS),
-            ]
-        )
-        outcome, events = _run(model, "q", ctx_kwargs=kwargs, agent_assess_ambiguity=True)
-        assert outcome.stop_reason == "answered" and not events.of("assessment")
+    kwargs = {"clarification": ("Which account?", "Student"), "original_question": "Renew my account"}
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q", ctx_kwargs=kwargs, agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered" and not events.of("assessment")
+
+
+def test_a_new_question_with_history_still_gets_an_ambiguity_assessment(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _assess(True),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "What is the guest bandwidth?",
+        ctx_kwargs={"history": [("Earlier question", "Earlier answer")]},
+        agent_assess_ambiguity=True,
+    )
+    assert outcome.stop_reason == "answered" and events.of("assessment")
+
+
+def test_question_with_an_explicit_policy_year_is_not_asked_to_choose_a_version(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    """A stated year already identifies the policy version requested."""
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "2023 password expiration"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+
+    outcome, events = _run(
+        model,
+        "Did the 2023 policy say passwords expire?",
+        agent_assess_ambiguity=True,
+    )
+
+    assert outcome.stop_reason == "answered" and not events.of("assessment")
 
 
 def test_a_failed_assessment_never_blocks_the_answer(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
@@ -373,6 +501,35 @@ def test_abstention_gets_a_missing_evidence_notice_and_no_citations(
     assert outcome.stop_reason == "insufficient_evidence"
     assert answer["claims"] == [] and answer["citations"] == [] and answer["partial"] is False
     assert [n["kind"] for n in answer["notices"]] == ["missing_evidence"]
+
+
+def test_grounded_claims_drop_a_contradictory_missing_evidence_notice(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _load(make_pdf, tmp_path)
+
+    def mixed_answer(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Guest", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Guests are limited to 10 Mbps.",
+                    "claims": [
+                        {"text": "Guests are limited to 10 Mbps.", "evidence_ids": [key], "quote": QUOTE_MBPS}
+                    ],
+                    "notices": [{"kind": "missing_evidence", "text": "No details were found."}],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "guest network bandwidth"})), mixed_answer])
+    outcome, _ = _run(model, "What is the guest bandwidth?")
+    assert outcome.stop_reason == "answered"
+    assert not [n for n in outcome.answer["notices"] if n["kind"] == "missing_evidence"]
 
 
 # ---- P1-C: policy families, metadata and conflict notices -----------------------------------------------
@@ -483,7 +640,106 @@ def test_citing_a_document_and_the_one_it_supersedes_adds_a_conflict_notice(
     assert "states that it supersedes" in notices[0]["text"]
 
 
-def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
+def test_documented_mfa_scope_is_eligible_for_conflict_handling() -> None:
+    """The real 2023 and 2025 policies disagree about university-wide MFA."""
+    from app.agent.loop import AgentRun
+
+    metadata = json.loads((Path(__file__).parents[3] / "corpus" / "pdfs" / "metadata.json").read_text())
+    relation = metadata["05-identity-mfa-standard-2025.pdf"]["supersedes"][0]
+    run = AgentRun.__new__(AgentRun)
+    run.question = "Is multi-factor authentication required for every Northfield account?"
+
+    assert run._in_scope(relation, None) is True
+
+
+def test_conflict_selection_prefers_a_universal_scope_statement() -> None:
+    from types import SimpleNamespace
+
+    from app.agent.loop import AgentRun
+    from app.agent.state import RunState
+    from app.agent.verifier import EvidenceItem
+
+    doc_id = uuid.uuid4()
+    run = AgentRun.__new__(AgentRun)
+    run.question = "Is multi-factor authentication required for every account?"
+    run.state = RunState(
+        ledger={
+            "E1": EvidenceItem("E1", doc_id, "Password policy", 4),
+            "E2": EvidenceItem("E2", doc_id, "Password policy", 6),
+        }
+    )
+
+    async def page_text(_: uuid.UUID, page: int) -> str:
+        return {
+            4: "Multi-factor authentication is available but not universally mandated for every account.",
+            6: "Privileged accounts must use multi-factor authentication for all interactive logons.",
+        }[page]
+
+    run.page_text = page_text
+    found = asyncio.run(run._best_sentence(SimpleNamespace(id=doc_id), ["mfa", "multi-factor", "rotation"]))
+    assert found is not None
+    assert found[0] == 4 and "not universally mandated" in found[1]
+
+
+def test_conflict_evidence_is_refreshed_before_a_one_sided_answer(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _metadata_corpus(make_pdf, tmp_path)
+
+    def only_new(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Password Standard", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Passwords do not expire.",
+                    "claims": [
+                        {"text": "Passwords do not expire.", "evidence_ids": [key], "quote": QUOTE_NEW}
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "passwords expire prohibited"})), only_new])
+    outcome, events = _run(model, "Do passwords expire?")
+    assert outcome.stop_reason == "answered"
+    assert {c["title"] for c in outcome.answer["citations"]} == {"1. Password Standard", "1. Password Policy"}
+    assert [n["kind"] for n in outcome.answer["notices"]] == ["conflict"]
+    assert any(e.get("scope") == "policy_version_comparison" for e in events.of("tool_call"))
+
+
+def test_complete_conflict_template_is_not_marked_partial_at_a_tool_limit(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _metadata_corpus(make_pdf, tmp_path)
+
+    def only_new(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Password Standard", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Passwords do not expire.",
+                    "claims": [
+                        {"text": "Passwords do not expire.", "evidence_ids": [key], "quote": QUOTE_NEW}
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "passwords expire prohibited"})), only_new])
+    outcome, _ = _run(model, "Do passwords expire?", agent_max_tool_calls=2)
+    assert outcome.stop_reason == "answered"
+    assert outcome.answer["partial"] is False
+
+
+def test_an_answer_that_ignores_the_superseding_document_is_repaired_to_a_conflict_answer(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.llm.client import ScriptedModel, respond
@@ -511,8 +767,8 @@ def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
         ]
     )
     outcome, _ = _run(model, "Do passwords expire?")
-    sent_back = [m for m in model.calls[-1] if m["role"] == "tool" and "effective 2025-01-15" in m["content"]]
-    assert sent_back and "conflict" in sent_back[0]["content"]
+    # The code-level conflict template may repair the answer immediately when both passages were read.
+    # That is safer than relying on another model call, and it still guarantees both sources and a notice.
     assert len(outcome.answer["citations"]) == 2
     assert [n["kind"] for n in outcome.answer["notices"]] == ["conflict"]
 
@@ -536,6 +792,38 @@ def test_no_conflict_notice_without_a_documented_relation(
 # ---- P1-E: follow-ups search the earlier sources first, then everything -----------------------------------
 
 
+def test_a_request_to_simplify_the_previous_answer_does_not_search(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(
+                (
+                    "chat_reply",
+                    {
+                        "message": (
+                            "In simple terms, the assignment is to build an app that finds useful text "
+                            "before it answers."
+                        )
+                    },
+                )
+            )
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "Explain that in simpler words",
+        ctx_kwargs={"history": [("What is the assignment?", "Build a RAG application over uploaded PDFs.")]},
+    )
+    assert outcome.stop_reason == "answered"
+    assert outcome.totals.tool_calls == 0
+    assert not events.of("tool_call")
+    assert outcome.answer["summary"].startswith("In simple terms,")
+
+
 def test_follow_up_search_is_scoped_to_earlier_sources(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 
@@ -557,6 +845,36 @@ def test_follow_up_search_is_scoped_to_earlier_sources(make_pdf: Callable[..., P
     assert {h["title"] for h in events.of("tool_result")[0]["result"]["pages"]} == {
         outcome.answer["citations"][0]["title"]
     }
+
+
+def test_follow_up_ignores_an_unavailable_model_document_filter(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    guest = _document_id("01-guest")
+    model = ScriptedModel(
+        [
+            respond(
+                (
+                    "search_documents",
+                    {
+                        "query": "guest network limits",
+                        "document_ids": ["00000000-0000-0000-0000-000000000001"],
+                    },
+                )
+            ),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "And what else?",
+        ctx_kwargs={"history": [("q", "a")], "cited": frozenset({(guest, 1)})},
+    )
+    assert [event.get("scope") for event in events.of("tool_call")] == ["previous_sources"]
+    assert outcome.stop_reason == "answered"
 
 
 def test_follow_up_on_a_new_topic_falls_back_to_all_documents(
@@ -606,6 +924,33 @@ def test_focused_follow_up_reserves_the_final_search_slot_for_an_answer(
     )
     assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 1
     assert events.of("early_stop")
+
+
+def test_follow_up_duplicate_page_read_finishes_from_existing_evidence(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    """A repeated focused page read should not turn a supported follow-up into a limit failure."""
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    guest = _document_id("01-guest")
+    read = {"document_id": guest, "page_start": 1, "page_end": 1}
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network limits"})),
+            respond(("read_document_pages", read)),
+            respond(("read_document_pages", read)),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "What is the guest bandwidth?",
+        ctx_kwargs={"history": [("q", "a")], "cited": frozenset({(guest, 1)})},
+    )
+    assert outcome.stop_reason == "answered"
+    assert events.of("early_stop")
+    assert any(e["status"] == "blocked" for e in events.of("tool_call"))
 
 
 # ---- P1-F: truthful counters and the turn deadline ------------------------------------------------------
@@ -677,7 +1022,31 @@ def test_current_rule_questions_are_answered_from_both_passages_by_code(
 
 def test_a_historical_question_is_not_overridden(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     _metadata_corpus(make_pdf, tmp_path)
-    outcome, events = _template_run("Did the 2023 policy say passwords expire?")
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    def historical_answer(messages: list[dict[str, Any]]) -> Any:
+        old = _evidence_id(messages, "Password Policy", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "The 2023 policy rotates passwords every 90 days.",
+                    "claims": [
+                        {
+                            "text": "The 2023 policy rotates passwords every 90 days.",
+                            "evidence_ids": [old],
+                            "quote": QUOTE_OLD,
+                        }
+                    ],
+                },
+            )
+        )
+
+    model = ScriptedModel(
+        [respond(("search_documents", {"query": "passwords expire change prohibited"})), historical_answer]
+    )
+    outcome, events = _run(model, "Did the 2023 policy say passwords expire?")
     assert not any("answering from both passages" in e.get("summary", "") for e in events.of("evaluate"))
     assert outcome.answer["summary"].startswith("The 2023 policy rotates")  # the model's own answer stands
 
@@ -866,6 +1235,29 @@ def test_a_default_without_a_quote_does_not_stop_a_clarifying_question(
         )
         outcome, _ = _run(model, "How do I renew my account?", agent_assess_ambiguity=True)
         assert (outcome.stop_reason == "clarification_needed") is expect_ask, fields
+
+
+def test_a_long_grounded_default_quote_is_accepted() -> None:
+    from app.tools.contracts import AssessQuestionInput
+
+    quote = "A restrictive rule applies to this documented condition. " * 12
+    verdict = AssessQuestionInput.model_validate(
+        {"answerable": True, "default_reading": "restricted data", "default_quote": quote}
+    )
+    assert verdict.default_quote == quote
+
+
+def test_a_long_interpretation_quote_is_accepted() -> None:
+    from app.tools.contracts import AssessQuestionInput
+
+    quote = "The policy applies to restricted material " * 12
+    verdict = AssessQuestionInput.model_validate(
+        {
+            "answerable": False,
+            "interpretations": [{"label": "Restricted material", "quote": quote}],
+        }
+    )
+    assert verdict.interpretations[0].quote == quote
 
 
 def test_the_judge_also_sees_passages_for_the_users_exact_words(

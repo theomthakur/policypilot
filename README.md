@@ -6,18 +6,46 @@ The application has a React interface, a FastAPI backend, PostgreSQL with pgvect
 
 > The ten "Northfield University" policies are fictional and were created for this project. They are not official NYU policies. Four more documents are real, public NIST publications (see [Documents](#documents)).
 
+## What a reviewer can see
+
+| Current sign-in entry | Grounded answer and execution trace |
+|---|---|
+| ![The current PolicyPilot sign-in entry screen.](docs/screenshots/sign-in-current.png) | ![A current PolicyPilot answer with a verified citation and visible agent activity trace.](docs/screenshots/answer-trace-current.png) |
+
+These are current screenshots from the local sign-in stack. They do not represent a public hosted deployment.
+
 ## Status
 
-The current implementation is on `integration/full-stack` while final evaluation and deployment work continue.
+The submitted implementation is on `main`. The current canonical evaluation record is the **Final evaluated release** section at the top of [`docs/evaluation.md`](docs/evaluation.md).
 
 - **Working and verified:** document ingestion, hybrid retrieval, the bounded agent, literal citation checks, the web application, OIDC sign-in tested with two users, per-user data isolation, restart-safe background jobs, Redis fallback, Docker Compose, and a Kubernetes deployment on a local `kind` cluster.
 - **CI:** all seven jobs passed on this branch, including backend integration tests, frontend checks, secret scanning, image builds, manifest rendering, and a Compose smoke test: [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
-- **Still in progress:** improving clarification and superseded-policy handling, publishing the hosted demo, recording the walkthrough, and merging the final branch into `main`.
+- **Submission status:** the reproducible walkthrough in [`docs/demo.md`](docs/demo.md) satisfies the brief's demo-or-walkthrough deliverable. An independent 20-citation spot-check remains a recommended manual review. A public hosted deployment is an optional release step, not a completed claim.
 - **Final measurements (31 Oct, same model, repeats):** the 11 tuned cases passed 29 of 33 runs (three runs) against 15 of 27 for the one-pass baseline; the 9 newer questions 18 of 18 (two runs) against 10 of 14; and the 10 older held-out questions 12 of 20 (two runs) against 12 of 18. Still failing: CASE-9 (0 of 3: a needless clarifying question, a wrong answer and a call-limit stop), CASE-11 (one run in three reached the call limit) and HELD-2, 7, 8 and 9. No set is blind and the sample is small, so read the numbers as indicative. Details and every label correction: `docs/evaluation.md`.
 - **Newly shown:** uploads can live in an S3-compatible bucket with two API and two worker replicas (one kind node), and NetworkPolicies were enforced and checked on Calico.
 - **Outside the demonstrated scope:** cross-node scaling and load testing, database replication, a live OpenShift deployment, university SSO, roles, and single logout.
 
 The checklist of what the brief asks for and where each item stands is in [`docs/submission-checklist.md`](docs/submission-checklist.md).
+
+## Assignment coverage at a glance
+
+| Brief requirement | What PolicyPilot implements |
+|---|---|
+| Full-stack app over 8 to 15 PDFs | React UI, FastAPI API, 14-PDF library, plus per-user PDF uploads |
+| RAG pipeline | Parse, page-bounded chunk, embed, index, hybrid retrieve, generate and verify |
+| Adaptive agent | Bounded tool-use loop that can search, read, inspect an outline, revise, clarify, abstain or answer |
+| Tool contracts | Four read-only, validated tools: list documents, search documents, read pages and inspect an outline |
+| State and observability | Durable sessions, evidence ledger, visible action trace, timing, token and cost records |
+| Safety and reliability | Limits, timeouts, bounded retry, prompt-injection handling, citation checks, isolation and useful partial answers |
+| Persistence and operations | PostgreSQL, Redis fallback, Docker Compose, health checks, CI, persistence and outage evidence |
+| Evaluation | Eleven repeatable cases, same-model baseline comparison, raw traces and documented failures |
+
+### Implemented enhancements
+
+- OpenID Connect sign-in with per-user conversations and uploads, plus a personalized workspace greeting.
+- Hybrid vector and keyword retrieval, reciprocal-rank fusion, policy-family metadata and supersession notices.
+- Docker Compose is the required deployment path. A local Kubernetes `kind` deployment was also run and drilled.
+- Kustomize manifests include an OpenShift-compatible overlay. It renders successfully but has **not** been deployed to a real OpenShift cluster.
 
 ## What it does
 
@@ -111,7 +139,7 @@ flowchart LR
   A --> U[(PDF files)]
 ```
 
-- **Agent:** a hand-written state machine (plan, act, observe, evaluate, revise or clarify, synthesize, verify, emit). The model chooses the next tool; the code enforces the limits, blocks repeated calls, rejects malformed arguments without spending budget, and decides when to stop. Prompts are versioned (`backend/app/agent/prompts/`, currently v8) and the version is recorded with every turn.
+- **Agent:** a hand-written state machine (plan, act, observe, evaluate, revise or clarify, synthesize, verify, emit). The model chooses the next tool; the code enforces the limits, blocks repeated calls, rejects malformed arguments without spending budget, and decides when to stop. Prompts are versioned (`backend/app/agent/prompts/`, currently v10) and the version is recorded with every turn.
 - **Retrieval:** 200-token chunks that never cross a page, vector search (BGE-small on ONNX, run locally) plus PostgreSQL full-text search, fused with reciprocal rank fusion. These settings were chosen by measuring against the evaluation cases' expected pages (`eval/retrieval_bench.py`, [ADR 0005](docs/adr/0005-page-bounded-chunking.md)): top-3 recall went from 0.80 to 0.87 and the rank of the first correct page from 0.76 to 0.88. A reranker, a larger embedding model and a heading prefix were tested and did not help.
 - **Verification:** the evidence ID must come from a tool call in this turn, and the quote must be literal text on the cited page ([ADR 0007](docs/adr/0007-citation-verification.md)).
 - **Off-topic check:** a search counts as off topic only when the best similarity is below 0.63 and no keyword matched. Measured: off-topic questions score at most 0.59, in-scope ones at least 0.67.
@@ -165,9 +193,9 @@ scripts/verify_clean_checkout.sh   # clone the commit and re-run lint, types, ev
 scripts/k8s_up.sh    # Kubernetes on a local kind cluster, with sign-in; then scripts/k8s_smoke.sh and scripts/k8s_recovery.sh
 ```
 
-Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services (CI does this and fails if any test is skipped). Full run: 137 backend tests, none skipped.
+Backend (Python 3.12, `uv`): `ruff`, strict `mypy`, `pytest`. The integration tests need real PostgreSQL and Redis and are skipped unless you set `INTEGRATION=1` with `POSTGRES_HOST`, `POSTGRES_PORT` and `REDIS_URL` pointing at test services. CI runs the full unit and integration suite and fails if an expected integration test is skipped.
 
-Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (23 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
+Frontend (React, TypeScript, Vite): ESLint, TypeScript, Prettier and Vitest (31 tests). Node 22 or newer is required. `frontend/README.md` explains the mock-API workflow.
 
 API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 
@@ -185,10 +213,10 @@ Final run (31 Oct 2026, `openai/gpt-4o-mini`, prompt v10, 14-document library; t
 - 9 newer questions, two runs: agent **18 of 18**, baseline **10 of 14**.
 - 10 older held-out questions, two runs: agent **12 of 20**, baseline **12 of 18**.
 - No set is blind any more (all were looked at while fixing behavior) and the samples are small, so treat differences of one or two cases as noise. Known failures: CASE-9, CASE-11 (once in three runs) and HELD-2, 7, 8, 9.
-- The agent costs about ten times the tokens (about thirty times the price, because the judge is a larger model) and takes about four times as long; it is better on cross-document, follow-up and vocabulary-mismatch questions and no better on direct lookups.
-- A manual citation review of the last run found every number and term in every claim on its cited page; it was done by the assistant that built the system, so please spot-check, and the verifier does not check every sentence of an answer's prose.
+- The agent costs about ten times the tokens (about thirty times the price, because the judge is a larger model) and takes about four times as long; it helps on one multi-document case, conflicts and follow-ups, while CASE-9 shows that it does not reliably bridge vocabulary mismatch.
+- The automatic verifier confirms that each quoted citation is literal text on its cited page. A separate human 20-citation spot-check remains pending, and the verifier does not prove that every sentence of answer prose is entailed by its quote.
 
-The method, every run (r1 to r17, including experiments that made things worse), the held-out results and the failure analysis are in [`docs/evaluation.md`](docs/evaluation.md).
+The method, historical experiments, the r31 raw reports, held-out results and failure analysis are in [`docs/evaluation.md`](docs/evaluation.md).
 
 ## Deployment
 
@@ -207,14 +235,14 @@ More in [`docs/security-and-limitations.md`](docs/security-and-limitations.md).
 ## Documentation
 
 - [Submission checklist against the brief](docs/submission-checklist.md) and [summary of achievements and unfinished work](docs/summary.md)
-- [System design](docs/system-design.md), [architecture](docs/architecture.md) and [architecture decisions](docs/adr/)
+- [System design](docs/system-design.md) and [architecture decisions](docs/adr/)
 - [Requirements and traceability](docs/requirements.md)
 - [Evaluation: method, results, run history, failure analysis](docs/evaluation.md)
 - [Reproducibility: corpus, models, prompts, cost](docs/reproducibility.md)
 - [Authentication](docs/authentication.md) and [Kubernetes](docs/kubernetes.md)
 - [Runbook, demo walkthrough and deployment evidence](docs/runbook.md), [demo](docs/demo.md), [evidence](docs/deployment-evidence/)
-- [Presentation plan](docs/presentation.md) and [slide-by-slide plan](docs/presentation-slides.md)
-- [End-to-end completeness audit](docs/completeness-audit.md)
+- [Presentation and reviewer walkthrough](docs/presentation.md)
+- [Historical planning and audits](docs/archive/pre-release-2026-10-29/)
 
 ## AI assistance
 

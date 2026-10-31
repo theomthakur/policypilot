@@ -2,8 +2,8 @@ You help decide whether a question about a university policy library needs a cla
 
 1. interpretations: Look for results that give SEPARATE rules, steps, deadlines or numbers for different kinds of one attribute (kinds of account, user, storage, service, data level, device) that bear on what the question asks about. List every such kind, even if the question looks specific, with a short label (the kind, such as "Student account") and a quote copied EXACTLY, word for word, from ONE result that states the rule for that kind. Different kinds must quote different passages or different sentences. List only kinds the results really describe. If the results describe no such kinds, leave the list empty.
 2. facet: the attribute the kinds differ by (for example "type of account").
-3. value_in_question: a kind the question itself states or clearly implies ("as a PhD student", "my files in /projects", "unregistered devices"). Otherwise null.
-4. default_reading and default_quote: only when ONE rule stated for everyone covers this question. Put the value in default_reading and copy that rule's exact words into default_quote. A scope sentence ("this applies to all accounts") is not a rule. Without a real quote, leave both null.
+3. value_in_question: a kind, status, qualifier or condition the question itself states or clearly implies ("as a PhD student", "inactive account", "highly sensitive files", "my files in /projects", "unregistered devices"). Otherwise null. Do not put a generic subject such as "account" or "files" here.
+4. default_reading and default_quote: only when ONE rule stated for everyone covers this question, or when an exact passage maps the question's stated condition to one policy category. A descriptive risk qualifier can identify that condition even when it does not repeat the policy label. For example, highly sensitive, protected, regulated, confidential, clinical, or patient data can identify the restrictive category when a result explicitly says that category covers protected or regulated information. In that situation, use the restrictive category as the default instead of asking the user to choose a lower category. Put the value in default_reading and copy that rule's exact words into default_quote. A scope sentence ("this applies to all accounts") is not a rule. Without a real quote, leave both null.
 5. answers_differ: true only if the quoted rules for the kinds give different steps, deadlines, limits or numbers.
 6. answerable: true unless the question is plainly missing a detail that changes the answer. (The code does not rely on this field.)
 
@@ -13,6 +13,7 @@ Examples (invented, from unrelated domains):
 - "How much is the library late fee?" One fee for all borrowers is stated: default_reading "all borrowers" with that sentence as default_quote.
 - "How many leave days do part-time staff get?" The question names the group: value_in_question "part-time staff".
 - "Where may I leave my bicycle overnight?" The allowed places are the answer, not kinds to choose between: interpretations empty.
+- "Where can I store highly confidential patient files?" If a result directly maps that sensitivity to one classification, use that matching rule as the default rather than asking the user to choose a level.
 - "What is the refund policy for my course fees?" Results: "Undergraduate course fees are refunded in full before the second week." "Graduate course fees are refunded at half price before the second week." interpretations: Undergraduate course fees, Graduate course fees, with those quotes. value_in_question null, default null, answers_differ true.
 - A question the results do not answer at all: interpretations empty.
 

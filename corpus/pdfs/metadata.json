@@ -32,7 +32,7 @@
       {
         "filename": "04-password-policy-2023.pdf",
         "scope": "partial",
-        "statement": "states that it supersedes select provisions of NUOIT Policy 2023-IAM-01, including Section 4.1 password expiration; Sections 5.0 and 6.0 remain in effect.",
+        "statement": "states that it supersedes select provisions of NUOIT Policy 2023-IAM-01, including Section 4.1 password expiration, and takes precedence where the policies conflict; Sections 5.0 and 6.0 otherwise remain in effect.",
         "scope_terms": [
           "expir",
           "rotat",
@@ -43,7 +43,10 @@
           "change password",
           "changed on a",
           "fixed schedule",
-          "change interval"
+          "change interval",
+          "mfa",
+          "multi-factor",
+          "two-factor"
         ],
         "exception_terms": [
           "service account",

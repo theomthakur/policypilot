@@ -67,7 +67,8 @@ async def test_unsupported_and_unknown_evidence_are_rejected() -> None:
     assert not result.ok and len(result.failures) == 2
     assert [c["text"] for c in result.answer["claims"]] == ["Good."]
     assert result.answer["unverified_claims"] == ["Wrong quote.", "Never seen."]
-    assert result.answer["partial"] is True
+    assert result.answer["summary"] == "Good."
+    assert result.answer["partial"] is False
 
 
 async def test_no_supported_claims_means_insufficient_evidence() -> None:
@@ -213,6 +214,21 @@ async def test_an_abstention_never_keeps_the_models_affirmative_summary() -> Non
     assert answer["stop_reason"] == "insufficient_evidence"
     assert answer["summary"] == ABSTAIN_TEXT and "unlimited" not in answer["summary"]
     assert any(n["kind"] == "missing_evidence" for n in answer["notices"])
+
+
+async def test_an_abstention_does_not_show_a_partial_notice() -> None:
+    from app.agent.loop import AgentRun
+
+    draft = FinalAnswerInput(
+        summary="The documents do not cover this.",
+        notices=[Notice(kind="partial", text="The answer is incomplete.")],
+    )
+    verified = await verify_answer(draft, LEDGER, page_text)
+    run = AgentRun.__new__(AgentRun)
+    answer = await run._normalize(verified.answer)
+    assert answer["partial"] is False
+    assert answer["summary"] == "I could not find this in the available documents."
+    assert [notice["kind"] for notice in answer["notices"]] == ["missing_evidence"]
 
 
 async def test_a_summary_with_only_rejected_sentences_falls_back_to_the_verified_claims() -> None:

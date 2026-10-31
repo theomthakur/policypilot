@@ -6,6 +6,21 @@ PolicyPilot is a full-stack agentic RAG system for asking simple, ambiguous, con
 
 The take-home topology uses one VM and Docker Compose because it is easy to reproduce, operate, and explain. Its contracts allow the same application to move to managed data services, object storage, workers, and horizontally scaled APIs without rewriting the user experience or agent tools.
 
+## What is implemented, tested, and only designed
+
+| Area | Current status | Evidence |
+|---|---|---|
+| Full local stack | Implemented and tested | Docker Compose, health checks and smoke test |
+| Agentic RAG | Implemented and tested | Bounded loop, four tools, visible trace and evaluation artifacts |
+| Grounded answers | Implemented and tested | Evidence ledger, literal quote verification and page citations |
+| Authentication and personalization | Implemented and tested locally | Keycloak OIDC flow, per-user conversations and uploads |
+| Durable jobs and Redis fallback | Implemented and tested | Worker recovery, persistence and Redis-outage evidence |
+| Local Kubernetes | Implemented and tested on one `kind` node | Browser flow, pod-delete, rollback and recovery drills |
+| OpenShift | Compatibility overlay only | Kustomize render, no live OpenShift run |
+| Production scale | Design only | Managed database, multi-node replicas, autoscaling and university SSO are not claimed |
+
+This distinction is intentional. Docker Compose is the required deployment path. The diagrams below show the working architecture first, then the paths that would change at production scale.
+
 ## Goals and non-goals
 
 ### Goals
@@ -18,7 +33,7 @@ The take-home topology uses one VM and Docker Compose because it is easy to repr
 - Show safe execution events, timing, token use, and cost.
 - Bound steps, tools, retries, time, output, and spending.
 - Preserve core behavior through Redis failure.
-- Run locally and publicly from the same Compose topology.
+- Run reproducibly in Docker Compose, with a tested local Kubernetes path.
 - Compare adaptive behavior with a one-search baseline.
 
 ### Non-goals
@@ -49,9 +64,9 @@ flowchart LR
     W -.-> V
 ```
 
-- **Implemented:** the sign-in and ownership boundary (every data route requires the login; a conversation belongs to one user; the conversation cookie only names it), the PostgreSQL job table with lease, heartbeat, fencing, bounded attempts and an interrupted state, an embedded or separate worker, idempotent turns, and the Kubernetes manifests (deployed on `kind` and drilled).
+- **Implemented:** the sign-in and ownership boundary when OIDC mode is enabled (every data route requires login; a conversation belongs to one user; the conversation cookie only names it), the PostgreSQL job table with lease, heartbeat, fencing, bounded attempts and an interrupted state, an embedded or separate worker, idempotent turns, and the Kubernetes manifests (deployed on `kind` and drilled). The default local Compose mode remains anonymous browser sessions behind an optional passcode.
 - **Failure paths:** a worker crash lets the lease expire and the next worker re-runs the job, adding a `turn_resumed` event (at-least-once, so a model call may repeat); a job that keeps crashing ends as a failed, interrupted turn; Redis down is degraded, PostgreSQL down is not ready; the identity provider down returns 503 on sign-in and leaves signed-in users working until their login expires.
-- **Design only (not built):** an S3-compatible adapter so API and worker can run on different nodes, a database replica and failover, an autoscaler, enforced NetworkPolicies, a university identity provider, roles. See [Kubernetes](kubernetes.md) and [Authentication](authentication.md) for what was and was not shown.
+- **Design only (not built):** a database replica and failover, autoscaling, a university identity provider and roles. The S3-compatible upload path and two-replica API and worker setup were tested on one `kind` node. NetworkPolicies were enforced and checked on a Calico-backed Kind cluster. See [Kubernetes](kubernetes.md) and [Authentication](authentication.md) for the scope and limits.
 - **Institutional policy versus reference guidance:** documents carry `authority` (institutional, reference, upload). Retrieval ranks NIST reference material at 0.9 of institutional passages, the prompt tells the model that reference guidance never overrides the university's own procedures or contacts, and a conflict notice is generated only from a supersession a document states about itself.
 - **Cache keys and invalidation:** search results are cached under (corpus version, conversation, query, filters); any ingestion or metadata change bumps the corpus version, so stale results are never served, and one user's private upload never appears in another user's cached results.
 - **Retention:** semester or archive rules are a product decision, not implemented: nothing is deleted automatically except Redis expiry; uploads and conversations stay until removed by an operator.
@@ -85,6 +100,7 @@ flowchart TB
     List[list_documents]
     Search[search_documents\nVector + full text + RRF]
     Read[read_document_pages]
+    Outline[get_document_outline]
   end
 
   subgraph Data[Data and inference layer]
@@ -111,6 +127,7 @@ flowchart TB
   Orchestrator --> List
   Orchestrator --> Search
   Orchestrator --> Read
+  Orchestrator --> Outline
   Orchestrator -. tool calls / answer draft .-> LLM
   Baseline -. generation .-> LLM
   List --> Postgres
@@ -118,6 +135,7 @@ flowchart TB
   Search -. cached IDs and scores .-> Redis
   Search -. query vectors .-> Embed
   Read --> Postgres
+  Outline --> Postgres
   Ingest --> PDF
   Ingest --> Embed
   Ingest --> Postgres

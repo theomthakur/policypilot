@@ -28,8 +28,12 @@ export function usePreference<T extends string | boolean>(
   return [value, update]
 }
 
-export function systemTheme(): 'light' | 'dark' {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light'
+/** The app starts light unless a person has explicitly saved a choice. */
+export function savedTheme(): 'light' | 'dark' {
+  try {
+    const stored = window.localStorage.getItem('pp_theme')
+    return stored === 'dark' || stored === 'light' ? stored : 'light'
+  } catch {
+    return 'light'
+  }
 }

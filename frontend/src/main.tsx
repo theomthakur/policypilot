@@ -11,8 +11,9 @@ import '@fontsource/manrope/600.css'
 import '@fontsource/dm-mono/400.css'
 import './styles.css'
 import './theme.css'
+import { savedTheme } from './hooks/usePreference'
 
-// Apply the saved or system theme before the first paint so there is no flash.
+// Apply the saved theme before the first paint so there is no flash.
 // ?theme=dark|light and ?developer=1|0 in the address set and remember a choice (handy for sharing a link).
 try {
   const params = new URLSearchParams(window.location.search)
@@ -25,13 +26,7 @@ try {
       'pp_developer',
       forcedDeveloper === '1' ? 'true' : 'false',
     )
-  const saved = window.localStorage.getItem('pp_theme')
-  document.documentElement.dataset.theme =
-    saved === 'dark' || saved === 'light'
-      ? saved
-      : window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
+  document.documentElement.dataset.theme = savedTheme()
 } catch {
   document.documentElement.dataset.theme = 'light'
 }

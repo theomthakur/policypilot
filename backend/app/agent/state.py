@@ -83,6 +83,7 @@ class RunState:
     repair_used: bool = False
     conflict_repair_used: bool = False
     nudges: int = 0
+    title_match_document_ids: list[str] = field(default_factory=list)
 
     def evidence_key(self, document_id: uuid.UUID, title: str, page: int) -> str:
         slot = (document_id, page)

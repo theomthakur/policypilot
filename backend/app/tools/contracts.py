@@ -82,7 +82,10 @@ class AskClarificationInput(_Strict):
 
 class Interpretation(_Strict):
     label: str = Field(min_length=1, max_length=80)
-    quote: str = Field(min_length=1, max_length=300)
+    # Retrieval excerpts can include the complete policy sentence and its qualification.
+    # Keep that evidence intact so a valid assessment is not discarded only because the
+    # source sentence is longer than the UI-sized summary limit.
+    quote: str = Field(min_length=1, max_length=1000)
 
 
 class AssessQuestionInput(_Strict):
@@ -97,7 +100,7 @@ class AssessQuestionInput(_Strict):
     )  # a value the question states or implies
     default_reading: str | None = Field(default=None, max_length=80)  # an obvious default value, if any
     default_quote: str | None = Field(
-        default=None, max_length=300
+        default=None, max_length=1000
     )  # words from a result that state that default
     answers_differ: bool = False  # the quoted rules give different steps, limits or numbers per value
     missing_slot: str = Field(default="", max_length=120)
