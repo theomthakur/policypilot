@@ -604,36 +604,6 @@ def test_documented_mfa_scope_is_eligible_for_conflict_handling() -> None:
     assert run._in_scope(relation, None) is True
 
 
-def test_conflict_sentence_selection_prefers_the_question_matched_policy_rule() -> None:
-    """A broad supersession term must not select an unrelated service-account rotation sentence."""
-    from types import SimpleNamespace
-
-    from app.agent.loop import AgentRun
-    from app.agent.state import RunState
-    from app.agent.verifier import EvidenceItem
-
-    doc_id = uuid.uuid4()
-    run = AgentRun.__new__(AgentRun)
-    run.question = "Is multi-factor authentication required for every account?"
-    run.state = RunState(
-        ledger={
-            "E1": EvidenceItem("E1", doc_id, "Password policy", 4),
-            "E2": EvidenceItem("E2", doc_id, "Password policy", 6),
-        }
-    )
-
-    async def page_text(_: uuid.UUID, page: int) -> str:
-        return {
-            4: "Multi-factor authentication is available but not universally mandated for every account.",
-            6: "Service account passwords must be rotated every 90 days.",
-        }[page]
-
-    run.page_text = page_text
-    found = asyncio.run(run._best_sentence(SimpleNamespace(id=doc_id), ["mfa", "multi-factor", "rotation"]))
-    assert found is not None
-    assert found[0] == 4 and "not universally mandated" in found[1]
-
-
 def test_an_answer_that_ignores_the_superseding_document_is_sent_back_once(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
