@@ -43,10 +43,7 @@
           "change password",
           "changed on a",
           "fixed schedule",
-          "change interval",
-          "mfa",
-          "multi-factor",
-          "two-factor"
+          "change interval"
         ],
         "exception_terms": [
           "service account",
