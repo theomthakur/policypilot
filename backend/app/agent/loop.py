@@ -52,6 +52,10 @@ CHAT_MAX_WORDS = 6
 ABOUT_ME = re.compile(
     r"\b(what|how) (can|could|do|would) you (help|do|assist)\b|\bwho are you\b|\bwhat are you\b", re.I
 )
+REWRITE_FOLLOW_UP = re.compile(
+    r"\b(explain|simplify|summari[sz]e|restate)\b.*\b(that|this|it|previous|above|simpler|plain)\b",
+    re.I,
+)
 
 
 WRAP_UP = (
@@ -375,6 +379,8 @@ class AgentRun:
         self.cited = ctx.cited
         self.ctx = ctx
         await self.emit("turn_started", "info", state="PLAN", summary="Turn started.")
+        if ctx.history and REWRITE_FOLLOW_UP.search(ctx.question):
+            return await self._rewrite_previous_answer(ctx.history[-1][1])
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": prompts.load("system")},
             {"role": "user", "content": build_user_message(ctx)},
@@ -418,6 +424,25 @@ class AgentRun:
             outcome = await self._handle_calls(response.tool_calls, messages)
             if outcome is not None:
                 return outcome
+
+    async def _rewrite_previous_answer(self, previous: str) -> Outcome:
+        """Handle a request to restate the immediately preceding, already-grounded answer.
+
+        This is a presentation request rather than a new factual question, so it must never trigger a
+        search or an unsupported missing-evidence answer.
+        """
+        summary = f"In simpler terms: {previous.strip()}"[:1500]
+        answer = {
+            "summary": summary,
+            "claims": [],
+            "citations": [],
+            "notices": [],
+            "unverified_claims": [],
+            "stop_reason": "answered",
+            "partial": False,
+        }
+        await self.emit("answer", "ok", state="EMIT", summary=summary[:300], stop_reason="answered")
+        return self._finish("answered", answer)
 
     async def _handle_calls(self, calls: list[ToolCall], messages: list[dict[str, Any]]) -> Outcome | None:
         names = [c.name for c in calls]
