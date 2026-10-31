@@ -404,24 +404,43 @@ def test_a_single_interpretation_never_triggers_a_question(
     assert outcome.stop_reason == "answered"
 
 
-def test_no_assessment_after_a_clarification_reply_or_with_history(
+def test_no_assessment_after_a_clarification_reply(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:
     from app.llm.client import ScriptedModel, respond
 
     _load(make_pdf, tmp_path)
-    for kwargs in (
-        {"clarification": ("Which account?", "Student"), "original_question": "Renew my account"},
-        {"history": [("Earlier question", "Earlier answer")]},
-    ):
-        model = ScriptedModel(
-            [
-                respond(("search_documents", {"query": "guest network bandwidth"})),
-                _answer_step("Guest", 1, QUOTE_MBPS),
-            ]
-        )
-        outcome, events = _run(model, "q", ctx_kwargs=kwargs, agent_assess_ambiguity=True)
-        assert outcome.stop_reason == "answered" and not events.of("assessment")
+    kwargs = {"clarification": ("Which account?", "Student"), "original_question": "Renew my account"}
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(model, "q", ctx_kwargs=kwargs, agent_assess_ambiguity=True)
+    assert outcome.stop_reason == "answered" and not events.of("assessment")
+
+
+def test_a_new_question_with_history_still_gets_an_ambiguity_assessment(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "guest network bandwidth"})),
+            _assess(True),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+    outcome, events = _run(
+        model,
+        "What is the guest bandwidth?",
+        ctx_kwargs={"history": [("Earlier question", "Earlier answer")]},
+        agent_assess_ambiguity=True,
+    )
+    assert outcome.stop_reason == "answered" and events.of("assessment")
 
 
 def test_question_with_an_explicit_policy_year_is_not_asked_to_choose_a_version(

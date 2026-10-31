@@ -935,7 +935,6 @@ class AgentRun:
             or ctx is None
             or not self.settings.agent_assess_ambiguity
             or ctx.clarification
-            or ctx.history
             or result.status != "ok"
         ):
             return False
