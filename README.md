@@ -8,11 +8,11 @@ The application has a React interface, a FastAPI backend, PostgreSQL with pgvect
 
 ## What a reviewer can see
 
-| Personalized workspace | Grounded answer and execution trace |
+| Current sign-in entry | Grounded answer and execution trace |
 |---|---|
-| ![A signed-in PolicyPilot workspace with a personalized greeting and suggested questions.](docs/deployment-evidence/2026-10-30/compose-bob.png) | ![A PolicyPilot answer with a verified citation and its visible agent activity trace.](docs/deployment-evidence/2026-10-30/kind-alice.png) |
+| ![The current PolicyPilot sign-in entry screen.](docs/screenshots/sign-in-current.png) | ![A current PolicyPilot answer with a verified citation and visible agent activity trace.](docs/screenshots/answer-trace-current.png) |
 
-These screenshots are from verified local Compose and Kubernetes runs. They do not represent a public hosted deployment.
+These are current screenshots from the local sign-in stack. They do not represent a public hosted deployment.
 
 ## Status
 
