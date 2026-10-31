@@ -4,6 +4,7 @@ import { ClarificationCard } from './ClarificationCard'
 import { AnimatedMark } from './AnimatedMark'
 import { RichText } from './formatText'
 import { UserAvatar } from './UserAvatar'
+import { viewerFirstName } from './viewerIdentity'
 import { personalizedGreeting } from '../api/greeting'
 import { PolicyPilotMark } from './PolicyPilotMark'
 import {
@@ -296,12 +297,14 @@ export function ConversationPanel({
                 {message.role === 'assistant' ? (
                   <PolicyPilotMark />
                 ) : (
-                  <UserAvatar />
+                  <UserAvatar name={firstName} />
                 )}
               </div>
               <div className="message-content">
                 <span className="message-author">
-                  {message.role === 'assistant' ? 'PolicyPilot' : 'You'}
+                  {message.role === 'assistant'
+                    ? 'PolicyPilot'
+                    : viewerFirstName(firstName)}
                 </span>
                 {clarificationReply && (
                   <span className="clarification-response-label">
