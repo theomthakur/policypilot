@@ -70,6 +70,7 @@ spec:
             name: keycloak-theme
             items:
               - {key: theme.properties, path: login/theme.properties}
+              - {key: login.ftl, path: login/login.ftl}
               - {key: login-password.ftl, path: login/login-password.ftl}
               - {key: messages_en.properties, path: login/messages/messages_en.properties}
               - {key: policypilot.css, path: login/resources/css/policypilot.css}

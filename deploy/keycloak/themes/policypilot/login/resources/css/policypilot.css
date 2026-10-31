@@ -254,6 +254,7 @@ div.pf-v5-c-form__label { margin-bottom: 8px; }
 
 .pf-v5-c-form-control.pf-m-readonly input { color: var(--pp-muted); }
 #reset-login { display: none !important; }
+.pf-v5-c-input-group__item:has(> #reset-login) { display: none !important; }
 #reset-login, .pf-v5-c-input-group__item {
   margin: 0 !important;
   border: 0 !important;

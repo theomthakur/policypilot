@@ -14,6 +14,7 @@ configMapGenerator:
   - name: keycloak-theme
     files:
       - theme.properties=theme-assets/theme.properties
+      - login.ftl=theme-assets/login.ftl
       - login-password.ftl=theme-assets/login-password.ftl
       - messages_en.properties=theme-assets/messages/messages_en.properties
       - policypilot.css=theme-assets/css/policypilot.css
