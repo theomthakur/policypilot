@@ -564,6 +564,18 @@ def test_greeting_gets_a_direct_reply_without_searching(
     assert "tool_call" not in events.types() and events.of("answer")
 
 
+def test_a_combined_thanks_and_goodbye_never_searches(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel([respond(("chat_reply", {"message": "You are welcome. Have a good day!"}))])
+    outcome, events = _run(model, "Thank you, good day!")
+    assert outcome.stop_reason == "answered" and outcome.totals.tool_calls == 0
+    assert not events.of("tool_call")
+
+
 def test_a_failed_page_read_does_not_crash_the_turn(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 

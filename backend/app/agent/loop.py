@@ -51,7 +51,9 @@ ABOUT_ME = re.compile(
     r"\b(what|how) (can|could|do|would) you (help|do|assist)\b|\bwho are you\b|\bwhat are you\b", re.I
 )
 SMALL_TALK = re.compile(
-    r"^\s*(?:hi|hello|hey|good (?:morning|afternoon|evening)|thanks?|thank you)[!,.\s]*$", re.I
+    r"^\s*(?:hi|hello|hey|good (?:morning|afternoon|evening|day)|bye|goodbye|"
+    r"(?:thanks?|thank you)(?:[!,.\s]+(?:good day|bye|goodbye))?)[!,.\s]*$",
+    re.I,
 )
 REWRITE_FOLLOW_UP = re.compile(
     r"\b(explain|simplify|summari[sz]e|restate)\b.*\b(that|this|it|previous|above|simpler|plain)\b",
