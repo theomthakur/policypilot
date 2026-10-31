@@ -305,3 +305,84 @@ div.pf-v5-c-form__label { margin-bottom: 8px; }
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap;
 }
+
+/* Keep the re-authentication account row as one predictable two-column field. */
+.pf-v5-c-input-group {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  width: 100%;
+  gap: 8px;
+  align-items: stretch;
+}
+.pf-v5-c-input-group__item,
+.pf-v5-c-input-group__item.pf-m-fill {
+  width: auto !important;
+  min-width: 0;
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.pf-v5-c-input-group__item:last-child {
+  width: 46px !important;
+}
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control,
+#reset-login {
+  width: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--pp-brand);
+  background: var(--pp-highlight);
+  border: 1px solid var(--pp-line) !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:hover,
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:focus-visible,
+#reset-login:hover,
+#reset-login:focus-visible {
+  color: #fff;
+  background: var(--pp-brand);
+  border-color: var(--pp-brand) !important;
+}
+/* Keycloak's tooltip decoration is the thin line that appeared after the account switcher. */
+#reset-login .kc-tooltip-text,
+#reset-login .kc-tooltip-text::before,
+#reset-login .kc-tooltip-text::after,
+.pf-v5-c-input-group__item:has(#reset-login)::before,
+.pf-v5-c-input-group__item:has(#reset-login)::after {
+  display: none !important;
+  content: none !important;
+}
+#kc-attempted-username {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  padding-inline: 12px !important;
+  color: var(--pp-muted);
+  font-size: 14px;
+  text-align: center;
+  text-overflow: clip;
+  box-sizing: border-box;
+}
+
+/* The sign-in hierarchy is deliberately centered. Labels stay left-aligned for scanability. */
+#kc-page-title,
+.pf-v5-c-login__main-header,
+#kc-content-wrapper::before,
+.pf-v5-c-login__main-body::before,
+.pf-v5-c-form .pf-v5-c-alert.pf-m-info,
+#kc-registration,
+#kc-registration-container,
+.pf-v5-c-login__main-footer-band,
+#kc-login {
+  text-align: center;
+}
+#kc-registration,
+#kc-registration-container,
+.pf-v5-c-login__main-footer-band {
+  display: block;
+  width: 100%;
+}

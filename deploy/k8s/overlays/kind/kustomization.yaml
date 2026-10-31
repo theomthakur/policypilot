@@ -19,6 +19,7 @@ configMapGenerator:
       - messages_en.properties=theme-assets/messages/messages_en.properties
       - policypilot.css=theme-assets/css/policypilot.css
       - policy-pilot-mark.png=theme-assets/img/policy-pilot-mark.png
+      - favicon.ico=theme-assets/img/favicon.ico
       - manrope-latin-400-normal.woff2=theme-assets/fonts/manrope-latin-400-normal.woff2
       - manrope-latin-500-normal.woff2=theme-assets/fonts/manrope-latin-500-normal.woff2
       - manrope-latin-600-normal.woff2=theme-assets/fonts/manrope-latin-600-normal.woff2
