@@ -12,10 +12,10 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | 3. Expected components A to J | 8.5 | The weak-result search case, and the size of the evaluation |
 | 4. Eight required test cases | 8.6 | Citation spot-check still to do by the author |
 | 5. Technology | 9.5 | None |
-| 6. What to submit | 8.0 | Demo not recorded; some docs are out of date |
+| 6. What to submit | 8.2 | Demo not recorded |
 | 7. Interview preparation | 7.0 | Needs rehearsal by the author |
 | 8. Optional enhancements | 8.3 | OpenShift not run on a real cluster |
-| **Overall** | **8.5** | Demo recording, stale docs, evaluation noise |
+| **Overall** | **8.6** | Demo recording and evaluation noise |
 
 ## 2. Problem statement
 
@@ -43,11 +43,11 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 | **G. Persistence and Redis**: database, real Redis use, keys, expiry, outage behavior | DONE | 8 | Postgres plus Redis (cache, hot state, budget counters), outage script and saved output | Redis key and expiry table should be one page in the runbook |
 | **H. Containerization and DevOps**: Dockerfiles, Compose, health checks, volumes, secrets, CI, smoke test, persistence, outage, update and rollback | DONE | 8 | Compose, CI (ruff, mypy, pytest, builds; green on the latest finished runs), `docs/runbook.md`, kind and Calico verification | No public deploy |
 | **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7.5 | `eval/run.py`, `eval/cases.yaml` (11 cases), `docs/evaluation.md`; final run agent 29 of 33 (three runs), newer set 18 of 18, older held-out 12 of 20; baseline 15 of 27, 10 of 14, 12 of 18 | Single runs; several disclosed label corrections; held-out sets no longer blind |
-| **J. Engineering quality**: practices, organization, documentation | DONE | 9 | 173 backend tests, 23 frontend tests, typed config, ADRs, requirements traceability | Some docs are stale (see "What is still needed") |
+| **J. Engineering quality**: practices, organization, documentation | DONE | 9 | 173 backend tests and 23 frontend tests on the integrated release, typed config, ADRs, requirements traceability | Keep the final release checks and documentation synchronized |
 
 ## 4. Required demonstration and test cases
 
-Latest numbers are from the 30 Oct runs (`r23` to `r26`, one run each) and the earlier three-repeat run. "Agent / baseline" is the pass state in the latest run.
+The canonical measurements are the 31 Oct `r31-*` repeated runs at the top of [`evaluation.md`](evaluation.md). Older measurements remain as experiment history only. "Agent / baseline" below summarizes the canonical record.
 
 | Case | Pass criterion (from the brief) | Agent / baseline | Score | To improve |
 |---|---|---|---:|---|
@@ -114,11 +114,11 @@ Not passing in the final runs and stated openly in `docs/evaluation.md`: CASE-9 
 2. Spot-check about 20 citations by hand and note it in `docs/evaluation.md`.
 3. Merge `integration/full-stack` to `main` and open the PR.
 4. Rehearse the walkthrough and one live code change.
-5. Submit by 11 AM on Sunday 1 Nov.
+5. Submit by 12 PM on Sunday 1 Nov.
 
 **Mine, still open**
 1. Quick mode shows "Found nothing" in the activity panel even when it found a passage (display bug, Developer mode only).
-2. A full evaluation run on the final commit, to replace the numbers in the canonical block at the top of `docs/evaluation.md` (needs about $0.35 of model credit).
+2. A full evaluation run on the final commit, to replace the numbers in the canonical block at the top of `docs/evaluation.md` (needs model credit).
 3. Run `scripts/verify_clean_checkout.sh` on the final commit and confirm CI is green on it.
 4. Put the coding-agent transcripts inside the repo.
 5. Restore the daily budget cap to 1.00 (temporarily 1.85) and tag the final release.
