@@ -1210,6 +1210,11 @@ class AgentRun:
     async def _normalize(self, answer: dict[str, Any]) -> dict[str, Any]:
         """Code-level guarantees on the final answer, whatever the model wrote."""
         notices: list[dict[str, Any]] = answer["notices"]
+        # A missing-evidence notice contradicts a grounded answer. The model may hedge after it has
+        # already produced verified claims, but the UI must never show both messages together.
+        if answer.get("claims"):
+            answer["notices"] = [n for n in notices if n["kind"] != "missing_evidence"]
+            notices = answer["notices"]
         if answer["stop_reason"] == "insufficient_evidence":
             # An abstention carries an explicit missing-evidence notice and never a citation or claim.
             answer["claims"], answer["citations"], answer["partial"] = [], [], False

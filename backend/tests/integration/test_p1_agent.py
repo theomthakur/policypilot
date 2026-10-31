@@ -484,6 +484,35 @@ def test_abstention_gets_a_missing_evidence_notice_and_no_citations(
     assert [n["kind"] for n in answer["notices"]] == ["missing_evidence"]
 
 
+def test_grounded_claims_drop_a_contradictory_missing_evidence_notice(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+    from tests.integration.test_agent import _evidence_id
+
+    _load(make_pdf, tmp_path)
+
+    def mixed_answer(messages: list[dict[str, Any]]) -> Any:
+        key = _evidence_id(messages, "Guest", 1)
+        return respond(
+            (
+                "final_answer",
+                {
+                    "summary": "Guests are limited to 10 Mbps.",
+                    "claims": [
+                        {"text": "Guests are limited to 10 Mbps.", "evidence_ids": [key], "quote": QUOTE_MBPS}
+                    ],
+                    "notices": [{"kind": "missing_evidence", "text": "No details were found."}],
+                },
+            )
+        )
+
+    model = ScriptedModel([respond(("search_documents", {"query": "guest network bandwidth"})), mixed_answer])
+    outcome, _ = _run(model, "What is the guest bandwidth?")
+    assert outcome.stop_reason == "answered"
+    assert not [n for n in outcome.answer["notices"] if n["kind"] == "missing_evidence"]
+
+
 # ---- P1-C: policy families, metadata and conflict notices -----------------------------------------------
 
 
