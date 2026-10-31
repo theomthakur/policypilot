@@ -385,6 +385,29 @@ def test_no_assessment_after_a_clarification_reply_or_with_history(
         assert outcome.stop_reason == "answered" and not events.of("assessment")
 
 
+def test_question_with_an_explicit_policy_year_is_not_asked_to_choose_a_version(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    """A stated year already identifies the policy version requested."""
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "2023 password expiration"})),
+            _answer_step("Guest", 1, QUOTE_MBPS),
+        ]
+    )
+
+    outcome, events = _run(
+        model,
+        "Did the 2023 policy say passwords expire?",
+        agent_assess_ambiguity=True,
+    )
+
+    assert outcome.stop_reason == "answered" and not events.of("assessment")
+
+
 def test_a_failed_assessment_never_blocks_the_answer(make_pdf: Callable[..., Path], tmp_path: Path) -> None:
     from app.llm.client import ScriptedModel, respond
 

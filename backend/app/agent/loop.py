@@ -817,6 +817,10 @@ class AgentRun:
             or result.status != "ok"
         ):
             return False
+        # A stated year asks for a particular version of a policy. Asking the user to choose a version after
+        # they have already supplied one is needless clarification and obscures historical answers.
+        if _HISTORICAL.search(ctx.question) or re.search(r"\b(?:19|20)\d{2}\b", ctx.question):
+            return False
         return bool((result.data or {}).get("hits"))
 
     def _default_is_grounded(self, verdict: AssessQuestionInput, hits: list[dict[str, Any]]) -> bool:
