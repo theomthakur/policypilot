@@ -746,32 +746,32 @@ export function App() {
           >
             <ThemeIcon theme={theme} />
           </button>
-        </div>
-        {auth.data?.user && (
-          <div className="sidebar-account">
-            <div className="account-info">
-              <span className="account-avatar" aria-hidden="true">
+          {auth.data?.user && (
+            <>
+              <span
+                className="tool-avatar"
+                title={[auth.data.user.name, auth.data.user.email]
+                  .filter(Boolean)
+                  .join(' · ')}
+                role="img"
+                aria-label={`Signed in as ${auth.data.user.name ?? auth.data.user.email ?? 'you'}`}
+              >
                 {(auth.data.user.name || auth.data.user.email || 'A')
                   .charAt(0)
                   .toUpperCase()}
               </span>
-              <span className="account-text">
-                <strong>{auth.data.user.name ?? 'Signed in'}</strong>
-                {auth.data.user.email && <small>{auth.data.user.email}</small>}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="account-signout"
-              title="Sign out"
-              aria-label="Sign out"
-              onClick={() => void signOut()}
-            >
-              <IconLogout />
-              <span className="nav-label">Sign out</span>
-            </button>
-          </div>
-        )}
+              <button
+                type="button"
+                className="tool-button"
+                aria-label="Sign out"
+                title="Sign out"
+                onClick={() => void signOut()}
+              >
+                <IconLogout />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </aside>
   )
