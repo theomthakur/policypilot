@@ -216,6 +216,20 @@ async def test_an_abstention_never_keeps_the_models_affirmative_summary() -> Non
     assert any(n["kind"] == "missing_evidence" for n in answer["notices"])
 
 
+async def test_an_abstention_does_not_show_a_partial_notice() -> None:
+    from app.agent.loop import AgentRun
+
+    draft = FinalAnswerInput(
+        summary="The documents do not cover this.",
+        notices=[Notice(kind="partial", text="The answer is incomplete.")],
+    )
+    verified = await verify_answer(draft, LEDGER, page_text)
+    run = AgentRun.__new__(AgentRun)
+    answer = await run._normalize(verified.answer)
+    assert answer["partial"] is False
+    assert [notice["kind"] for notice in answer["notices"]] == ["missing_evidence"]
+
+
 async def test_a_summary_with_only_rejected_sentences_falls_back_to_the_verified_claims() -> None:
     from app.agent.loop import AgentRun
 

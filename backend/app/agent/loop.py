@@ -1237,6 +1237,10 @@ class AgentRun:
         if answer["stop_reason"] == "insufficient_evidence":
             # An abstention carries an explicit missing-evidence notice and never a citation or claim.
             answer["claims"], answer["citations"], answer["partial"] = [], [], False
+            # A model sometimes labels its own abstention as partial. It is not a partial answer when
+            # no claim was returned, so the UI should show the single, clear missing-evidence state.
+            answer["notices"] = [n for n in notices if n["kind"] != "partial"]
+            notices = answer["notices"]
             # No claim survived, so nothing the model wrote may stay as an assertion. If it asserted claims
             # that failed, replace its summary; if it abstained itself, keep its explanation minus figures.
             if answer.get("unverified_claims"):
