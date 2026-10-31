@@ -67,7 +67,8 @@ async def test_unsupported_and_unknown_evidence_are_rejected() -> None:
     assert not result.ok and len(result.failures) == 2
     assert [c["text"] for c in result.answer["claims"]] == ["Good."]
     assert result.answer["unverified_claims"] == ["Wrong quote.", "Never seen."]
-    assert result.answer["partial"] is True
+    assert result.answer["summary"] == "Good."
+    assert result.answer["partial"] is False
 
 
 async def test_no_supported_claims_means_insufficient_evidence() -> None:

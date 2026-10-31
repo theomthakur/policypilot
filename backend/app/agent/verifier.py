@@ -300,23 +300,21 @@ async def verify_answer(
         {"kind": n.kind, "text": strip_evidence_ids(n.text), "citation_indexes": indexes_for(n.evidence_ids)}
         for n in draft.notices
     ]
-    if unverified:
-        notices.append(
-            {
-                "kind": "partial",
-                "text": "Some claims could not be verified and were removed.",
-                "citation_indexes": [],
-            }
-        )
+    # A draft can mix supported and unsupported claims. Never leave the unsupported assertions in
+    # the reader-facing summary and then merely label the response partial. The retained claims
+    # are model-written prose, backed by literal page quotes, so they are a safe complete answer.
+    summary = strip_evidence_ids(draft.summary)
+    if unverified and claims:
+        summary = " ".join(str(claim["text"]) for claim in claims)
     no_support = not claims
     stop_reason = "insufficient_evidence" if no_support else "answered"
     answer = {
-        "summary": strip_evidence_ids(draft.summary),
+        "summary": summary,
         "claims": claims,
         "citations": citations,
         "notices": notices,
         "unverified_claims": unverified,
         "stop_reason": stop_reason,
-        "partial": bool(unverified),
+        "partial": False,
     }
     return VerifiedAnswer(answer=answer, failures=failures)
