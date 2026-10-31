@@ -238,3 +238,33 @@ label, .pf-v5-c-form__label-text, .pf-v5-c-check__label { color: var(--pp-ink); 
 
 /* Keep the page background one continuous sheet on tall pages (the registration form is long) */
 html, body, body.login-pf { background-attachment: fixed; background-repeat: no-repeat; background-size: cover; min-height: 100vh; }
+
+/* ---- Layout polish: stacked logo, centered caption, label gaps, tidy re-authenticate view --------------- */
+#kc-header-wrapper { flex-direction: column; gap: 14px; }
+#kc-header-wrapper::before { width: 64px; height: 64px; }
+
+.pf-v5-c-login__main .pf-v5-c-login__main-body { display: flex; flex-direction: column; }
+.pf-v5-c-login__main-body::before { order: 0; text-align: center; }
+
+/* A clear gap between each label and its box */
+div.pf-v5-c-form__label { margin-bottom: 8px; }
+.pf-v5-c-form__group + .pf-v5-c-form__group { margin-top: 18px; }
+
+/* Re-authenticate view: a short centered note first (it sits inside the username block), then the username
+   and the password form. */
+.pf-v5-c-login__main-body > .pf-v5-c-form { margin-bottom: 18px; }
+.pf-v5-c-form .pf-v5-c-alert.pf-m-info {
+  order: -1;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 0 0 18px; padding: 0;
+  color: var(--pp-muted); background: transparent; border: 0; box-shadow: none; text-align: center;
+}
+.pf-v5-c-form .pf-v5-c-alert.pf-m-info .pf-v5-c-alert__icon { margin: 0; color: var(--pp-brand); }
+.pf-v5-c-form .pf-v5-c-alert.pf-m-info .pf-v5-c-alert__title { color: var(--pp-muted); font-size: 13px; font-weight: 500; }
+
+.pf-v5-c-form-control.pf-m-readonly input { color: var(--pp-muted); }
+#reset-login { flex: none; overflow: hidden; }
+#reset-login .kc-tooltip-text {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
