@@ -145,15 +145,31 @@ def _result_to_data(result: SearchResult, version: int, cached: bool) -> dict[st
 async def search_documents(ctx: ToolContext, args: SearchDocumentsInput) -> ToolResult:
     async with get_sessionmaker()() as db:
         version = await get_corpus_version(db)
+        # A model may hallucinate UUID-looking document IDs. Filters are only useful when at least one
+        # requested document is real, ready, and visible to this session. Otherwise search the whole
+        # visible library rather than turning a valid question about a private upload into an empty result.
+        document_ids = args.document_ids
+        if document_ids:
+            document_ids = list(
+                (
+                    await db.execute(
+                        select(Document.id).where(
+                            Document.id.in_(document_ids),
+                            Document.status == "ready",
+                            _visible(ctx.session_id),
+                        )
+                    )
+                ).scalars()
+            )
         key = search_cache.cache_key(
-            version, ctx.session_id, args.query, args.document_ids, args.page_start, args.page_end, args.top_k
+            version, ctx.session_id, args.query, document_ids, args.page_start, args.page_end, args.top_k
         )
         data = await search_cache.get_cached(key)
         if data is not None:
             data = {**data, "cached": True}
         else:
             result = await hybrid_search(
-                db, args.query, ctx.session_id, args.document_ids, args.page_start, args.page_end, args.top_k
+                db, args.query, ctx.session_id, document_ids, args.page_start, args.page_end, args.top_k
             )
             data = _result_to_data(result, version, cached=False)
             await search_cache.set_cached(key, data)

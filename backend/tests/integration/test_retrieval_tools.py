@@ -129,7 +129,7 @@ def test_session_uploads_are_invisible_to_other_sessions(
 
     private = make_pdf(["Private Notes\n\nThe secret launch codename is Bluebird."], name="private.pdf")
 
-    async def go() -> tuple[int, int]:
+    async def go() -> tuple[int, int, list[str]]:
         sid, other = uuid.uuid4(), uuid.uuid4()
         async with get_sessionmaker()() as db:
             db.add_all([Session(id=sid), Session(id=other)])
@@ -152,7 +152,19 @@ def test_session_uploads_are_invisible_to_other_sessions(
         query = SearchDocumentsInput(query="secret launch codename")
         mine = await search_documents(ToolContext(get_settings(), sid), query)
         theirs = await search_documents(ToolContext(get_settings(), other), query)
-        return len((mine.data or {}).get("hits", [])), len((theirs.data or {}).get("hits", []))
+        hallucinated_filter = await search_documents(
+            ToolContext(get_settings(), sid),
+            SearchDocumentsInput(
+                query="secret launch codename",
+                document_ids=[uuid.UUID("00000000-0000-4000-8000-000000000000")],
+            ),
+        )
+        return (
+            len((mine.data or {}).get("hits", [])),
+            len((theirs.data or {}).get("hits", [])),
+            [hit["title"] for hit in (hallucinated_filter.data or {}).get("hits", [])],
+        )
 
-    mine, theirs = _run(go())
+    mine, theirs, fallback_titles = _run(go())
     assert mine >= 1 and theirs == 0
+    assert "Private Notes" in fallback_titles
