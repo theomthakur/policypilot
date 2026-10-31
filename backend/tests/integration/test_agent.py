@@ -212,6 +212,20 @@ def test_ambiguous_question_asks_for_clarification(make_pdf: Callable[..., Path]
     assert events.of("clarification_requested")
 
 
+def test_vague_question_across_policy_areas_asks_for_a_scope(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    from app.llm.client import ScriptedModel, respond
+
+    _load(make_pdf, tmp_path)
+    model = ScriptedModel([respond(("search_documents", {"query": "access limit"}))])
+    outcome, _ = _run(model, "What is the access limit?")
+    assert outcome.stop_reason == "clarification_needed"
+    assert outcome.clarification is not None
+    assert outcome.clarification["question"] == "Which policy area do you mean?"
+    assert set(outcome.clarification["options"]) == {"1. Guest Network", "1. Remote Access"}
+
+
 def test_step_limit_wraps_up_with_one_final_call_from_gathered_evidence(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

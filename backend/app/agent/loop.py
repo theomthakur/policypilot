@@ -117,6 +117,24 @@ def _may_reply_without_search(question: str) -> bool:
     return bool(ABOUT_ME.search(stripped) or SMALL_TALK.fullmatch(stripped) or len(_tokens(stripped)) <= 1)
 
 
+def _vague_scope_options(question: str, result: ToolResult) -> list[str]:
+    """Surface a missing policy area before a short, broad question becomes a blended answer.
+
+    This is intentionally conservative. Specific questions retain the normal evidence workflow, while a
+    two-word topic that matches separate policy documents gets a single, useful follow-up question.
+    """
+    terms = _content_words(question)
+    data = result.data or {}
+    if not terms or len(terms) > 2 or result.status != "ok" or data.get("weak") or data.get("off_topic"):
+        return []
+    titles: list[str] = []
+    for hit in data.get("hits", []):
+        title = str(hit.get("title", "")).strip()
+        if title and title not in titles:
+            titles.append(title)
+    return titles[:4] if len(titles) >= 2 else []
+
+
 def _stems(text: str) -> set[str]:
     return {w.rstrip("s") for w in re.findall(r"[a-z]{3,}", text.lower())}
 
@@ -827,6 +845,23 @@ class AgentRun:
         data = result.data or {}
         if call.name == "search_documents" and data.get("off_topic") and not st.ledger_has_good:
             return await self._off_topic()
+        if (
+            call.name == "search_documents"
+            and self.ctx is not None
+            and not self.ctx.history
+            and not self.ctx.clarification
+            and (options := _vague_scope_options(self.question, result))
+        ):
+            return await self._clarify(
+                ToolCall(
+                    "scope",
+                    "ask_clarification",
+                    {
+                        "question": "Which policy area do you mean?",
+                        "options": options,
+                    },
+                )
+            )
         if call.name == "search_documents" and self._should_assess(result):
             return await self._assess(result)
         return None
