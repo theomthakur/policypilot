@@ -93,6 +93,7 @@ def test_local_embedder_prefixes_queries_for_bge_but_not_passages() -> None:
 
     embedder = LocalEmbedder.__new__(LocalEmbedder)
     embedder._model, embedder._name, embedder.dim = Stub(), "BAAI/bge-small-en-v1.5", 2
+    embedder._batch_size = 32
     embedder.embed(["a passage"])
     embedder.embed_query("a question")
     assert seen == ["a passage", BGE_QUERY_INSTRUCTION + "a question"]

@@ -3,6 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     public_origin: str = "http://localhost:8080"
     demo_passcode: str = ""
     session_cookie_secure: bool = False
+    frontend_dist_dir: str = ""  # optional built UI for a single-service deployment
 
     # Durable jobs (docs/adr/0010): turns and ingestion run from a PostgreSQL job table.
     worker_embedded: bool = (
@@ -59,17 +61,19 @@ class Settings(BaseSettings):
     llm_provider: Literal["openai_compatible", "fake", "offline"] = "openai_compatible"
     llm_base_url: str = "https://openrouter.ai/api/v1"
     llm_api_key: str = ""
-    llm_model: str = "anthropic/claude-haiku-5.5"
+    llm_model: str = "openai/gpt-4o-mini"
     llm_temperature: float = 0.0
     llm_seed: int | None = 42
     llm_request_timeout_s: float = 30.0
-    llm_price_input_per_million: float = 0.10
-    llm_price_output_per_million: float = 0.50
+    llm_price_input_per_million: float = 0.15
+    llm_price_output_per_million: float = 0.60
 
     # Embeddings
     embedding_provider: Literal["local", "openai", "fake"] = "local"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
+    embedding_batch_size: int = Field(default=32, ge=1)
+    embedding_threads: int | None = Field(default=None, ge=1)
 
     # Retrieval
     chunk_tokens: int = 200
@@ -105,7 +109,8 @@ class Settings(BaseSettings):
     upload_max_mb: int = 10
     upload_max_pages: int = 100
     upload_dir: str = "/data/uploads"
-    storage_backend: Literal["local", "s3"] = "local"  # "s3": uploads in an S3-compatible bucket (MinIO, AWS)
+    # "postgres" keeps small demo uploads durable when the web host has no persistent disk.
+    storage_backend: Literal["local", "s3", "postgres"] = "local"
     s3_bucket: str = "policypilot-uploads"
     s3_endpoint: str = ""  # e.g. http://minio:9000; empty for AWS
     s3_region: str = "us-east-1"

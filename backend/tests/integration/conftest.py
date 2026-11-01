@@ -21,7 +21,8 @@ if os.getenv("INTEGRATION") != "1":
 BACKEND = Path(__file__).resolve().parents[2]
 TABLES = (
     "citations, evidence, trace_events, turns, chunks, document_pages, ingestion_runs, "
-    "documents, sessions, evaluation_cases, evaluation_runs, app_state, jobs, auth_sessions, users"
+    "documents, sessions, evaluation_cases, evaluation_runs, app_state, jobs, auth_sessions, users, "
+    "stored_pdfs"
 )
 
 

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import auth, config, documents, health, sessions, turns
 from app.api.errors import install_error_handlers
@@ -132,6 +133,8 @@ def create_app() -> FastAPI:
     app.include_router(documents.router, prefix=API_PREFIX)
     app.include_router(turns.router, prefix=API_PREFIX)
     app.include_router(config.router, prefix=API_PREFIX)
+    if settings.frontend_dist_dir:
+        app.mount("/", StaticFiles(directory=settings.frontend_dist_dir, html=True), name="frontend")
     return app
 
 

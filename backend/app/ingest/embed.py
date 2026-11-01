@@ -23,15 +23,16 @@ BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages
 class LocalEmbedder:
     """fastembed on ONNX Runtime. The model is pre-downloaded in the Docker image."""
 
-    def __init__(self, model: str, dim: int) -> None:
+    def __init__(self, model: str, dim: int, batch_size: int = 32, threads: int | None = None) -> None:
         from fastembed import TextEmbedding
 
         self.dim = dim
         self._name = model
-        self._model = TextEmbedding(model)
+        self._batch_size = batch_size
+        self._model = TextEmbedding(model, threads=threads)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
-        return [vector.tolist() for vector in self._model.embed(texts, batch_size=32)]
+        return [vector.tolist() for vector in self._model.embed(texts, batch_size=self._batch_size)]
 
     def embed_query(self, text: str) -> list[float]:
         prefix = BGE_QUERY_INSTRUCTION if "bge" in self._name.lower() else ""
@@ -65,5 +66,10 @@ def get_embedder() -> Embedder:
     if settings.embedding_provider == "fake":
         return FakeEmbedder(settings.embedding_dim)
     if settings.embedding_provider == "local":
-        return LocalEmbedder(settings.embedding_model, settings.embedding_dim)
+        return LocalEmbedder(
+            settings.embedding_model,
+            settings.embedding_dim,
+            batch_size=settings.embedding_batch_size,
+            threads=settings.embedding_threads,
+        )
     raise NotImplementedError("EMBEDDING_PROVIDER=openai is documented but not implemented yet.")

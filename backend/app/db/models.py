@@ -18,6 +18,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -50,6 +51,14 @@ class AppState(Base):
     __tablename__ = "app_state"
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     value: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+
+
+class StoredPdf(Base):
+    """Original uploads for a small demo without a persistent disk or object-storage account."""
+
+    __tablename__ = "stored_pdfs"
+    storage_name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
 
 
 class User(Base):

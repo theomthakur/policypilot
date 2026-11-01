@@ -106,7 +106,7 @@ const lanes: Lane[] = [
         title: 'Model',
         logo: 'openrouter',
         detail:
-          'OpenRouter: Claude Haiku runs the agent, while a stronger model judges ambiguity.',
+          'OpenRouter: GPT-4o mini runs the agent, while a stronger model judges ambiguity.',
       },
       {
         title: 'Verifier',

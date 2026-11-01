@@ -1,6 +1,7 @@
-"""Where uploaded PDFs live. Local disk by default; an S3-compatible bucket lets the API and the workers run
-on different nodes (docs/adr/0010). Metadata (owner, checksum, key) stays in PostgreSQL; downloads are
-authorized by the API, never by a bucket URL."""
+"""PDF originals: local disk, S3, or PostgreSQL for a small hosted demo without persistent disk.
+
+Metadata (owner, checksum, key) stays in PostgreSQL; the API authorizes every download.
+"""
 
 import asyncio
 import tempfile
@@ -10,7 +11,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Protocol
 
-from app.config import get_settings
+import psycopg
+from psycopg.conninfo import make_conninfo
+
+from app.config import Settings, get_settings
 
 
 class Storage(Protocol):
@@ -41,6 +45,40 @@ class LocalStorage:
         path = self.base / key
         if path.is_file() and path.parent.resolve() == self.base.resolve():
             path.unlink()
+
+
+class PostgresStorage:
+    name = "postgres"
+
+    def __init__(self, settings: Settings) -> None:
+        self._conninfo = make_conninfo(
+            host=settings.postgres_host,
+            port=settings.postgres_port,
+            dbname=settings.postgres_db,
+            user=settings.postgres_user,
+            password=settings.postgres_password,
+            connect_timeout=10,
+        )
+
+    def put(self, key: str, data: bytes) -> None:
+        with psycopg.connect(self._conninfo) as connection:
+            connection.execute(
+                "INSERT INTO stored_pdfs (storage_name, data) VALUES (%s, %s) "
+                "ON CONFLICT (storage_name) DO UPDATE SET data = EXCLUDED.data",
+                (key, data),
+            )
+
+    def read(self, key: str) -> bytes | None:
+        with psycopg.connect(self._conninfo) as connection:
+            row = connection.execute(
+                "SELECT data FROM stored_pdfs WHERE storage_name = %s", (key,)
+            ).fetchone()
+        return bytes(row[0]) if row is not None else None
+
+    def delete(self, key: str) -> None:
+        """Remove the original bytes after the authorized document record is deleted."""
+        with psycopg.connect(self._conninfo) as connection:
+            connection.execute("DELETE FROM stored_pdfs WHERE storage_name = %s", (key,))
 
 
 class S3Storage:
@@ -93,6 +131,8 @@ def _s3(bucket: str, endpoint: str, region: str, access_key: str, secret_key: st
 
 def get_storage() -> Storage:
     s = get_settings()
+    if s.storage_backend == "postgres":
+        return PostgresStorage(s)
     if s.storage_backend == "s3":
         return _s3(s.s3_bucket, s.s3_endpoint, s.s3_region, s.s3_access_key, s.s3_secret_key)
     return LocalStorage(s.upload_dir)  # cheap, and always follows the current UPLOAD_DIR
