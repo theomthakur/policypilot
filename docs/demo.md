@@ -67,21 +67,35 @@ Click **View** to open the PDF at that page.
 
 Close the PDF.
 
-### 2:00 to 2:50. Upload a document
+### 2:00 to 2:20. Upload a document
 
 Open **Knowledge base**, click **Upload PDF** and choose the assignment PDF.
 
 > "You can add your own documents. The upload is checked, split into pages and indexed in the background. Uploads are private to the user who added them."
 
-While it processes, move on. Come back when it shows as ready and ask one question about it, for example:
+Don't wait for it. It indexes while you show the design.
+
+### 2:20 to 3:00. System design
+
+Click **System design** in the sidebar. Move down the four rows, pointing at each one as you say it.
+
+> "Here's how it's built. **Top row:** when a document comes in, it goes into a job queue, then gets parsed page by page, cut into small chunks, embedded and indexed in PostgreSQL. That's what's happening to my upload right now."
+
+> "**Second row:** when a question comes in, the API checks who you are, then the agent loop plans, searches, reads pages and searches again if it needs to, at most six tool calls. The verifier checks every quote against the page before the answer is shown."
+
+> "**Shared services:** PostgreSQL holds everything durable: documents, vectors, conversations and the job queue. Redis is only a cache; the app still works without it."
+
+> "**Where it runs:** the same code runs on Render for reviewers, on Docker Compose locally with sign-in, and on Kubernetes, which I tested on a local cluster."
+
+Go back to the workspace. If the upload shows as ready, ask one question about it, for example:
 
 > What does the assignment require for the evaluation?
 
-> "The answer now cites the document I just uploaded, with its page number."
+> "The answer cites the document I just uploaded, with its page number."
 
-If processing is still running, say so and move on. Don't wait on camera.
+If it's still indexing, say so and move on. Don't wait on camera.
 
-### 2:50 to 3:30. History, panels and clearing
+### 3:00 to 3:30. History, panels and clearing
 
 Open **History**.
 
