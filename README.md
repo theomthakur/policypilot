@@ -1,5 +1,7 @@
 # PolicyPilot
 
+> **Branch `local-sign-in`: the full local stack with real sign-in.** Start Docker, then run `scripts/run_with_sign_in.sh` and open http://localhost:8080. Sign in as `alice` or `bob` (passwords are written to `.env.auth-demo` on the first run) or choose **Create account**. Sign out from the account menu. The code is the same as `main`; the hosted demo on `main` uses a shared passcode instead. Walkthrough: [`docs/demo.md`](docs/demo.md).
+
 PolicyPilot answers questions about policy documents and shows the evidence behind every answer. It can search again when the first results are weak, ask a follow-up when important information is missing, and open the original PDF at the cited page.
 
 The application has a React interface, a FastAPI backend, PostgreSQL with pgvector, Redis, and an OpenAI-compatible model. Docker Compose starts the complete local system.
