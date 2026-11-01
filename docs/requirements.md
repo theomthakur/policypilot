@@ -133,6 +133,6 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 | SUB-2 | Reproducibility notes: corpus, model and embedding IDs, prompts, tool schemas, env template, eval command, expected API cost | `docs/reproducibility.md` | done |
 | SUB-3 | Architecture diagram: components, agent state, tool calls, decision points, retrieval loop, stopping conditions | `docs/system-design.md` | done |
 | SUB-4 | Agent and baseline evaluation results and failure analysis | `docs/evaluation.md`, `eval/results/` | done |
-| SUB-5 | Demo or walkthrough: multi-document question, evidence-driven re-retrieval, clarification, failed tool call; saved traces | `docs/demo.md` | partial |
+| SUB-5 | Demo or walkthrough: multi-document question, evidence-driven re-retrieval, clarification, failed tool call; saved traces | [Demo video](https://youtu.be/njw7qmk8aTQ), `docs/demo.md`, `docs/demo-evidence/` (re-retrieval, clarification and the failed tool call are saved traces, not live in the video) | done |
 | SUB-6 | Summary of achievements, unfinished work and improvements | `docs/summary.md` | done |
 | SUB-7 | Deployment runbook and evidence | `docs/runbook.md`, `docs/deployment-evidence/` | done |
