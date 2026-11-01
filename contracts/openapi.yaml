@@ -113,6 +113,20 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [documents]
+      summary: Remove one of your uploaded PDFs with its pages, chunks and stored file
+      operationId: deleteDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "204": { description: Removed }
+        "403":
+          description: The document belongs to the shared corpus (READ_ONLY_DOCUMENT)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /documents/{document_id}/file:
     get:
@@ -376,7 +390,7 @@ components:
           properties:
             code:
               type: string
-              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, PASSCODE_REQUIRED, AUTH_REQUIRED, AUTH_UNAVAILABLE, FORBIDDEN, DEPENDENCY_UNAVAILABLE, INTERNAL]
+              enum: [INVALID_ARGUMENT, NOT_FOUND, NOT_READY, TOO_LARGE, UNSUPPORTED_PDF, RATE_LIMITED, BUDGET_EXHAUSTED, PASSCODE_REQUIRED, AUTH_REQUIRED, AUTH_UNAVAILABLE, FORBIDDEN, READ_ONLY_DOCUMENT, DEPENDENCY_UNAVAILABLE, INTERNAL]
             message: { type: string }
             details: { type: object, additionalProperties: true }
 

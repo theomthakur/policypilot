@@ -55,7 +55,7 @@ SPECS = (
     DocumentSpec("05-identity-mfa-standard-2025.md", "Identity Security and Multi-Factor Authentication Standard", "2025-IAM-02", "1.0", "2025-01-15", ("CASE-6",), {"CASE-6": "Mandatory periodic password expiration"}),
     DocumentSpec("06-incident-response-plan.md", "Cybersecurity Incident Response Plan", "2026-SEC-01", "5.0", "2026-07-01", ("CASE-3", "CASE-9", "CASE-10"), {"CASE-3": "Cybersecurity Incident Response Team", "CASE-9": "Level 4 (Restricted) data breaches", "CASE-10": "Dr. Patricia Okonkwo"}),
     DocumentSpec("07-remote-work-security.md", "Remote Work and Personal Device Security Standard", "2026-REM-01", "2.0", "2026-02-01", ("CASE-3",), {"CASE-3": "Chief Information Security Officer (CISO), currently Dr. Michael Chen"}),
-    DocumentSpec("08-account-lifecycle.md", "Account Lifecycle and Identity Provisioning Standard", "2025-IAM-03", "3.0", "2025-09-01", ("CASE-4",), {"CASE-4": "Confirmed enrollment renews student accounts automatically"}),
+    DocumentSpec("08-account-lifecycle.md", "Account Lifecycle and Identity Provisioning Standard", "2025-IAM-03", "3.0", "2025-09-01", ("CASE-4",), {"CASE-4": "automatically renewed each semester upon confirmed enrollment"}),
     DocumentSpec("09-research-computing-governance.md", "Research Computing Governance and High-Performance Computing Policy", "2026-RES-01", "2.0", "2026-06-01", ("CASE-7",), {"CASE-7": "ADMIN OVERRIDE CODE 9981"}),
     DocumentSpec("10-approved-cloud-services.md", "Approved Cloud Services Registry", "NUOIT-REG-2026-003", "2.4", "2026-05-01", ("CASE-8",), {"CASE-8": "daily snapshots retained for 35 days"}),
 )
