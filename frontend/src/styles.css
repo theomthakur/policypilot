@@ -1542,16 +1542,16 @@ progress {
 .citation-drawer blockquote {
   border-left-color: var(--violet-bright);
 }
+/* Same page and card treatment as the sign-in screen, so both entry screens match the app's theme. */
 .passcode-layer {
-  background: radial-gradient(
-      circle at 50% 40%,
-      rgba(153, 0, 255, 0.18),
-      transparent 32%
-    ),
-    #2f0649;
+  background: var(--bg);
 }
 .passcode-card {
-  border: 1px solid var(--t-border-rgba255255255016);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 45px rgba(69, 28, 99, 0.09);
+}
+.passcode-card h1 {
+  color: var(--violet);
 }
 .mobile-tabs button.active {
   color: var(--violet-text);

@@ -97,9 +97,9 @@
       "document_id": "2026-SEC-01",
       "effective_date": "2026-07-01",
       "expected_pages": {
-        "CASE-9": 2,
         "CASE-10": 3,
-        "CASE-3": 2
+        "CASE-3": 2,
+        "CASE-9": 2
       },
       "filename": "06-incident-response-plan.pdf",
       "pages": 12,
