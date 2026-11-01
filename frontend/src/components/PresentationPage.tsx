@@ -105,9 +105,9 @@ const slides: Slide[] = [
           and every quote is checked before it is shown.
         </Card>
         <Card title="Where it runs">
-          Docker Compose, and Kubernetes tested on kind. An OpenShift overlay is
-          written but not yet run on a real cluster. The System design page
-          shows the full flow.
+          Hosted on Render behind a shared demo passcode. Locally with Docker
+          Compose and real sign-in through Keycloak, and on Kubernetes tested on
+          kind. The System design page shows the full flow.
         </Card>
       </div>
     ),
@@ -150,8 +150,8 @@ const slides: Slide[] = [
           replaced policy, and finishing follow-ups within the search limit.
         </Card>
         <Card title="If it grew">
-          A public deployment, a run on a real OpenShift cluster, monitoring,
-          and section-aware chunking.
+          Sign-in on the hosted version through the university's SSO, a run
+          on a real OpenShift cluster, monitoring, and section-aware chunking.
         </Card>
       </div>
     ),

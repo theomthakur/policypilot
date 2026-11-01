@@ -88,7 +88,7 @@ const lanes: Lane[] = [
         title: 'API',
         logo: 'fastapi',
         detail:
-          'FastAPI: sign-in (OIDC), rate limit, daily budget, session ownership.',
+          'FastAPI: sign-in (OIDC, local stack) or demo passcode (hosted), rate limit, daily budget, session ownership.',
       },
       {
         title: 'Agent loop',
@@ -144,7 +144,7 @@ const lanes: Lane[] = [
         title: 'Object storage',
         badge: 'S3',
         detail:
-          'The original PDFs. Local volume in Compose, SeaweedFS in Kubernetes.',
+          'The original PDFs. Local volume in Compose, SeaweedFS in Kubernetes, PostgreSQL on Render.',
       },
       {
         title: 'Trace and cost',
@@ -158,13 +158,19 @@ const lanes: Lane[] = [
     number: '4',
     tone: 'run',
     title: 'Where it runs',
-    blurb: 'Same images, three targets',
+    blurb: 'Same code, four targets',
     nodes: [
+      {
+        title: 'Render',
+        badge: 'Hosted',
+        detail:
+          'The public demo: one free web service with the worker built in, free PostgreSQL and Key Value. Shared passcode, no accounts.',
+      },
       {
         title: 'Docker Compose',
         logo: 'docker',
         detail:
-          'The full stack on one machine with health checks and volumes. Verified.',
+          'The full stack on one machine with health checks and volumes, plus Keycloak sign-in. Verified.',
       },
       {
         title: 'Kubernetes',

@@ -13,7 +13,8 @@ The take-home topology uses one VM and Docker Compose because it is easy to repr
 | Full local stack | Implemented and tested | Docker Compose, health checks and smoke test |
 | Agentic RAG | Implemented and tested | Bounded loop, four tools, visible trace and evaluation artifacts |
 | Grounded answers | Implemented and tested | Evidence ledger, literal quote verification and page citations |
-| Authentication and personalization | Implemented and tested locally | Keycloak OIDC flow, per-user conversations and uploads |
+| Hosted demo (Render) | Deployed | One free web service, free PostgreSQL and Key Value; shared passcode, rate limit and daily spend cap; no accounts |
+| Authentication and personalization | Implemented and tested locally | Keycloak OIDC flow, per-user conversations and uploads (branch `local-sign-in`, run with `scripts/run_with_sign_in.sh`) |
 | Durable jobs and Redis fallback | Implemented and tested | Worker recovery, persistence and Redis-outage evidence |
 | Local Kubernetes | Implemented and tested on one `kind` node | Browser flow, pod-delete, rollback and recovery drills |
 | OpenShift | Compatibility overlay only | Kustomize render, no live OpenShift run |
@@ -505,6 +506,50 @@ flowchart TB
   Backend -. HTTPS .-> Provider[OpenAI-compatible provider]
   Backup[Encrypted off-host backup target] -. pg_dump / uploads .-> VM
 ```
+
+### Two ways to run it
+
+The same code runs in two configurations. Sign-in is a setting (`AUTH_MODE`), not a separate code path.
+
+| | Hosted demo (Render) | Local full stack |
+|---|---|---|
+| Branch | `main` | `local-sign-in` |
+| How to start | Render Blueprint, root `render.yaml` | `scripts/run_with_sign_in.sh` (Docker Compose plus `docker-compose.auth.yml`) |
+| Who can use it | Anyone with the shared demo passcode | Users signed in through Keycloak (OpenID Connect, PKCE); test users `alice` and `bob`, or create an account |
+| Data isolation | Per browser session (cookie) | Per signed-in user: conversations, uploads and PDFs |
+| Sign out | Not applicable | Revokes the server-side session |
+| Background work | Worker runs inside the web service (`WORKER_EMBEDDED=true`, one job at a time) | Worker inside the backend container |
+| Uploaded PDFs | Stored in PostgreSQL (`STORAGE_BACKEND=postgres`), because the free plan has no persistent disk | Local volume, or S3-compatible storage |
+| Cost protection | Passcode, 20 requests per minute, $1 daily cap | Same limits |
+| Known limits | Free PostgreSQL expires after 30 days; an idle service takes about a minute to wake; embedding the corpus on one free CPU is slow after a fresh deploy | Needs Docker on the presenter's machine |
+
+```mermaid
+flowchart LR
+  subgraph Render[Render, free plan]
+    Web[Web service\nFastAPI + built frontend\nembedded worker]
+    RPG[(PostgreSQL\nchunks, vectors, PDFs)]
+    RKV[(Key Value\ncache, limits)]
+    Web --> RPG
+    Web --> RKV
+  end
+  Reviewer[Reviewer browser\npasscode] --> Web
+  Web -. HTTPS .-> LLM[OpenRouter]
+  subgraph Local[Local Docker Compose]
+    KC[Keycloak\nOIDC provider]
+    API[FastAPI + worker]
+    FE[Frontend]
+    LPG[(PostgreSQL)]
+    LR[(Redis)]
+    FE --> API
+    API --> LPG
+    API --> LR
+    API -. code exchange, ID token check .-> KC
+  end
+  User[Signed-in user] --> FE
+  User -. sign-in redirect .-> KC
+```
+
+Why the hosted demo has no sign-in: Render's free plan gives one web service, and running Keycloak as well would need a second always-on service and its own database. Within the time available, a shared passcode with a rate limit and a spending cap protects the model budget, and real sign-in is shown on the local stack. Production use needs `AUTH_MODE=oidc`; the application refuses to start in production without it unless `ALLOW_PASSCODE_ONLY_PRODUCTION=true` is set explicitly together with a `DEMO_PASSCODE`, as it is for this demo.
 
 Updates use immutable image tags and expand/contract migrations. A normal rollback changes backend/frontend image tags without restoring the database. The runbook verifies health, one cited answer, persistence, Redis outage, update, and rollback.
 

@@ -12,7 +12,18 @@ The application has a React interface, a FastAPI backend, PostgreSQL with pgvect
 |---|---|
 | ![The current PolicyPilot sign-in entry screen.](docs/screenshots/sign-in-current.png) | ![A current PolicyPilot answer with a verified citation and visible agent activity trace.](docs/screenshots/answer-trace-current.png) |
 
-These are current screenshots from the local sign-in stack. They do not represent a public hosted deployment.
+These are current screenshots from the local sign-in stack.
+
+## Two ways to run it
+
+| | Hosted demo | Local full stack with sign-in |
+|---|---|---|
+| Where | https://policypilot-om-thakur.onrender.com | http://localhost:8080 |
+| Branch | `main` | `local-sign-in` |
+| Access | Shared demo passcode (ask the author) | Keycloak sign-in: test users `alice` and `bob`, or create an account |
+| Start | Render Blueprint (`render.yaml`) | `scripts/run_with_sign_in.sh` |
+
+The code is the same in both; sign-in is a setting (`AUTH_MODE=oidc`). Render's free plan runs one web service, so the hosted demo uses a passcode, a rate limit and a daily spending cap instead of an identity server. See the [demo script](docs/demo.md) and [system design](docs/system-design.md#two-ways-to-run-it).
 
 ## Status
 

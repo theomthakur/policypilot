@@ -1,6 +1,8 @@
 # PolicyPilot presentation and walkthrough plan
 
-This is the reviewer and interview walkthrough, not a marketing script. Target 12 to 15 minutes, leaving room for questions and a small code modification. The repository includes a reproducible walkthrough in `docs/demo.md`; a recording is optional.
+This is the reviewer and interview walkthrough, not a marketing script. Target 12 to 15 minutes, leaving room for questions and a small code modification. The 4 to 5 minute recorded video follows [`demo.md`](demo.md).
+
+**Two ways to show it.** The hosted demo at https://policypilot-om-thakur.onrender.com (branch `main`) is protected by a shared passcode, because Render's free plan runs one service and has no room for an identity server. The full version with real sign-in runs locally from branch `local-sign-in` with `scripts/run_with_sign_in.sh`. The code is the same; sign-in is a setting. Show sign-in, sign-out and per-user data on the local stack, and point reviewers to the hosted URL to try it themselves.
 
 ## Presentation principle
 
@@ -12,7 +14,7 @@ This is the reviewer and interview walkthrough, not a marketing script. Target 1
 | ----------: | --------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- |
 |   0:00-0:45 | Problem | Title and one-sentence framing | Policy answers are useful only when a user can inspect evidence. |
 |   0:45-1:30 | Scope and invariants | 14-document corpus, page citations, user isolation | Groundedness and isolation are hard requirements. |
-|   1:30-4:30 | Live product | Signed-in workspace, multi-document answer, trace and citation drawer | This is working software, not a diagram. |
+|   1:30-4:30 | Live product | Local sign-in, multi-document answer, trace, citation and PDF page, upload, history, sign-out; then the hosted URL | This is working software, not a diagram. |
 |  4:30-6:00 | Why an agent | Weak result followed by a changed action, then clarification | The loop adapts to evidence and can decline to guess. |
 |  6:00-8:30 | HLD | One architecture diagram and query path | Explain boundaries, tools, durable state and stopping conditions. |
 |  8:30-10:00 | Trust and safety | Citation checks, prompt injection and abstention | Important guarantees are enforced in code, not only prompted. |
@@ -29,6 +31,8 @@ When showing the signed-in workspace, add:
 > The application keeps conversations and uploaded documents private to the signed-in user, while opening a fresh conversation after sign-in so prior work is not accidentally resumed.
 
 ## Live demo sequence
+
+Start on the local stack (`local-sign-in` branch): sign in as `alice`, and say that the browser never sees the identity token. After the questions below, upload a PDF, open History, clear it, and sign out. Finish on the hosted URL to show what reviewers can use.
 
 ### 1. Multi-document answer
 
@@ -132,6 +136,10 @@ It proves that the cited evidence was retrieved in the turn, resolves to the sta
 
 Readiness reports degraded, sessions and turns remain durable in PostgreSQL, and retrieval runs uncached. Correctness remains available at higher latency.
 
+### Why does the hosted version use a passcode instead of sign-in?
+
+Render's free plan gives one web service. Running Keycloak as well needs a second always-on service and its own database. With the time available, the hosted demo uses a shared passcode, a per-client rate limit and a $1 daily cap to protect the model budget, and real sign-in is shown locally. The application refuses to start in production without sign-in unless passcode-only mode is set explicitly with a passcode. Moving the hosted version to sign-in means deploying an identity provider (or the university's SSO) and setting `AUTH_MODE=oidc`; no code change.
+
 ### What would you change with another week?
 
 Expand the genuinely blind evaluation set, improve retrieval for vocabulary mismatch, add roles and university SSO, and move PostgreSQL and Redis to managed services only if the availability requirement justifies them. Durable workers and sign-in are already implemented.
@@ -139,7 +147,8 @@ Expand the genuinely blind evaluation set, improve retrieval for vocabulary mism
 ## Recording checklist
 
 - Walk through the final release SHA, whether recording or presenting live.
-- Use a clean browser and pre-indexed corpus.
+- Use a clean browser and pre-indexed corpus: wait for 14 ready documents on both the local stack and the hosted URL.
+- Show sign-in and sign-out on the local stack, and the passcode-protected hosted URL at the end.
 - Keep one HLD diagram, not several dense slides.
 - Show exact sources and at least one adaptive trace.
 - Show one honest failure or limitation.
