@@ -1,6 +1,6 @@
 # PolicyPilot presentation and walkthrough plan
 
-This is the reviewer and interview walkthrough, not a marketing script. Target 12 to 15 minutes, leaving room for questions and a small code modification. The 4 to 5 minute recorded video follows [`demo.md`](demo.md).
+This is the reviewer and interview walkthrough, not a marketing script. Target 12 to 15 minutes, leaving room for questions and a small code modification. The recorded demo is at https://youtu.be/njw7qmk8aTQ, and [`demo.md`](demo.md) is the reviewer walkthrough.
 
 **Two ways to show it.** The hosted demo at https://policypilot-om-thakur.onrender.com (branch `main`) is protected by a shared passcode, because Render's free plan runs one service and has no room for an identity server. The full version with real sign-in runs locally from branch `local-sign-in` with `scripts/run_with_sign_in.sh`. The code is the same; sign-in is a setting. Show sign-in, sign-out and per-user data on the local stack, and point reviewers to the hosted URL to try it themselves.
 

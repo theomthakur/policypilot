@@ -8,6 +8,10 @@ The application has a React interface, a FastAPI backend, PostgreSQL with pgvect
 
 > The ten "Northfield University" policies are fictional and were created for this project. They are not official NYU policies. Four more documents are real, public NIST publications (see [Documents](#documents)).
 
+## Demo video
+
+**[Watch the 5-minute demo](https://youtu.be/njw7qmk8aTQ)**: sign-in, questions with verified citations, opening the cited PDF page, uploading a document, history, system design, and the hosted version. To try it yourself, see the [reviewer walkthrough](docs/demo.md).
+
 ## What a reviewer can see
 
 | Current sign-in entry | Grounded answer and execution trace |
