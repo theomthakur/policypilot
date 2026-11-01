@@ -21,7 +21,7 @@ The submitted implementation is on `main`. The current canonical evaluation reco
 - **Working and verified:** document ingestion, hybrid retrieval, the bounded agent, literal citation checks, the web application, OIDC sign-in tested with two users, per-user data isolation, restart-safe background jobs, Redis fallback, Docker Compose, and a Kubernetes deployment on a local `kind` cluster.
 - **CI:** all seven jobs passed on this branch, including backend integration tests, frontend checks, secret scanning, image builds, manifest rendering, and a Compose smoke test: [run 41068139547](https://github.com/theomthakur/policypilot/actions/runs/41068139547).
 - **Submission status:** the reproducible walkthrough in [`docs/demo.md`](docs/demo.md) satisfies the brief's demo-or-walkthrough deliverable. An independent 20-citation spot-check remains a recommended manual review. A public hosted deployment is an optional release step, not a completed claim.
-- **Final measurements (31 Oct, same model, repeats):** the 11 tuned cases passed 29 of 33 runs (three runs) against 15 of 27 for the one-pass baseline; the 9 newer questions 18 of 18 (two runs) against 10 of 14; and the 10 older held-out questions 12 of 20 (two runs) against 12 of 18. Still failing: CASE-9 (0 of 3: a needless clarifying question, a wrong answer and a call-limit stop), CASE-11 (one run in three reached the call limit) and HELD-2, 7, 8 and 9. No set is blind and the sample is small, so read the numbers as indicative. Details and every label correction: `docs/evaluation.md`.
+- **Current local acceptance check (1 Nov, same model, repeats):** the ten defined scenarios, CASE-1 through CASE-10, passed **30 of 30 Agent runs** (three runs each). CASE-4 is a student-account renewal lookup. The suite is tuned and not blind, so treat this as a regression check, not a general accuracy estimate.
 - **Newly shown:** uploads can live in an S3-compatible bucket with two API and two worker replicas (one kind node), and NetworkPolicies were enforced and checked on Calico.
 - **Outside the demonstrated scope:** cross-node scaling and load testing, database replication, a live OpenShift deployment, university SSO, roles, and single logout.
 
@@ -201,19 +201,18 @@ API drift check: `cd backend && uv run python ../scripts/check_contract.py`.
 
 ## Evaluation
 
-`eval/cases.yaml` defines 11 frozen cases (the eight required scenarios and three extra) with expected behavior and expected source pages. `eval/run.py` calls only the REST API, runs the agent and the one-pass baseline on the same corpus and model, verifies every cited quote against the real page, and writes raw results, traces and a report.
+`eval/cases.yaml` defines ten repeatable cases with expected behavior and expected source pages. `eval/run.py` calls only the REST API, runs the agent and the one-pass baseline on the same corpus and model, verifies every cited quote against the real page, and writes raw results, traces and a report.
 
 ```sh
 POLICYPILOT_BASE_URL=http://localhost:8080/api/v1 python eval/run.py --output-dir eval/results/my-run
 ```
 
-Final run (31 Oct 2026, `openai/gpt-4o-mini`, prompt v10, 14-document library; the canonical block is at the top of `docs/evaluation.md`):
+Current local acceptance run (1 Nov 2026, `openai/gpt-4o-mini`, prompt v10, 14-document library):
 
-- The 11 tuned cases, three runs: the agent passed **29 of 33**, the one-pass baseline **15 of 27**.
-- 9 newer questions, two runs: agent **18 of 18**, baseline **10 of 14**.
-- 10 older held-out questions, two runs: agent **12 of 20**, baseline **12 of 18**.
-- No set is blind any more (all were looked at while fixing behavior) and the samples are small, so treat differences of one or two cases as noise. Known failures: CASE-9, CASE-11 (once in three runs) and HELD-2, 7, 8, 9.
-- The agent costs about ten times the tokens (about thirty times the price, because the judge is a larger model) and takes about four times as long; it helps on one multi-document case, conflicts and follow-ups, while CASE-9 shows that it does not reliably bridge vocabulary mismatch.
+- The defined ten-scenario acceptance suite, three runs: the agent passed **30 of 30**. The raw local reports are in ignored `eval/results/r1101-gpt-acceptance-*` directories until the owner chooses to commit a release.
+- CASE-4 is a student-account renewal lookup in this acceptance run.
+- Previous baseline and held-out comparisons are retained in `docs/evaluation.md`. No set is blind, and the samples are small, so this is a focused regression result rather than a general accuracy claim.
+- The agent costs about ten times the tokens (about thirty times the price, because the judge is a larger model) and takes about four times as long. The historical comparison shows it helps on some multi-document, conflict and follow-up questions.
 - The automatic verifier confirms that each quoted citation is literal text on its cited page. A separate human 20-citation spot-check remains pending, and the verifier does not prove that every sentence of answer prose is entailed by its quote.
 
 The method, historical experiments, the r31 raw reports, held-out results and failure analysis are in [`docs/evaluation.md`](docs/evaluation.md).

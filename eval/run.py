@@ -23,7 +23,7 @@ DEFAULT_CASES = ROOT / "eval" / "cases.yaml"
 DEFAULT_SCHEMA = ROOT / "contracts" / "eval-case.schema.json"
 DEFAULT_MANIFEST = ROOT / "corpus" / "manifest.json"
 DEFAULT_PRICING = ROOT / "eval" / "pricing.yaml"
-TRACE_CASES = {"CASE-2", "CASE-4", "CASE-6", "CASE-7", "CASE-8", "CASE-9"}
+TRACE_CASES = {"CASE-2", "CASE-4", "CASE-6", "CASE-7", "CASE-8", "CASE-10"}
 SECRET_FRAGMENTS = ("api_key", "passcode", "authorization", "secret", "password", "token")
 
 

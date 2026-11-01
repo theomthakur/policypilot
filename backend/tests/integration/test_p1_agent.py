@@ -168,6 +168,25 @@ def test_a_case_the_user_already_named_is_never_asked_about(
     assert not events.of("clarification_requested") and outcome.stop_reason != "clarification_needed"
 
 
+def test_explicit_supported_label_prevents_a_redundant_question_when_judge_omits_it(
+    make_pdf: Callable[..., Path], tmp_path: Path
+) -> None:
+    """An explicit label in the question is enough even if the judge misses value_in_question."""
+    from app.llm.client import ScriptedModel, respond
+
+    _load_renewal(make_pdf, tmp_path)
+    model = ScriptedModel(
+        [
+            respond(("search_documents", {"query": "renew sponsored guest account"})),
+            _renewal_assessment(value_in_question=None),
+            respond(("final_answer", {"summary": "The documents do not contain this."})),
+        ]
+    )
+    outcome, events = _run(model, "How does a sponsored guest account renew?", agent_assess_ambiguity=True)
+    assert outcome.stop_reason != "clarification_needed"
+    assert not events.of("clarification_requested")
+
+
 def test_evidence_backed_variants_override_a_false_difference_boolean(
     make_pdf: Callable[..., Path], tmp_path: Path
 ) -> None:

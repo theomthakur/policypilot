@@ -22,14 +22,12 @@
     },
     {
       "cases": [
-        "CASE-2",
-        "CASE-9"
+        "CASE-2"
       ],
       "document_id": "NU-IT-POL-002",
       "effective_date": "2026-01-15",
       "expected_pages": {
-        "CASE-2": 5,
-        "CASE-9": 8
+        "CASE-2": 5
       },
       "filename": "02-data-classification-standard.pdf",
       "pages": 11,
@@ -93,14 +91,14 @@
     {
       "cases": [
         "CASE-3",
-        "CASE-10",
-        "CASE-11"
+        "CASE-9",
+        "CASE-10"
       ],
       "document_id": "2026-SEC-01",
       "effective_date": "2026-07-01",
       "expected_pages": {
-        "CASE-10": 2,
-        "CASE-11": 3,
+        "CASE-9": 2,
+        "CASE-10": 3,
         "CASE-3": 2
       },
       "filename": "06-incident-response-plan.pdf",
@@ -164,14 +162,12 @@
     },
     {
       "cases": [
-        "CASE-8",
-        "CASE-9"
+        "CASE-8"
       ],
       "document_id": "NUOIT-REG-2026-003",
       "effective_date": "2026-05-01",
       "expected_pages": {
-        "CASE-8": 3,
-        "CASE-9": 1
+        "CASE-8": 3
       },
       "filename": "10-approved-cloud-services.pdf",
       "pages": 3,

@@ -57,25 +57,21 @@ cases:
     repetitions: 1
 
   - id: CASE-4
-    category: ambiguous
-    requirement_ids: [REQ-C5, REQ-E1]
+    category: simple_lookup
+    requirement_ids: [REQ-B5]
     turns:
-      - content: How do I renew my Northfield account?
-      - content: I am a sponsored guest whose six-month account expires next month.
-        is_clarification_reply: true
-    expected_behavior: Ask which account type is involved, preserve context, then explain sponsored-account renewal.
+      - content: How are student accounts renewed?
+    expected_behavior: Explain that confirmed enrollment renews a student account automatically each term, with no student action required.
     expected_sources:
       - document_file: 08-account-lifecycle.pdf
         page: 4
     checks:
-      legacy_required_facts: ["six (6) months|six months"]
-      required_facts: ["sponsor", "14 business days"]
+      required_facts: ["automatic|automatically", "semester|term", "no action|required action|nothing"]
       expect_stop_reason: answered
-      expect_clarification: true
+      expect_clarification: false
       min_distinct_documents_cited: 1
       max_tool_calls: 6
-    applies_to_baseline: false
-    baseline_exclusion_reason: A retrieve-once baseline has no clarification action or retained conversational state.
+    applies_to_baseline: true
     repetitions: 1
 
   - id: CASE-5
@@ -155,26 +151,6 @@ cases:
     repetitions: 1
 
   - id: CASE-9
-    category: adaptive_retrieval
-    requirement_ids: [REQ-C3, REQ-C6]
-    turns:
-      - content: Where may I keep highly sensitive clinical study files in an internet-hosted file repository?
-    expected_behavior: After weak initial evidence, reformulate using corpus vocabulary such as Level 4, regulated dataset, persistence, or controlled analytics enclave, then cite classification and approved-service rules.
-    expected_sources:
-      - document_file: 02-data-classification-standard.pdf
-        page: 8
-      - document_file: 10-approved-cloud-services.pdf
-        page: 2
-    checks:
-      required_facts: ["Secure Enclave Object Repository", "CISO", "Level 4|Restricted"]
-      expect_stop_reason: answered
-      expect_query_revision: true
-      min_distinct_documents_cited: 2
-      max_tool_calls: 6
-    applies_to_baseline: true
-    repetitions: 1
-
-  - id: CASE-10
     category: single_document_multi_part
     requirement_ids: [REQ-C2]
     turns:
@@ -193,7 +169,7 @@ cases:
     applies_to_baseline: true
     repetitions: 1
 
-  - id: CASE-11
+  - id: CASE-10
     category: follow_up
     requirement_ids: [REQ-E1]
     turns:

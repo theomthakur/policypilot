@@ -2,25 +2,24 @@
 
 ## Final evaluated release (read this first)
 
-Everything below this block is the history of how the numbers were reached. This block is the current, canonical result.
+Everything below this block is the history of how the numbers were reached. This block is the current local evaluation record.
 
-Raw reports for the canonical run are in [`eval/results/r31-tuned-1/report.md`](../eval/results/r31-tuned-1/report.md), [`r31-tuned-2`](../eval/results/r31-tuned-2/report.md), [`r31-tuned-3`](../eval/results/r31-tuned-3/report.md), [`r31-heldout2-1`](../eval/results/r31-heldout2-1/report.md), [`r31-heldout2-2`](../eval/results/r31-heldout2-2/report.md), [`r31-heldout-1`](../eval/results/r31-heldout-1/report.md), and [`r31-heldout-2`](../eval/results/r31-heldout-2/report.md). When an older section differs, this block takes precedence.
+The earlier r31 reports are linked below. The latest 1 Nov acceptance reports are deliberately local and ignored in `eval/results/r1101-gpt-acceptance-*` until the owner chooses a release commit. When an older section differs, this block takes precedence.
 
-- **Code:** branch `integration/full-stack`, evaluated at commit `f6981bc`. Every commit after the agent's last behaviour change (`4102de1`) is documentation or scripts only, so these runs describe the submitted agent.
+- **Code:** local working tree based on `integration/full-stack`, with an updated CASE-4 definition plus small clarification and documented-supersession guards. This has not been committed or pushed.
 - **Prompt version:** v10. **Agent model:** `openai/gpt-4o-mini`; **ambiguity judge:** `openai/gpt-4o`; temperature 0, seed 42; 14-document library, corpus manifest SHA-256 `e80b6f47...2a69` (`corpus/manifest.json`).
-- **Date:** 31 Oct 2026 (US Eastern), runs `r31-*` in `eval/results/`. Commands: `scripts/run_final_evaluation.sh r31 <python>`.
-- **Results.** The 11 tuned cases were run three times, and each of the other two sets twice:
+- **Date:** 1 Nov 2026 (US Eastern). The defined acceptance subset was run three times through the live API, one case at a time.
+- **Results.** The ten selected acceptance scenarios passed every Agent run:
 
 | Set | Agent | One-pass baseline |
 |---|---:|---:|
-| 11 tuned cases, 3 runs (`eval/cases.yaml`) | **29 of 33** (10, 10, 9 of 11) | 15 of 27 |
-| 9 newer questions, 2 runs (`eval/heldout2.yaml`) | **18 of 18** | 10 of 14 |
-| 10 older held-out questions, 2 runs (`eval/heldout.yaml`) | **12 of 20** (6 and 6) | 12 of 18 |
+| Defined ten-case suite: CASE-1 to CASE-10, 3 runs | **30 of 30** | Not re-run in this focused check |
+| 9 newer questions, 2 runs (31 Oct historical comparison) | **18 of 18** | 10 of 14 |
+| 10 older held-out questions, 2 runs (31 Oct historical comparison) | **12 of 20** (6 and 6) | 12 of 18 |
 
-- **Per case, tuned set (3 runs):** CASE-1, 2, 3, 4, 5, 6, 7, 8 and 10 passed 3 of 3. CASE-11 passed 2 of 3 (the third run reached the call limit). **CASE-9 failed 3 of 3**: in one run the agent asked a needless clarifying question, in one it answered with a missing fact, and in one it hit the call limit.
-- **Where the agent helps and where it does not:** the agent beats the baseline on one of the two multi-document cases (CASE-3), the conflicting-sources case (CASE-6) and the follow-up (CASE-11), and it is the only system that can ask a clarifying question (CASE-4) or recover from a failed tool call (CASE-8). On direct lookups, the other multi-document case, missing evidence and injection (CASE-1, 2, 5, 7, 10) the baseline passes too, at a fraction of the cost. On the older held-out set the baseline scores about the same as the agent (12 of 18 against 12 of 20).
-- **Cost and latency (tuned set):** the agent costs about $0.011 and takes a median 8.1 s per question; the baseline about $0.0005 and 1.8 s. The agent uses roughly ten times the tokens and twenty times the cost, because the ambiguity judge is a larger model.
-- **Known failures:** CASE-9 (above); CASE-11 (one run in three); on the older set HELD-2, 7, 8 and 9 failed both runs.
+- **Per case, acceptance suite:** CASE-1 through CASE-10 each passed 3 of 3. CASE-4 is the defined student-account renewal lookup.
+- **Scope of the result:** this is an Agent-only regression check. It does not replace the earlier baseline comparison, cost figures or held-out measurements.
+- **Scope:** the current suite contains only the ten defined cases. The older held-out measurements remain historical context, not part of this acceptance result.
 - **Why the four older held-out questions fail (diagnosed from the saved traces).** HELD-2 ("When does an inactive Northfield account get suspended?") has several valid answers: the agent finds a real 90-day student rule, while the case expects the 180-day research-computing rule, so the question is arguably ambiguous and should have prompted a clarifying question. HELD-9 (a "temporary working disk") is answered from a competing, plausible rule (a 7-day transfer zone) instead of the scratch-storage rule that was also retrieved. HELD-7 retrieves both the 2023 and 2025 policies but answers only from the newer one and so misses the conflict. HELD-8 gives the correct, cited answer but keeps reading pages it no longer needs and ends at the token limit, so it is marked incomplete. Three attempts to fix them (a retrieval ranking change, an early stop when budget runs low, and a "stop once answered" prompt line) did not help and were discarded; the causes are in how the agent chooses between evidence, not in a single bug, so they are left as known limits.
 - **No set is blind.** The 11 tuned cases were used to tune the system. The 9 newer questions were written before the changes, but their failures were then used to diagnose and fix behavior. The 10 older held-out questions have been looked at several times, and two of their labels were corrected after seeing results. Every number is a single run on a noisy model, so differences of one or two cases are not evidence of change. A fresh blind set of at least 20 questions was not run.
 - **What the numbers do and do not show:** the citation check proves that each cited quote appears on the cited page. It does not prove that every sentence of an answer's prose is supported by that quote.

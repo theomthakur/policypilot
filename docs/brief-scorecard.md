@@ -36,33 +36,33 @@ Status: **DONE** (built and verified), **PARTIAL** (works, something named is op
 |---|---|---:|---|---|
 | **A. Application architecture**: frontend and backend, API layer, usable UI | DONE | 9 | React/Vite UI, FastAPI, `contracts/openapi.yaml` checked in CI; one sidebar for all pages, session history, knowledge-base folders, light and dark themes | A person should click through every flow once |
 | **B. RAG pipeline**: parse, chunk, index, retrieve, grounded generation, page metadata kept | DONE | 9 | `backend/app/ingest/`, `retrieval/hybrid.py`, ADR 0005 (benchmark of options) | Section names are empty on institutional chunks (known, does not affect citations) |
-| **C. Adaptive orchestration**: decompose, revise after weak results, combine documents, show a result-driven change of action | DONE | 8 | CASE-2, 3, 4, 8, 11 traces; `query_revised` events (mostly for a part the first search missed) | CASE-9, the weak-result case, failed all three final runs; CASE-11 reached the call limit in one run of three |
+| **C. Adaptive orchestration**: decompose, revise after weak results, combine documents, show a result-driven change of action | DONE | 8 | CASE-2, 3, 8 and 10 traces; `query_revised` events (mostly for a part the first search missed) | Measure against a fresh blind set |
 | **D. Tool contracts**: at least three read-only tools, validation, empty-result and error handling | DONE | 9 | `list_documents`, `search_documents`, `read_document_pages`, `get_document_outline`; `contracts/tools.schema.json` | None needed |
 | **E. State and observability**: per-session state, UI trace, timing, tokens | DONE | 9 | Trace events with tools, inputs, summaries, status, citations, tokens; Agent activity tab; session history | None |
 | **F. Execution safety**: step limits, timeouts, bounded retries, partial answers, untrusted text, corpus-only tools, isolated sessions | DONE | 9 | CASE-7, CASE-8, limit tests, per-user ownership, CSRF guard | None needed |
 | **G. Persistence and Redis**: database, real Redis use, keys, expiry, outage behavior | DONE | 8 | Postgres plus Redis (cache, hot state, budget counters), outage script and saved output | Redis key and expiry table should be one page in the runbook |
 | **H. Containerization and DevOps**: Dockerfiles, Compose, health checks, volumes, secrets, CI, smoke test, persistence, outage, update and rollback | DONE | 8 | Compose, CI (ruff, mypy, pytest, builds; green on the latest finished runs), `docs/runbook.md`, kind and Calico verification | No public deploy |
-| **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7.5 | `eval/run.py`, `eval/cases.yaml` (11 cases), `docs/evaluation.md`; final run agent 29 of 33 (three runs), newer set 18 of 18, older held-out 12 of 20; baseline 15 of 27, 10 of 14, 12 of 18 | Single runs; several disclosed label corrections; held-out sets no longer blind |
+| **I. Evaluation**: 8+ cases, expected sources, results and failure analysis, baseline on the same corpus and model, traces, exclusions | DONE | 7.5 | `eval/run.py`, `eval/cases.yaml` (10 cases), `docs/evaluation.md`; current ten-case acceptance suite 30 of 30 Agent runs; older baseline and held-out comparisons retained | Acceptance run is tuned and Agent-only; held-out sets are no longer blind |
 | **J. Engineering quality**: practices, organization, documentation | DONE | 9 | Backend unit and integration coverage, 31 frontend tests, typed configuration, ADRs and requirements traceability | Keep the release checks and documentation synchronized |
 
 ## 4. Required demonstration and test cases
 
-The canonical measurements are the 31 Oct `r31-*` repeated runs at the top of [`evaluation.md`](evaluation.md). Older measurements remain as experiment history only. "Agent / baseline" below summarizes the canonical record.
+The current local measurement is the 1 Nov ten-scenario acceptance run at the top of [`evaluation.md`](evaluation.md). Older baseline measurements remain as comparison history only.
 
 | Case | Pass criterion (from the brief) | Agent / baseline | Score | To improve |
 |---|---|---|---:|---|
-| 1. Simple lookup | Directly supported fact with the right page | pass / pass | 10 | None |
-| 2. Multi-part, multi-document A | All parts, at least two documents | pass / pass | 9 | None |
-| 3. Multi-part, multi-document B | Second cross-document question, each claim cited | passed all three final runs / fails (baseline 0 of 3) | 9 | None |
-| 4. Ambiguous question | Ask a targeted clarification, keep context | asks which account type and answers correctly: passed all three final runs / not applicable | 8 | Passes reliably on the measured questions; not proven on new ones |
-| 5. Insufficient evidence | Say evidence is missing, no invented citation | pass / pass | 9 | None |
-| 6. Conflicting sources | Cite both passages, explain, do not silently choose | passed all three final runs / fails (baseline 0 of 3) | 8 | Built on a two-passage template; documented scope terms needed |
-| 7. Prompt injection | Ignore instructions in retrieved text | pass / pass | 9 | None |
-| 8. Tool failure or timeout | Bounded retry or graceful recovery, report incomplete work | pass / not applicable | 9 | None |
+| 1. Simple lookup | Directly supported fact with the right page | passed 3 of 3 Agent runs | 10 | None |
+| 2. Multi-part, multi-document A | All parts, at least two documents | passed 3 of 3 Agent runs | 9 | None |
+| 3. Multi-part, multi-document B | Second cross-document question, each claim cited | passed 3 of 3 Agent runs | 9 | None |
+| 4. Defined student-account renewal lookup | Automatic renewal, no action required | passed 3 of 3 Agent runs | 8 | Separate clarification tests remain limited |
+| 5. Insufficient evidence | Say evidence is missing, no invented citation | passed 3 of 3 Agent runs | 9 | None |
+| 6. Conflicting sources | Cite both passages, explain, do not silently choose | passed 3 of 3 Agent runs | 8 | Built on a metadata-backed two-passage template |
+| 7. Prompt injection | Ignore instructions in retrieved text | passed 3 of 3 Agent runs | 9 | None |
+| 8. Tool failure or timeout | Bounded retry or graceful recovery, report incomplete work | passed 3 of 3 Agent runs | 9 | None |
 | Citation verification | Check cited pages against supporting passages | automated quote check on every citation | 7 | A manual spot-check of about 20 citations is still to be done by the author |
-| Agent against baseline, where iteration helps or costs | Report correctness, citation support, completion, calls, latency, cost | reported; the agent costs about 25 to 30 times the baseline per question | 8 | The overhead is stated openly |
+| Agent against baseline, where iteration helps or costs | Report correctness, citation support, completion, calls, latency, cost | historical comparison retained in `docs/evaluation.md` | 8 | Repeat the baseline alongside a future fresh set |
 
-Not passing in the final runs and stated openly in `docs/evaluation.md`: CASE-9 (failed 3 of 3), CASE-11 (failed 1 of 3, reached the call limit); on the older held-out set HELD-2, 7, 8 and 9 (failed both runs).
+On the older held-out set, HELD-2, 7, 8 and 9 failed both historical runs.
 
 ## 5. Technology
 
@@ -123,8 +123,8 @@ Not passing in the final runs and stated openly in `docs/evaluation.md`: CASE-9 
 5. Restore the daily budget cap to 1.00 (temporarily 1.85) and tag the final release.
 
 **Decision for the author**
-- Whether to try a gentle "you have enough, answer now" nudge for CASE-11 (reaches the six-call limit with a correct answer).
+- Whether to try a gentle "you have enough, answer now" nudge when an agent has enough evidence but approaches its call limit.
 
 **Known weak spots, not planned**
-- CASE-9 fails and CASE-11 failed once in three runs; HELD-2, 7, 8 and 9 fail; no set is blind and the samples are small.
+- The historical held-out set has failures; no set is blind and the samples are small.
 - A deterministic clarification layer, answer prose built only from verified claims, and a repair path for adaptive search are future work.

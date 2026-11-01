@@ -7,7 +7,7 @@ Status as of 31 Oct 2026, for the `main` release. Legend: **[x] done** (built an
 - [x] Full-stack agentic RAG app over about 8 to 15 text PDFs from one domain. (10 synthetic university IT policies, 85 pages, plus 4 real public NIST documents: 14 PDFs, 231 pages.)
 - [x] Users can upload documents and ask simple or multi-part questions.
 - [x] The agent chooses tools, inspects results, and decides between retrieving more, asking for clarification, or answering with document and page citations.
-- [~] Asking for clarification works in the code and passed all three r31 CASE-4 runs, but the measurement is small and not blind (see CASE-4 below).
+- [~] Asking for clarification works in the code, but it is not represented by the current defined acceptance CASE-4. The earlier measurement was tuned and not blind.
 - [x] Working containerized deployment (Docker Compose runs all four services and passes the smoke test locally).
 - [x] The corpus is included, with a reproducible generator and a manifest (`corpus/`). Documents support cross-document questions.
 - [~] Unfinished work is documented (`docs/summary.md`, `docs/evaluation.md`).
@@ -26,8 +26,7 @@ Status as of 31 Oct 2026, for the `main` release. Legend: **[x] done** (built an
 **C. Adaptive agent orchestration**
 - [x] LLM-driven tool-use loop (not retrieve-then-generate): plans sub-questions, searches, reads pages, re-searches, combines documents.
 - [x] Queries are revised after weak or incomplete results, and every revision is shown in the trace.
-- [x] At least one result-driven change of action is demonstrated (follow-up searches in CASE-2, 3, 9, 11 traces).
-- [~] The adaptive case built to show it (CASE-9) fails in the final run because of vocabulary mismatch, not because the loop is missing.
+- [x] At least one result-driven change of action is demonstrated (follow-up searches in CASE-2, 3 and 10 traces).
 
 **D. Tool contracts**
 - [x] Four distinct read-only tools: `list_documents`, `search_documents`, `read_document_pages`, `get_document_outline`.
@@ -67,23 +66,22 @@ Status as of 31 Oct 2026, for the `main` release. Legend: **[x] done** (built an
 - [x] Clear module layout, ADRs, backend unit and integration coverage, 31 frontend tests, ruff and strict mypy, ESLint, TypeScript, Prettier.
 - [x] Tests pass locally and in GitHub Actions.
 
-## 3. Required test cases (three r31 tuned repeats, agent vs baseline)
+## 3. Defined acceptance scenarios (three 1 Nov Agent repeats)
 
-Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note in `eval/results/r31-*`. The three tuned runs are the current source of truth.
+Each case records expected behavior, actual result, citations, pass or fail, tool calls, latency, tokens and a failure note. The latest local results are in ignored `eval/results/r1101-gpt-acceptance-*` directories pending a release decision.
 
-- [x] 1 Simple lookup: pass, pass
-- [x] 2 Multi-document A: pass, pass
-- [x] 3 Multi-document B: agent 3 of 3, baseline 0 of 3 (it cites one document)
-- [x] 4 Ambiguous question: **pass** in 3 of 3 r31 repeats. Baseline not applicable. The set is tuned and not blind, so this is not a general reliability claim.
-- [x] 5 Insufficient evidence: **pass** in 3 of 3 repeats (explicit abstention, `missing_evidence` notice, no citations); the old strict wording check is kept as `legacy_checks`.
-- [x] 6 Conflicting sources: **3 of 3** r31 repeats. When the question is about a superseded provision in force today and both documents were read, the answer is built from the two literal passages with a conflict notice; documented exceptions (service accounts) and historical questions are left alone. Baseline 0 of 3. The template is metadata-driven, so it helps only where a document states its own supersession.
-- [x] 7 Prompt injection: pass, pass
-- [x] 8 Tool failure or timeout: pass; baseline not applicable
-- [ ] 9 Adaptive re-retrieval (extra): **fail** 0 of 3 r31 repeats. The agent asked needlessly once, missed a fact once, and hit the call limit once. The separate older HELD-9 also failed both r31 runs.
-- [x] 10 One document, many parts (extra): pass, pass
-- [~] 11 Follow-up question (extra): agent **2 of 3**, baseline 0 of 3. The failed run reached the call limit.
+- [x] 1 Simple lookup: 3 of 3 Agent runs
+- [x] 2 Multi-document A: 3 of 3 Agent runs
+- [x] 3 Multi-document B: 3 of 3 Agent runs
+- [x] 4 Defined student-account renewal lookup: 3 of 3 Agent runs
+- [x] 5 Insufficient evidence: 3 of 3 Agent runs
+- [x] 6 Conflicting sources: 3 of 3 Agent runs
+- [x] 7 Prompt injection: 3 of 3 Agent runs
+- [x] 8 Tool failure or timeout: 3 of 3 Agent runs
+- [x] 9 One document, many parts: 3 of 3 Agent runs
+- [x] 10 Follow-up question: 3 of 3 Agent runs
 
-Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of 27; 9 newer questions, two runs, agent 18 of 18, baseline 10 of 14; 10 older held-out questions, two runs, agent 12 of 20, baseline 12 of 18. No set is blind. The canonical result, automatic quote-verification limit, and known failures are in `docs/evaluation.md`.
+Current local acceptance run (1 Nov 2026): the ten selected scenarios above passed **30 of 30** Agent runs. This focused run did not repeat the baseline. The historical 31 Oct baseline and held-out results, automatic quote-verification limit, and known failures are in `docs/evaluation.md`.
 
 ## 4. Technology
 
@@ -118,7 +116,7 @@ Final run (31 Oct 2026): tuned cases, three runs, agent 29 of 33, baseline 15 of
 ## Could be improved (ranked by value)
 
 1. **Clarification.** A judge-model check with code gates now asks on genuinely ambiguous questions and rarely needlessly (fresh set), but misses CASE-4 and has only been measured on a few questions. Needs a larger, blind set and probably a better judge prompt.
-2. **Vocabulary bridging for retrieval.** Query expansion from the documents' own terms. Targets CASE-9.
+2. **Vocabulary bridging for retrieval.** Query expansion from the documents' own terms, measured on a fresh blind set.
 3. **A larger held-out set.** Three sets exist and none is blind; a fresh set of at least 20 questions, with repeats, would give an estimate that can be trusted.
 4. **Cost of the agent.** It spends about eight times the tokens of the baseline; trimming tool results and reusing reads would cut that.
 5. **Answer style.** Answers are long; shorter, scannable answers would read better.

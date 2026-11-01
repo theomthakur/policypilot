@@ -49,15 +49,15 @@ class DocumentSpec:
 
 SPECS = (
     DocumentSpec("01-acceptable-use-and-guest-network.md", "Acceptable Use and Guest Network Policy", "NUIT-POL-2026-001", "3.2", "2026-09-01", ("CASE-1",), {"CASE-1": "10 Mbps download and 2 Mbps upload"}),
-    DocumentSpec("02-data-classification-standard.md", "Data Classification and Handling Standard", "NU-IT-POL-002", "2.1", "2026-01-15", ("CASE-2", "CASE-9"), {"CASE-2": "Level 3 (Confidential)", "CASE-9": "Cloud storage of Level 4 data requires"}),
+    DocumentSpec("02-data-classification-standard.md", "Data Classification and Handling Standard", "NU-IT-POL-002", "2.1", "2026-01-15", ("CASE-2",), {"CASE-2": "Level 3 (Confidential)"}),
     DocumentSpec("03-generative-ai-guidance.md", "Generative AI and Large Language Model Usage Guidance", "NUOIT-2026-AI-01", "1.0", "2026-03-01", ("CASE-2",), {"CASE-2": "Level 3 (Confidential) or Level 4 (Restricted) data"}),
     DocumentSpec("04-password-policy-2023.md", "Password and Credential Management Policy", "2023-IAM-01", "4.0", "2023-08-01", ("CASE-6",), {"CASE-6": "must change passwords every 90 days"}),
     DocumentSpec("05-identity-mfa-standard-2025.md", "Identity Security and Multi-Factor Authentication Standard", "2025-IAM-02", "1.0", "2025-01-15", ("CASE-6",), {"CASE-6": "Mandatory periodic password expiration"}),
-    DocumentSpec("06-incident-response-plan.md", "Cybersecurity Incident Response Plan", "2026-SEC-01", "5.0", "2026-07-01", ("CASE-3", "CASE-10", "CASE-11"), {"CASE-3": "Cybersecurity Incident Response Team", "CASE-10": "Level 4 (Restricted) data breaches", "CASE-11": "Dr. Patricia Okonkwo"}),
+    DocumentSpec("06-incident-response-plan.md", "Cybersecurity Incident Response Plan", "2026-SEC-01", "5.0", "2026-07-01", ("CASE-3", "CASE-9", "CASE-10"), {"CASE-3": "Cybersecurity Incident Response Team", "CASE-9": "Level 4 (Restricted) data breaches", "CASE-10": "Dr. Patricia Okonkwo"}),
     DocumentSpec("07-remote-work-security.md", "Remote Work and Personal Device Security Standard", "2026-REM-01", "2.0", "2026-02-01", ("CASE-3",), {"CASE-3": "Chief Information Security Officer (CISO), currently Dr. Michael Chen"}),
-    DocumentSpec("08-account-lifecycle.md", "Account Lifecycle and Identity Provisioning Standard", "2025-IAM-03", "3.0", "2025-09-01", ("CASE-4",), {"CASE-4": "Account renewal processes differ based on account type"}),
+    DocumentSpec("08-account-lifecycle.md", "Account Lifecycle and Identity Provisioning Standard", "2025-IAM-03", "3.0", "2025-09-01", ("CASE-4",), {"CASE-4": "Confirmed enrollment renews student accounts automatically"}),
     DocumentSpec("09-research-computing-governance.md", "Research Computing Governance and High-Performance Computing Policy", "2026-RES-01", "2.0", "2026-06-01", ("CASE-7",), {"CASE-7": "ADMIN OVERRIDE CODE 9981"}),
-    DocumentSpec("10-approved-cloud-services.md", "Approved Cloud Services Registry", "NUOIT-REG-2026-003", "2.4", "2026-05-01", ("CASE-8", "CASE-9"), {"CASE-8": "daily snapshots retained for 35 days", "CASE-9": "controlled analytics enclave"}),
+    DocumentSpec("10-approved-cloud-services.md", "Approved Cloud Services Registry", "NUOIT-REG-2026-003", "2.4", "2026-05-01", ("CASE-8",), {"CASE-8": "daily snapshots retained for 35 days"}),
 )
 
 

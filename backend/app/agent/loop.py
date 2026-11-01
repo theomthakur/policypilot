@@ -1073,7 +1073,13 @@ class AgentRun:
             (t - set().union(*(u for u in label_tokens if u is not t))) - _GENERIC_STEMS
             for t in label_tokens
         ]
-        value_named = bool(
+        question_words = " ".join(re.findall(r"[a-z0-9]+", self.question.lower()))
+        label_named = any(
+            len(_tokens(label)) > 0
+            and " ".join(re.findall(r"[a-z0-9]+", label.lower())) in question_words
+            for label in options
+        )
+        value_named = label_named or bool(
             _tokens(verdict.value_in_question or "") & set().union(*unique)
             if label_tokens
             else (verdict.value_in_question or "").strip()
@@ -1083,7 +1089,17 @@ class AgentRun:
         # different rules. Let that deterministic evidence win over a single probabilistic boolean.
         evidence_rules_differ = len(options) >= 2
         answers_differ = verdict.answers_differ or evidence_rules_differ
-        ask = answers_differ and not value_named and not default and len(options) >= 2
+        # A documented supersession is a policy-version question, not an omitted-user-detail question.
+        # Let the conflict resolver compare the sourced rules instead of asking the user to choose
+        # between an old general rule and a newer standard.
+        has_documented_supersession = any(bool(hit.get("supersedes")) for hit in hits)
+        ask = (
+            answers_differ
+            and not value_named
+            and not default
+            and len(options) >= 2
+            and not has_documented_supersession
+        )
         mentions = verdict.clarification_question.strip().lower()
         dropped = [d["label"].lower() for d in variants.details if d.get("status") != "verified"]
         if ask and not (
@@ -1120,6 +1136,7 @@ class AgentRun:
                 "default_asserted": verdict.default_reading
                 if verdict.default_reading and not default
                 else None,
+                "documented_supersession": has_documented_supersession,
             },
             tokens={"prompt": response.prompt_tokens, "completion": response.completion_tokens},
         )

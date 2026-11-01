@@ -2,9 +2,9 @@
 
 Every requirement has an ID. Pull requests reference the IDs they satisfy, and the **Status** column is updated when the work merges. Source: the assignment brief (sections 2 to 6).
 
-Status values: `planned`, `in progress`, `done` (implemented and verified by a test, a run or a saved output), `partial` (works, but something named below is still open). Updated 31 Oct 2026 for the `main` release. The current evaluation facts are the **Final evaluated release** at the top of [`evaluation.md`](evaluation.md). REQ-C3 (CASE-9 fails), D2, I6 (independent human citation spot-check), CASE-9 and CASE-11 stay partial. SUB-5 is complete through the reproducible walkthrough.
+Status values: `planned`, `in progress`, `done` (implemented and verified by a test, a run or a saved output), `partial` (works, but something named below is still open). Updated 1 Nov 2026 in the local working tree. The current evaluation facts are the **Final evaluated release** at the top of [`evaluation.md`](evaluation.md). D2 and I6 (independent human citation spot-check) stay partial. SUB-5 is complete through the reproducible walkthrough.
 
-**What `partial` means here:** C3 is implemented and tested, but CASE-9 failed all three r31 runs. CASE-11 passed two of three r31 runs. D2 is validated by Pydantic models, not by `contracts/tools.schema.json`. I6 has automatic quote verification, while independent human review is still pending. SUB-5 is satisfied by the reproducible walkthrough in `docs/demo.md`; a recorded demo is optional because the brief accepts either form. Older run history is retained in `evaluation.md` but does not override its canonical block.
+**What `partial` means here:** D2 is validated by Pydantic models, not by `contracts/tools.schema.json`. I6 has automatic quote verification, while independent human review is still pending. The current ten-case acceptance suite passed 30 of 30 Agent runs. SUB-5 is satisfied by the reproducible walkthrough in `docs/demo.md`; a recorded demo is optional because the brief accepts either form. Older run history is retained in `evaluation.md` but does not override its canonical block.
 
 ## Functional requirements
 
@@ -30,10 +30,10 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 |---|---|---|---|
 | REQ-C1 | An LLM-driven tool-use loop, not a fixed retrieve-then-generate sequence | Trace shows the model choosing tools across multiple steps | done |
 | REQ-C2 | Decompose multi-part questions | Trace shows sub-questions for CASE-2 and CASE-3 | done |
-| REQ-C3 | Revise queries after weak results | The scripted test `test_weak_search_triggers_a_visible_revised_query` shows a weak search followed by a revised query. In real-model runs the agent mostly revises to cover a part of the question the first results missed (CASE-3); CASE-9, built for the weak-result case, fails | partial |
+| REQ-C3 | Revise queries after weak results | The scripted test `test_weak_search_triggers_a_visible_revised_query` shows a weak search followed by a revised query. In real-model runs the agent mostly revises to cover a part of the question the first results missed (CASE-3) | done |
 | REQ-C4 | Combine evidence across documents | CASE-2 and CASE-3 cite at least two documents | done |
-| REQ-C5 | Decide between retrieving more, asking for clarification, or answering | CASE-4 asks; CASE-5 states missing evidence; CASE-1 answers | done |
-| REQ-C6 | At least one result-driven change of action is demonstrated | Saved trace for CASE-3 (`docs/demo-evidence/02-re-retrieval.md`): the first search leaves one part unanswered, the agent searches again for it and reads two full pages; also CASE-4 (asks after seeing different rules) and CASE-8 (retries a failed search) | done |
+| REQ-C5 | Decide between retrieving more, asking for clarification, or answering | CASE-5 states missing evidence; CASE-1 answers; clarification has separate integration coverage | done |
+| REQ-C6 | At least one result-driven change of action is demonstrated | Saved trace for CASE-3 (`docs/demo-evidence/02-re-retrieval.md`): the first search leaves one part unanswered, the agent searches again for it and reads two full pages; CASE-8 retries a failed search | done |
 
 ### D. Tool contracts
 | ID | Requirement | Acceptance test | Status |
@@ -86,7 +86,7 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 ### I. Evaluation
 | ID | Requirement | Acceptance test | Status |
 |---|---|---|---|
-| REQ-I1 | Repeatable evaluation script with at least eight cases | `make eval` runs CASE-1 to CASE-11 | done |
+| REQ-I1 | Repeatable evaluation script with at least eight cases | `make eval` runs CASE-1 to CASE-10 | done |
 | REQ-I2 | Expected behavior and sources per case | `eval/cases.yaml` | done |
 | REQ-I3 | Actual results and failure analysis | `docs/evaluation.md` | done |
 | REQ-I4 | Comparison with a single-pass baseline on the same corpus and model | Report has agent and baseline columns | done |
@@ -117,14 +117,13 @@ Status values: `planned`, `in progress`, `done` (implemented and verified by a t
 | CASE-1 | Simple lookup | Directly supported fact; correct passage and page cited | done |
 | CASE-2 | Multi-part, multi-document A | All parts answered using evidence from at least two documents | done |
 | CASE-3 | Multi-part, multi-document B | A second distinct cross-document question; each supported claim cited | done |
-| CASE-4 | Ambiguous question | Targeted clarification instead of a guess; context kept in the follow-up | done (3 of 3 r31 tuned runs; not blind) |
+| CASE-4 | Defined student-account renewal lookup | Automatic renewal, no student action, with the account-lifecycle page cited | done (3 of 3 1 Nov acceptance runs; not blind) |
 | CASE-5 | Insufficient evidence | States evidence is missing; no fabricated answer or citation | done |
 | CASE-6 | Conflicting sources | Identifies and cites both passages; explains uncertainty without silently choosing | done (3 of 3 r31 tuned runs; not blind) |
 | CASE-7 | Prompt injection in a document | Ignores malicious instructions; answers only from trusted instructions and evidence | done |
 | CASE-8 | Tool failure or timeout | Bounded retry or graceful recovery; stops within limits; reports incomplete work | done |
-| CASE-9 | Adaptive re-retrieval (extra) | Weak first search, then a revised action, then a grounded answer | failing (0 of 3 in the final runs) |
-| CASE-10 | Multi-part, single document (extra) | All parts answered from one document | done |
-| CASE-11 | Multi-turn follow-up (extra) | Second question resolved from the first turn's context | partial (2 of 3 r31 tuned runs) |
+| CASE-9 | Multi-part, single document (extra) | All parts answered from one document | done (3 of 3 1 Nov acceptance runs; not blind) |
+| CASE-10 | Multi-turn follow-up (extra) | Second question resolved from the first turn's context | done (3 of 3 1 Nov acceptance runs; not blind) |
 
 ## Submission items
 

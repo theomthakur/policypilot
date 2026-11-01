@@ -38,7 +38,7 @@ Show, in the Agent activity tab:
 
 This passes in every evaluation run. Say plainly what the revision is: in real runs, the agent's second search almost always targets a part of the question the first results did not cover. A rewrite after a *weak* first result is covered by a scripted test (`test_weak_search_triggers_a_visible_revised_query`), because the real model rarely gets a weak first result on this corpus.
 
-Saved: `demo-evidence/02-re-retrieval.md`. The vocabulary-mismatch case (CASE-9) is a known failing case and is not used for the demo.
+Saved: `demo-evidence/02-re-retrieval.md`. The demonstrated re-retrieval flow is a saved trace rather than part of the normal walkthrough.
 
 ## 3. Clarification with retained context
 
