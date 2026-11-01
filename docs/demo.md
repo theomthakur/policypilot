@@ -75,19 +75,25 @@ Open **Knowledge base**, click **Upload PDF** and choose the assignment PDF.
 
 Don't wait for it. It indexes while you show the design.
 
-### 2:20 to 3:00. System design
+### 2:20 to 3:00. System design, presentation, dark and developer mode
 
-Click **System design** in the sidebar. Move down the four rows, pointing at each one as you say it.
+Click **System design** in the sidebar and scroll once through it.
 
-> "Here's how it's built. **Top row:** when a document comes in, it goes into a job queue, then gets parsed page by page, cut into small chunks, embedded and indexed in PostgreSQL. That's what's happening to my upload right now."
+> "This is the design in one page: documents are parsed, chunked and indexed into PostgreSQL; questions go through the agent loop and the quote checker; and the same code runs on Render, Docker Compose and Kubernetes."
 
-> "**Second row:** when a question comes in, the API checks who you are, then the agent loop plans, searches, reads pages and searches again if it needs to, at most six tool calls. The verifier checks every quote against the page before the answer is shown."
+Click **Presentation**.
 
-> "**Shared services:** PostgreSQL holds everything durable: documents, vectors, conversations and the job queue. Redis is only a cache; the app still works without it."
+> "And there's a short slide deck built into the app, covering the problem, how it's built and the measured results, so the story is in one place."
 
-> "**Where it runs:** the same code runs on Render for reviewers, on Docker Compose locally with sign-in, and on Kubernetes, which I tested on a local cluster."
+Go back to the workspace. Click the **moon icon** in the sidebar footer, then click it again.
 
-Go back to the workspace. If the upload shows as ready, ask one question about it, for example:
+> "It has a dark mode."
+
+Click the **code icon** (Developer mode).
+
+> "And developer mode shows the run totals for each answer: steps, searches, tokens, time and estimated cost."
+
+Then return to the workspace's answer view. If the upload shows as ready, ask one question about it, for example:
 
 > What does the assignment require for the evaluation?
 
