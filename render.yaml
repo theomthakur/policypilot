@@ -26,8 +26,6 @@ services:
         value: openai_compatible
       - key: LLM_BASE_URL
         value: https://openrouter.ai/api/v1
-      - key: LLM_MODEL
-        value: openai/gpt-4o-mini
       - key: LLM_API_KEY
         sync: false
       - key: POSTGRES_HOST
